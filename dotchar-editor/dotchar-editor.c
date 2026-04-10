@@ -1,15 +1,10 @@
 /*******************************************************************************************
 *
-*   DOT FONT EDITOR
+*   DOT CHAR EDITOR
 *
-*   Bisogna installare raylib da repository ufficiali Archlinux, mentre raygui va
-*   installato da AUR.
-*
-
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************/
-
 
 #include <stdio.h>
 #include <time.h>
@@ -22,6 +17,9 @@
 #include "raygui.h"
 
 // TODO
+// aggiungere alcune utilita tipo inversione, specchio orizzontale verticale,
+// tutto pieno, vuoto etc
+// evolvere in un vero dot font editor?
 
 const int screenWidth = 696;
 const int screenHeight = 672;
