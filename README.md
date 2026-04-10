@@ -1,4 +1,4 @@
-# raylib
+# Learning C (using raylib) 
 C + Raylib simple projects (to learn C code)
 
 #### How to use (compiling and running on ArchLinux):
