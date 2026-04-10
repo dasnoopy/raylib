@@ -1,13 +1,14 @@
 /*******************************************************************************************
 *
-*   DOT CHAR EDITOR v.1.2
+*   DOT CHAR EDITOR v.1.3
 *   a simple app to learn C using raylib library
 * 
 *  CHANGELOG:
 * 
 *  v. 1.0 : first release: draw a 8x8 dot matrix and show/copy HEX value
 *  v. 1.2 : add controls to shift matrix up/down/left/right/invert/rotate left/right
-*
+*  v. 1.3 : add some other trivial utilities and code cleaning
+* 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************/
@@ -30,7 +31,7 @@ const int screenWidth = 724;
 const int screenHeight = 672;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 grid_bin_XY = { 144,144 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 grid_bin_XY = { 144, 144 }; // x, y devono essere uguale o multiplo di gridSpacing ....
 Vector2 grid_hex_XY = { 572, 144 };
 
 #define gridSpacing               48
@@ -39,6 +40,7 @@ Vector2 grid_hex_XY = { 572, 144 };
 #define MAX_GRID_HEX_X            2
 #define MAX_GRID_HEX_Y MAX_GRID_BIN_Y 
 
+bool showGrid = false;
 // matrici
 int matrice[MAX_GRID_BIN_X][MAX_GRID_BIN_Y];
 char hex[MAX_GRID_HEX_X][MAX_GRID_BIN_Y];
@@ -46,7 +48,7 @@ char hex[MAX_GRID_HEX_X][MAX_GRID_BIN_Y];
 
 // NORD colors
 #define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
-#define FG_COLOR CLITERAL(Color){ 236, 239, 244, 255}
+#define FG_COLOR CLITERAL(Color){ 216, 219, 224, 255}
 #define GRID_COLOR CLITERAL(Color){ 191, 202, 213, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
 #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
@@ -94,10 +96,16 @@ void draw_bin_grid(void)
 // Draw hex matrix grid
 void draw_hex_grid(void)
 {
+
+            // background
             for (int y = 0; y <= MAX_GRID_HEX_Y; y++)
+            {
+                for (int x = 0; x <= MAX_GRID_HEX_X; x++)
+                {   
                 DrawLine((int)grid_hex_XY.x, (int)grid_hex_XY.y + y * gridSpacing,(int)grid_hex_XY.x + MAX_GRID_HEX_X * gridSpacing, (int)grid_hex_XY.y + y * gridSpacing, GRID_COLOR);
-            for (int x = 0; x <= MAX_GRID_HEX_X; x++)
                 DrawLine((int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y,(int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y + MAX_GRID_HEX_Y * gridSpacing, GRID_COLOR);
+                }
+            }
 }
 
 // converti numero da 0-15 a esaadecimale 0-A
@@ -140,26 +148,27 @@ void BinToHex (void)
 }
 
 //  disegna bit delle matrice in base al loro valore
-void printBin()
+void drawBinCells()
 {
             for (int i = 0; i < MAX_GRID_BIN_Y; i++)
                 {
                     for (int j = 0; j < MAX_GRID_BIN_X; j++)
                     {
-                        // disegna cell in base al valore 1/0 : cambiare anche cursore nella sezaione BegonDrawing
+                        // disegna sfondo cella  in base al valore 1/0
+                        // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
                         DrawRectangle(grid_bin_XY.x + gridSpacing*j, grid_bin_XY.y + gridSpacing*i, 
                           gridSpacing -1, 
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                         // mostra miniatura matrice per debug
-                                DrawRectangleLines(44, 96, 48, 48, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
-                                DrawRectangle(48 + 5*j, 100 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
+                                DrawRectangleLines(44, 64, 48, 48, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
+                                DrawRectangle(48 + 5*j, 68 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
                 }   
 }
 
 // stampa valori esadecimali nella relativa griglia
-void printHex (void)
+void printHexValues (void)
 {
       for (int i = 0; i < MAX_GRID_HEX_Y; i++)
         {
@@ -210,6 +219,7 @@ int main (int argc, char *argv[])
     bool btnClearPressed = false;
     bool btnQuitPressed = false;
     // toolbar
+    bool btnShowGridPressed = false;
     bool btnShiftRightPressed = false;
     bool btnShiftLeftPressed = false;
     bool btnShiftDownPressed = false;
@@ -252,6 +262,9 @@ int main (int argc, char *argv[])
             clipboardText = GetClipboardText(); // Get text from clipboard
         }
         if (btnQuitPressed) break;
+        
+        if (btnShowGridPressed) showGrid = !showGrid;
+
         
         if (btnInvertPressed)
         {
@@ -356,7 +369,7 @@ int main (int argc, char *argv[])
                    matrice[i][j] = temp;
                 }
             }
-            // poi ruota di 90°  
+            // poi ruota di 90° in senso orario
             for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
                 for (int j = 0,k = MAX_GRID_BIN_X -1; j<k; j++, k--) { 
                    int temp = matrice[j][i];
@@ -416,7 +429,7 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
 
             // print titles and some heaaders
-            DrawText("Dot char editor v.1.0 by: daSoft @2026", 144, 48, 20, FG_COLOR); 
+            DrawText("Dot char editor v.1.3 by: daSoft @2026", 144, 48, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("HEX"), grid_hex_XY.x + 32, grid_bin_XY.y - 32, 20, SKYBLUE);
             
@@ -433,12 +446,15 @@ int main (int argc, char *argv[])
                 DrawText  ("0x",grid_hex_XY.x -34 , grid_hex_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
             }
           
-            //draw_bin_grid ();
-            draw_hex_grid ();
-            printHex();  // print HEX matrix
-            BinToHex(); //popola matrice valori esadecimali dalla corrispondente riga di matrice binaria
-            printBin(); // print BIN matrix
-            // "cursore" che si sposta sulle celle...
+            if (showGrid) draw_bin_grid (); // disegnaa o meno laa griglia della matrice binariaa
+            
+            drawBinCells(); // 1) disegna la matrice binaria disegnando lo sfondo della cella cambiando il colore di sfondo in base al valore 1/0
+            draw_hex_grid(); // 2) disegna la matrice esadecimale
+
+            BinToHex(); // 3) converti il valore binario di ogni riga nel corrispondente valore esadecimal (8 bit -> 1 byte 0x hex)
+            printHexValues();  // 4) stampa nella matrice il valore esadecimale
+
+            // 5) aaggiorna in tempo reale la posizione della cella aattuale ("cursore") quando mouse o tastiera si spostano sulle celle...
             DrawRectangle((int)grid_bin_XY.x + player.cell.x*gridSpacing, 
                           (int)grid_bin_XY.y + player.cell.y*gridSpacing, 
                           gridSpacing -1, 
@@ -451,13 +467,14 @@ int main (int argc, char *argv[])
         btnQuitPressed  = GuiButton((Rectangle){ 400, 600, 96, 40 }, "#152#Quit");
 
         // left toolbar
+        btnShowGridPressed   = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y, 40, 40 }, "#97#");
         btnShiftUpPressed    = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 1, 40, 40 }, "#117#");
         btnShiftRightPressed = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 2, 40, 40 }, "#115#");
         btnShiftLeftPressed  = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 3, 40, 40 }, "#114#");
         btnShiftDownPressed  = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 4, 40, 40 }, "#116#");
-        btnInvertPressed     = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 5, 40, 40 }, "#94#");
-        btnRotateLeft        = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 6, 40, 40 }, "#72#");
-        btnRotateRight       = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 7, 40, 40 }, "#73#");
+        btnRotateLeft        = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 5, 40, 40 }, "#72#");
+        btnRotateRight       = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 6, 40, 40 }, "#73#");
+        btnInvertPressed     = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 7, 40, 40 }, "#94#");
 
         EndDrawing();
     }
