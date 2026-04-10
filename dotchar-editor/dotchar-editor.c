@@ -133,9 +133,10 @@ void BinToHex (void)
         }
     }
 }
+
+//  disegna bit delle matrice in base al loro valore
 void printBin()
 {
-          //printBin();
             for (int i = 0; i < MAX_GRID_BIN_Y; i++)
                 {
                     for (int j = 0; j < MAX_GRID_BIN_X; j++)
@@ -172,7 +173,7 @@ void resetMatrici()
         }    
 }
 
-// calcolo di pontenze x^y
+// calcolo di potenze x^y
 int potenza(int base, int esp)
 {
      int res = 1;
@@ -297,18 +298,18 @@ int main (int argc, char *argv[])
             // print titles and some heaaders
             DrawText("Dot char editor v.1.0 by: daSoft @2026", 144, 48, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("MSB LSB"), grid_hex_XY.x, grid_bin_XY.y - 32, 20, SKYBLUE);
+            DrawText(TextFormat("HEX"), grid_hex_XY.x + 32, grid_bin_XY.y - 32, 20, SKYBLUE);
             
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < MAX_GRID_BIN_X; z++)
             {
-                DrawText  (TextFormat("%02d",z),grid_bin_XY.x + 12 + (z * gridSpacing),grid_bin_XY.y -32 ,20,SKYBLUE); // bit decimal value
+                DrawText  (TextFormat("%01d",z+1),grid_bin_XY.x + 16 + (z * gridSpacing),grid_bin_XY.y -32 ,20,SKYBLUE); // bit decimal value
                 DrawText  (TextFormat("%02d",potenza(2,7-z)),grid_bin_XY.x + 12 + (z * gridSpacing),grid_bin_XY.y + 12 +  (gridSpacing*MAX_GRID_BIN_Y),20,SKYBLUE); // potenzaa del due in basso
             }
 
             for (int z = 0; z < MAX_GRID_BIN_Y; ++z)
             {
-                DrawText  (TextFormat("%02d",z),grid_bin_XY.x - 36,grid_bin_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
+                DrawText  (TextFormat("%01d",z+1),grid_bin_XY.x - 28,grid_bin_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
                 DrawText  ("0x",grid_hex_XY.x -34 , grid_hex_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
             }
           
