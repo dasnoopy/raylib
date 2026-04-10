@@ -41,13 +41,6 @@ int matrice[MAX_GRID_BIN_X][MAX_GRID_BIN_Y];
 char hex[MAX_GRID_HEX_X][MAX_GRID_BIN_Y];
 
 
-bool mouseHoverCells = false;
-
-
-
-bool debug = false; // visualizza info di debug si / no (sia a video che in console)
-#define DEBUG_COLOR YELLOW
-
 // NORD colors
 #define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
 #define FG_COLOR CLITERAL(Color){ 236, 239, 244, 255}
@@ -56,7 +49,8 @@ bool debug = false; // visualizza info di debug si / no (sia a video che in cons
 #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
 #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
 
-
+// mouse and clipoard
+bool mouseHoverCells = false;
 const char *clipboardText = NULL;
 char inputBuffer[256] = ""; // Random initial string
 
@@ -70,12 +64,12 @@ typedef struct {
 } Point;
 
 // Player state struct
-// NOTE: Contains all player data
 typedef struct {
     Point cell;
     Color color;
 } PlayerState;
 
+// 'fake' background
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
   Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
@@ -84,9 +78,9 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
+// Draw binary matrix grid
 void draw_bin_grid(void)
 {
-// Draw binary matrix grid
             
             for (int y = 0; y <= MAX_GRID_BIN_Y; y++)
                 DrawLine((int)grid_bin_XY.x, (int)grid_bin_XY.y + y * gridSpacing,(int)grid_bin_XY.x + MAX_GRID_BIN_X* gridSpacing, (int)grid_bin_XY.y + y*gridSpacing, GRID_COLOR);
@@ -94,10 +88,9 @@ void draw_bin_grid(void)
                 DrawLine((int)grid_bin_XY.x + x * gridSpacing, (int)grid_bin_XY.y,(int)grid_bin_XY.x + x * gridSpacing, (int)grid_bin_XY.y + MAX_GRID_BIN_Y*gridSpacing, GRID_COLOR);
 }
 
+// Draw hex matrix grid
 void draw_hex_grid(void)
 {
-// Draw hex matrix grid
-
             for (int y = 0; y <= MAX_GRID_HEX_Y; y++)
                 DrawLine((int)grid_hex_XY.x, (int)grid_hex_XY.y + y * gridSpacing,(int)grid_hex_XY.x + MAX_GRID_HEX_X * gridSpacing, (int)grid_hex_XY.y + y * gridSpacing, GRID_COLOR);
             for (int x = 0; x <= MAX_GRID_HEX_X; x++)
@@ -155,27 +148,23 @@ void printBin()
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                         // mostra miniatura matrice per debug
-                        if (debug) 
-                            {
                                 DrawRectangleLines(48, 96, 48, 48, BG_COLOR);  // NOTE: Uses QUADS internally, not lines
                                 DrawRectangle(52 + 5*j, 100 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
-                            }
-                        // mostra 1/0 nella matrice binaria
-                        //if (debug) DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30,GRID_COLOR);
                     }
                 }   
 }
 
+// stampa valori esadecimali nella relativa griglia
 void printHex (void)
 {
       for (int i = 0; i < MAX_GRID_HEX_Y; i++)
         {
-
              DrawText(TextFormat("%c", hex[0][i]), grid_hex_XY.x + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, GREEN);
              DrawText(TextFormat("%c", hex[1][i]), grid_hex_XY.x + gridSpacing + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, LIME);
         }
 }
 
+// azzera matrice binaria e di conseguenza anche quella esadecimale
 void resetMatrici()
 {
     //reset matrice binaria
@@ -183,15 +172,9 @@ void resetMatrici()
         {  for (int j = 0; j < MAX_GRID_BIN_X; j++)
                     { matrice[j][i] = 0; }
         }    
-    
-    // //reset matrice esadecimale
-    // for (int i = 0; i < MAX_GRID_HEX_Y; i++)
-    //     {  
-    //         hex[0][i] = 0;
-    //         hex[1][i] = 0;
-    //     } 
 }
 
+// calcolo di pontenze x^y
 int potenza(int base, int esp)
 {
      int res = 1;
@@ -207,6 +190,7 @@ int main (int argc, char *argv[])
 {
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "DotChar Editor");
+    
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
     SetWindowState(FLAG_WINDOW_UNDECORATED);
@@ -216,11 +200,10 @@ int main (int argc, char *argv[])
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(60);
-    //Vector2 mousePos = GetMousePosition();
+
     // UI required variables
     bool btnCopyPressed = false;
     bool btnClearPressed = false;
-    bool btnDebugPressed = debug;
     bool btnQuitPressed = false;
 
     // Set UI style
@@ -239,13 +222,9 @@ int main (int argc, char *argv[])
     //reset matrice binaria
     resetMatrici();
 
-
-// Source - https://stackoverflow.com/a/2218305
-// Posted by Salv0, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-04-08, License - CC BY-SA 2.5
-
     while (!WindowShouldClose())
     {
+        //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
 
@@ -255,7 +234,6 @@ int main (int argc, char *argv[])
             player.cell.x = 0;
             player.cell.y = 0;
         }
-        if (btnDebugPressed) debug=!debug;
         if (btnCopyPressed)
         {
             SetClipboardText(inputBuffer); // Copy text to clipboard
@@ -282,10 +260,8 @@ int main (int argc, char *argv[])
         else if (player.cell.y < 0) player.cell.y = 0 ;
         else if (player.cell.y >= MAX_GRID_BIN_Y) player.cell.y = MAX_GRID_BIN_Y-1;
 
-
         // rileva se la posizione mouse e' dentro la matrice binaria...
         mouseHoverCells = CheckCollisionPointRec(GetMousePosition(), (Rectangle){ grid_bin_XY.x, grid_bin_XY.y, MAX_GRID_BIN_X*gridSpacing,MAX_GRID_BIN_Y*gridSpacing });
-
 
             if (mouseHoverCells)
             {
@@ -294,7 +270,7 @@ int main (int argc, char *argv[])
                 {
                     player.cell.x = (GetMouseX() - grid_bin_XY.x) / gridSpacing ;
                     player.cell.y = (GetMouseY() - grid_bin_XY.y) / gridSpacing;
-
+                    // disegna bit 1/0
                     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = 1;  
                     if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0; 
                 }
@@ -307,9 +283,9 @@ int main (int argc, char *argv[])
         // cambia /inverti stato "bit" premento la BARRA SPAZIO
         if ( (IsKeyPressed(KEY_SPACE)) ) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
 
+        //----------------------------------------------------------------------------------
 		// Draw
         //----------------------------------------------------------------------------------
-
         BeginTextureMode(target);
             ClearBackground(BLANK);
         EndTextureMode();
@@ -338,7 +314,6 @@ int main (int argc, char *argv[])
                 DrawText  ("0x",grid_hex_XY.x -34 , grid_hex_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
             }
           
-            // draw bin and hex matrix
             //draw_bin_grid ();
             draw_hex_grid ();
             printHex();  // print HEX matrix
@@ -351,25 +326,13 @@ int main (int argc, char *argv[])
                           gridSpacing -1,
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
 
-            // DEBUG INFO
-            // show bit value of bin matrix of current cursor position
-            //if (debug) DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30, DEBUG_COLOR);
-            
-            // show some info 
-            //if (debug) DrawText(TextFormat("row: %02i, col: %02i, bit value: %02i, hex byte val: Ox%c%c", i, j, matrice[player.cell.x][player.cell.y], hex[0][player.cell.y], hex[1][player.cell.y]), 112,588, 20, DEBUG_COLOR);
-            
-            // show mouse cursor position
-            //if (debug) DrawText(TextFormat("[%i,%i]", GetMouseX(), GetMouseY()), mousePos.x - 44, (mousePos.y > GetScreenHeight() - 60)? (int)mousePos.y - 46 : (int)mousePos.y + 30, 20, DEBUG_COLOR);
-        
          // Draw buttons
-        btnDebugPressed = GuiButton((Rectangle){ 150, 576, 96, 40 }, "#193#Preview");
-        btnCopyPressed = GuiButton((Rectangle){ 255, 576, 96, 40 }, "#16#CopyHEX");
-        btnClearPressed = GuiButton((Rectangle){ 360, 576, 96, 40 }, "#143#Reset");
-        btnQuitPressed = GuiButton((Rectangle){ 465, 576, 96, 40 }, "#74#Quit");
+        btnCopyPressed = GuiButton((Rectangle){ 200, 576, 96, 40 }, "#16#CopyHEX");
+        btnClearPressed = GuiButton((Rectangle){ 300, 576, 96, 40 }, "#143#Reset");
+        btnQuitPressed = GuiButton((Rectangle){ 400, 576, 96, 40 }, "#74#Quit");
 
         EndDrawing();
     }
-
     UnloadRenderTexture(target);
     CloseWindow();
     return 0;
