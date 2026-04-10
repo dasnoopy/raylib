@@ -1,0 +1,8 @@
+alcune idee per evolvere il programma :
+
+https://xantorohara.github.io/led-matrix-editor/#
+https://github.com/xantorohara/led-matrix-editor
+
+https://ledmatrix-editor.arduino.cc/
+
+https://dotmatrixtool.com/

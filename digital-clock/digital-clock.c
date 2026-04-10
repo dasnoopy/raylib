@@ -1,0 +1,179 @@
+#include <stdio.h>
+#include <time.h>
+#include <raylib.h>
+#include <stdbool.h>
+
+#define WIDTH 480 //preferibilmento multiplo di 60
+#define HEIGHT WIDTH/3
+
+
+// NORD colors
+#define BACK_COLOR CLITERAL(Color){46, 52, 64, 222}
+#define ON_COLOR CLITERAL(Color){ 163, 190, 140, 255 }
+#define OFF_COLOR CLITERAL(Color){ 59, 66, 82, 200 } 
+// digits style
+#define SEGMENT_WIDTH WIDTH/16
+#define SEGMENT_THICKNESS SEGMENT_WIDTH/2
+#define OFFSET SEGMENT_THICKNESS*1.2
+// digits size and positioning
+#define START_X WIDTH/10
+#define DIGIT_DISTANCE SEGMENT_WIDTH*2.2
+#define COLON_DISTANCE DIGIT_DISTANCE/1.4
+#define COLON_RADIUS SEGMENT_THICKNESS/1.6
+
+
+int digits[10][7] = { {1,1,1,0,1,1,1}, //digit 0
+		   {0,0,1,0,0,1,0}, //digit 1
+		   {1,0,1,1,1,0,1}, //digit 2
+		   {1,0,1,1,0,1,1}, //digit 3
+		   {0,1,1,1,0,1,0}, //digit 4
+		   {1,1,0,1,0,1,1}, //digit 5
+		   {1,1,0,1,1,1,1}, //digit 6
+		   {1,0,1,0,0,1,0}, //digit 7
+		   {1,1,1,1,1,1,1}, //digit 8
+		   {1,1,1,1,0,1,1}};//digit 9
+
+void DrawSegment(Vector2 center, bool HORIZONTAL, Color color)
+{
+    // Create Real display segment
+    int count = 6;
+    Vector2 a,b,c,d,e,f;
+    if (HORIZONTAL)
+    {
+      a = (Vector2){center.x - SEGMENT_WIDTH/2 - SEGMENT_THICKNESS/2, center.y};
+      b = (Vector2){center.x - SEGMENT_WIDTH/2, center.y + SEGMENT_THICKNESS/2};
+      c = (Vector2){center.x - SEGMENT_WIDTH/2, center.y - SEGMENT_THICKNESS/2};
+      d = (Vector2){center.x + SEGMENT_WIDTH/2, center.y + SEGMENT_THICKNESS/2};
+      e = (Vector2){center.x + SEGMENT_WIDTH/2, center.y - SEGMENT_THICKNESS/2};
+      f = (Vector2){center.x + SEGMENT_WIDTH/2 + SEGMENT_THICKNESS/2, center.y};
+    }
+    else
+    {
+      a = (Vector2){center.x, center.y - SEGMENT_WIDTH/2 - SEGMENT_THICKNESS/2};
+      b = (Vector2){center.x - SEGMENT_THICKNESS/2, center.y - SEGMENT_WIDTH/2};
+      c = (Vector2){center.x + SEGMENT_THICKNESS/2, center.y - SEGMENT_WIDTH/2};
+      d = (Vector2){center.x - SEGMENT_THICKNESS/2, center.y + SEGMENT_WIDTH/2};
+      e = (Vector2){center.x + SEGMENT_THICKNESS/2, center.y + SEGMENT_WIDTH/2};
+      f = (Vector2){center.x, center.y + SEGMENT_WIDTH/2 + SEGMENT_THICKNESS/2};
+    }
+    
+    Vector2 points[] = {a,b,c,d,e,f};
+    DrawTriangleStrip(points, count, color);
+}
+
+void DrawDots(int x, int y, int seconds)
+{
+	// poly-lines
+  Vector2 center1 = { x, y - SEGMENT_WIDTH/2 };
+  Vector2 center2 = { x, y + SEGMENT_WIDTH/2 };
+  int   sides    = 4;
+  float radius   = SEGMENT_THICKNESS/2;
+  float rotation = 90;
+  DrawPoly ( center1, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR); // n sided filled polygon (Vector version)
+  DrawPoly ( center2, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR);   // n sided filled polygon (Vector version)
+}
+
+void DrawDigit (Vector2 center,int digit)
+{
+  // find out which segments to draw in which color
+  int *digit_segments = digits[digit];
+
+  // draw segments
+  Vector2 primo = {center.x, center.y - SEGMENT_WIDTH - OFFSET};
+  DrawSegment (primo, true, digit_segments[0] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 secondo = {center.x - SEGMENT_WIDTH/2 - OFFSET/2, center.y - SEGMENT_WIDTH/2 - OFFSET/2};
+  DrawSegment (secondo, false, digit_segments[1] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 terzo = {center.x + SEGMENT_WIDTH/2 + OFFSET/2, center.y - SEGMENT_WIDTH/2 - OFFSET/2};
+  DrawSegment (terzo, false, digit_segments[2] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 quarto = {center.x, center.y};
+  DrawSegment (quarto, true, digit_segments[3] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 quinto = {center.x - SEGMENT_WIDTH/2 - OFFSET/2, center.y + SEGMENT_WIDTH/2 + OFFSET/2};
+  DrawSegment (quinto, false, digit_segments[4] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 sesto = {center.x + SEGMENT_WIDTH/2 + OFFSET/2, center.y + SEGMENT_WIDTH/2 + OFFSET/2};
+  DrawSegment (sesto, false, digit_segments[5] ? ON_COLOR : OFF_COLOR );
+  
+  Vector2 settimo = {center.x , center.y + SEGMENT_WIDTH + OFFSET};
+  DrawSegment (settimo, true, digit_segments[6] ? ON_COLOR : OFF_COLOR );
+}
+
+void DrawTime(int hours, int minutes, int seconds)
+{
+//hours
+  float x = START_X;
+  DrawDigit((Vector2){x, HEIGHT/2},hours / 10);
+  x += DIGIT_DISTANCE;
+  DrawDigit((Vector2){x, HEIGHT/2},hours % 10);
+//colon
+  x += COLON_DISTANCE;
+  DrawDots(x,HEIGHT/2,seconds);
+//minutes
+  x += COLON_DISTANCE;
+  DrawDigit((Vector2){x, HEIGHT/2}, minutes / 10);
+  x += DIGIT_DISTANCE;
+  DrawDigit((Vector2){x, HEIGHT/2}, minutes % 10);
+//colons  
+  x += COLON_DISTANCE;
+ DrawDots(x, HEIGHT/2,seconds);
+//seconds
+  x += COLON_DISTANCE;
+  DrawDigit((Vector2){x, HEIGHT/2},seconds / 10);
+  x += DIGIT_DISTANCE;
+  DrawDigit((Vector2){x, HEIGHT/2},seconds % 10);
+}
+
+// Draw rectangle with rounded edges
+// void DrawRectangleRounded ( Rectangle rect, float radius, int segments
+//                             , Color color );
+void drawRectangleRounded (void)  {
+  Rectangle  rect = { 0, 0, WIDTH, HEIGHT};   // toplx, toply, width, height
+  float radius = 0.1;                        // rotate degrees
+  int     segs = 10;
+  Color color = BACK_COLOR;  // red, green, blue, alpha
+  DrawRectangleRounded ( rect, radius, segs, color );
+}
+
+
+int main (int argc, char *argv[])
+{
+	SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
+	InitWindow(WIDTH, HEIGHT, "Digital Clock");
+	// center window on the screen
+	SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
+	
+	SetWindowState(FLAG_WINDOW_UNDECORATED);
+    SetWindowState(FLAG_WINDOW_TOPMOST);
+//  SetWindowOpacity(0.9);
+	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
+
+	int currentFps = 1;
+  	SetTargetFPS(currentFps);
+  	
+	while (!WindowShouldClose())
+	{
+		BeginTextureMode(target);
+		ClearBackground(BLANK);
+		EndTextureMode();
+
+		BeginDrawing();
+		ClearBackground (BLANK);
+		drawRectangleRounded();
+		time_t now = time (NULL);
+		struct tm *t = localtime(&now);
+		DrawTime(t->tm_hour, t->tm_min, t->tm_sec);
+		//DrawText(TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (WIDTH/2)-28, HEIGHT/12, 10, WHITE);
+		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
+		EndDrawing();
+	}
+	
+	UnloadRenderTexture(target);
+	CloseWindow();
+	return 0;
+
+
+}
+
