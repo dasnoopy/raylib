@@ -1,6 +1,12 @@
 /*******************************************************************************************
 *
-*   DOT CHAR EDITOR
+*   DOT CHAR EDITOR v.1.2
+*   a simple app to learn C using raylib library
+* 
+*  CHANGELOG:
+* 
+*  v. 1.0 : first release: draw a 8x8 dot matrix and show/copy HEX value
+*  v. 1.2 : add controls to shift matrix up/down/left/right/invert/rotate left/right
 *
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
@@ -17,22 +23,21 @@
 #include "raygui.h"
 
 // TODO
-// aggiungere alcune utilita tipo inversione, specchio orizzontale verticale,
-// tutto pieno, vuoto etc
+
 // evolvere in un vero dot font editor?
 
-const int screenWidth = 696;
+const int screenWidth = 724;
 const int screenHeight = 672;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 grid_bin_XY = { 96,144 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 grid_hex_XY = { 528, 144 };
+Vector2 grid_bin_XY = { 144,144 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 grid_hex_XY = { 572, 144 };
 
 #define gridSpacing               48
 #define MAX_GRID_BIN_X            8
-#define MAX_GRID_BIN_Y            8
+#define MAX_GRID_BIN_Y MAX_GRID_BIN_X
 #define MAX_GRID_HEX_X            2
-#define MAX_GRID_HEX_Y  MAX_GRID_BIN_Y 
+#define MAX_GRID_HEX_Y MAX_GRID_BIN_Y 
 
 // matrici
 int matrice[MAX_GRID_BIN_X][MAX_GRID_BIN_Y];
@@ -147,8 +152,8 @@ void printBin()
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                         // mostra miniatura matrice per debug
-                                DrawRectangleLines(48, 96, 48, 48, BG_COLOR);  // NOTE: Uses QUADS internally, not lines
-                                DrawRectangle(52 + 5*j, 100 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
+                                DrawRectangleLines(44, 96, 48, 48, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
+                                DrawRectangle(48 + 5*j, 100 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
                 }   
 }
@@ -204,6 +209,14 @@ int main (int argc, char *argv[])
     bool btnCopyPressed = false;
     bool btnClearPressed = false;
     bool btnQuitPressed = false;
+    // toolbar
+    bool btnShiftRightPressed = false;
+    bool btnShiftLeftPressed = false;
+    bool btnShiftDownPressed = false;
+    bool btnShiftUpPressed = false;
+    bool btnInvertPressed = false;
+    bool btnRotateLeft = false;
+    bool btnRotateRight = false;
 
     // Set UI style
     // Custom GUI font loading
@@ -216,7 +229,7 @@ int main (int argc, char *argv[])
     // Init current player state
     PlayerState player = { 0 };
     player.cell = (Point){ 0, 0 };
-    player.color = SKYBLUE;
+    //player.color = SKYBLUE;
 
     //reset matrice binaria
     resetMatrici();
@@ -240,6 +253,119 @@ int main (int argc, char *argv[])
         }
         if (btnQuitPressed) break;
         
+        if (btnInvertPressed)
+        {
+            // inverte matrice binaria
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
+                for (int j = 0; j < MAX_GRID_BIN_X; j++) { 
+                    matrice[j][i] = !matrice[j][i]; } }
+        }
+        
+        if (btnShiftRightPressed) // shift bin array right by 1
+        {
+     
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) // righe
+                {
+                    // memorizza ultimo bit della riga
+                    const int tmp = matrice[MAX_GRID_BIN_X - 1][i];
+                    for (int j = MAX_GRID_BIN_X-1; j>0; j--) // colonne
+                    {                        
+                        // sposta verso destra bit righe
+                        matrice[j][i] = matrice[j-1][i];
+                    }
+                    // alla fine il "primo" bit prende il valore dell'ultimo
+                    matrice[0][i] = tmp;
+                }
+        }
+
+        if (btnShiftLeftPressed) // shift bin array left by 1
+        {
+     
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) // righe
+                {
+                    // memorizza primo bit della riga
+                    const int tmp = matrice[0][i];
+                    for (int j = 0; j< MAX_GRID_BIN_X-1; j++) // colonne
+                    {                        
+                        // sposta verso destra bit righe
+                        matrice[j][i] = matrice[j+1][i];
+                    }
+                    // alla fine ultimo bit prende il valore del prim
+                    matrice[MAX_GRID_BIN_X-1][i] = tmp;
+                }
+        }
+
+        if (btnShiftUpPressed) // shift bin array down by 1
+        {
+     
+            for (int i = 0; i < MAX_GRID_BIN_X; i++) // colonne
+                {
+                    // memorizza prima riga
+                    const int tmp = matrice[i][0];
+                        for (int j=0; j < MAX_GRID_BIN_Y-1; ++j) // righe
+                        {
+                            matrice[i][j] = matrice[i][j+1];
+                        }
+                    //
+                    // ultima riga prende valori dellaa primaa
+                    matrice[i][MAX_GRID_BIN_Y- 1] = tmp;
+                }
+        }
+ 
+         if (btnShiftDownPressed) // shift bin array up by 1
+         {
+                for (int i = 0; i < MAX_GRID_BIN_X; i++) // colonne
+                    {
+                        // memorizza stato ultima riga
+                        const int tmp = matrice[i][MAX_GRID_BIN_Y - 1];
+                        for (int j = MAX_GRID_BIN_Y -1; j>0; --j) // righe
+                        {
+                            matrice[i][j] = matrice[i][j-1];
+                        }
+                        // prima riga prende valore ultima rigaa
+                        matrice[i][0] = tmp;
+                    }
+        }
+
+        if (btnRotateLeft)
+        {
+            // trasposizione  matrice binaria
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
+                for (int j = i +1 ; j < MAX_GRID_BIN_X ; j++) { 
+                   int temp = matrice[j][i];
+                   matrice[j][i] =  matrice[i][j];
+                   matrice[i][j] = temp;
+                }
+            }
+            // poi ruota di 90° antiorario
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
+                for (int j = 0,k = MAX_GRID_BIN_X -1; j<k; j++, k--) { 
+                   int temp = matrice[i][j];
+                   matrice[i][j] =  matrice[i][k];
+                   matrice[i][k] = temp;
+                }
+            }
+        }
+
+        if (btnRotateRight) {
+                    // trasposizione  matrice binaria
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
+                for (int j = i +1 ; j < MAX_GRID_BIN_X ; j++) { 
+                   int temp = matrice[j][i];
+                   matrice[j][i] =  matrice[i][j];
+                   matrice[i][j] = temp;
+                }
+            }
+            // poi ruota di 90°  
+            for (int i = 0; i < MAX_GRID_BIN_Y; i++) {
+                for (int j = 0,k = MAX_GRID_BIN_X -1; j<k; j++, k--) { 
+                   int temp = matrice[j][i];
+                   matrice[j][i] =  matrice[k][i];
+                   matrice[k][i] = temp;
+                }
+            }
+        }
+
         //----------------------------------------------------------------------------------
         // Player movement logic using arrow keys
         if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
@@ -247,13 +373,7 @@ int main (int argc, char *argv[])
         else if (IsKeyPressed(KEY_UP)) player.cell.y--;
         else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
 
-        // // Make sure player does not go out of bounds
-        // if (player.cell.x < 0) player.cell.x = MAX_GRID_BIN_X-1;
-        // else if (player.cell.x >= MAX_GRID_BIN_X) player.cell.x = 0;
-        // if (player.cell.y < 0) player.cell.y = MAX_GRID_BIN_Y -1 ;
-        // else if (player.cell.y >= MAX_GRID_BIN_Y) player.cell.y = 0;
-
-               // Make sure player does not go out of bounds
+        // Make sure player does not go out of bounds
         if (player.cell.x < 0) player.cell.x = 0;
         else if (player.cell.x >= MAX_GRID_BIN_X) player.cell.x = MAX_GRID_BIN_X-1;
         else if (player.cell.y < 0) player.cell.y = 0 ;
@@ -269,7 +389,7 @@ int main (int argc, char *argv[])
                 {
                     player.cell.x = (GetMouseX() - grid_bin_XY.x) / gridSpacing ;
                     player.cell.y = (GetMouseY() - grid_bin_XY.y) / gridSpacing;
-                    // disegna bit 1/0
+                    // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
                     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = 1;  
                     if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0; 
                 }
@@ -279,7 +399,7 @@ int main (int argc, char *argv[])
         int j= player.cell.x;
         int i= player.cell.y;
 
-        // cambia /inverti stato "bit" premento la BARRA SPAZIO
+        // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
         if ( (IsKeyPressed(KEY_SPACE)) ) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
 
         //----------------------------------------------------------------------------------
@@ -325,10 +445,19 @@ int main (int argc, char *argv[])
                           gridSpacing -1,
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
 
-         // Draw buttons
-        btnCopyPressed = GuiButton((Rectangle){ 200, 576, 96, 40 }, "#16#CopyHEX");
-        btnClearPressed = GuiButton((Rectangle){ 300, 576, 96, 40 }, "#143#Reset");
-        btnQuitPressed = GuiButton((Rectangle){ 400, 576, 96, 40 }, "#74#Quit");
+         // Draw buttons and left toolbar
+        btnClearPressed = GuiButton((Rectangle){ 200, 600, 96, 40 }, "#143#Clear");
+        btnCopyPressed  = GuiButton((Rectangle){ 300, 600, 96, 40 }, "#16#CopyHEX");
+        btnQuitPressed  = GuiButton((Rectangle){ 400, 600, 96, 40 }, "#74#Quit");
+
+        // left toolbar
+        btnShiftUpPressed    = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 1, 40, 40 }, "#117#");
+        btnShiftRightPressed = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 2, 40, 40 }, "#115#");
+        btnShiftLeftPressed  = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 3, 40, 40 }, "#114#");
+        btnShiftDownPressed  = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 4, 40, 40 }, "#116#");
+        btnInvertPressed     = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 5, 40, 40 }, "#94#");
+        btnRotateLeft        = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 6, 40, 40 }, "#72#");
+        btnRotateRight       = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 7, 40, 40 }, "#73#");
 
         EndDrawing();
     }
