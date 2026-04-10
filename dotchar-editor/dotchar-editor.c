@@ -448,7 +448,7 @@ int main (int argc, char *argv[])
          // Draw buttons and left toolbar
         btnClearPressed = GuiButton((Rectangle){ 200, 600, 96, 40 }, "#143#Clear");
         btnCopyPressed  = GuiButton((Rectangle){ 300, 600, 96, 40 }, "#16#CopyHEX");
-        btnQuitPressed  = GuiButton((Rectangle){ 400, 600, 96, 40 }, "#74#Quit");
+        btnQuitPressed  = GuiButton((Rectangle){ 400, 600, 96, 40 }, "#152#Quit");
 
         // left toolbar
         btnShiftUpPressed    = GuiButton((Rectangle){ grid_bin_XY.x - 96, grid_bin_XY.y + gridSpacing * 1, 40, 40 }, "#117#");
