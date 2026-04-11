@@ -6,7 +6,9 @@
 * 
 *  CHANGELOG:
 * 
-*  v. 1.0   : first release: draw a 8x8 dot matrix and show/copy HEX value
+*   v.1.0: first release.
+*   v 1.1: some visual improvements.
+* 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************
@@ -35,11 +37,11 @@
 #include "raygui.h"
 
 const int screenWidth = 820;
-const int screenHeight = 296;
+const int screenHeight = 280;
 
  // initial X,Y coordinates for variuos interface elements
 Vector2 grid_bin_XY = { 24, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 grid_hex_XY = { 100, 224 };
+Vector2 grid_hex_XY = { 72, 200 };
 
 #define gridSpacing               48
 #define MAX_GRID_BIN_X            16
@@ -181,8 +183,8 @@ void drawBinCells()
                         DrawRectangle(grid_bin_XY.x + gridSpacing*j, grid_bin_XY.y + gridSpacing*i, 
                           gridSpacing -1, 
                           gridSpacing -1, 
-                          matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
-                        DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30, WHITE);
+                          matrice[j][i] ? GRID_BG_COLOR : BG_COLOR);
+                        DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30, GRID_COLOR);
                     }
                 }   
 }
@@ -207,14 +209,14 @@ void printDecOctValues(void)
         if (matrice[i][0] == 1) {decimal += potenza(2,(MAX_GRID_BIN_X-1)-i);}
     }
     // disegna e stampa la parte decimale
-    DrawRectangle(grid_hex_XY.x + gridSpacing*5, grid_hex_XY.y , gridSpacing *3, gridSpacing , GRID_COLOR);
-    DrawRectangle(grid_hex_XY.x + 1 + gridSpacing*5, grid_hex_XY.y +1, gridSpacing *3-2,gridSpacing -2, GRID_BG_COLOR);
-    DrawText(TextFormat("%05i",decimal), 16 + grid_hex_XY.x + gridSpacing *5, grid_hex_XY.y + 6, 40, GRID_COLOR);
+    DrawRectangle(grid_hex_XY.x + gridSpacing*6, grid_hex_XY.y , gridSpacing *3, gridSpacing , GRID_COLOR);
+    DrawRectangle(grid_hex_XY.x + 1 + gridSpacing*6, grid_hex_XY.y +1, gridSpacing *3-2,gridSpacing -2, GRID_BG_COLOR);
+    DrawText(TextFormat("%05i",decimal), 16 + grid_hex_XY.x + gridSpacing *6, grid_hex_XY.y + 6, 40, GRID_COLOR);
 
     // disegna e stampa la parte OTTALE
-    DrawRectangle(grid_hex_XY.x + gridSpacing*9 , grid_hex_XY.y, gridSpacing *4, gridSpacing , GRID_COLOR);
-    DrawRectangle (grid_hex_XY.x + 1 + gridSpacing*9, grid_hex_XY.y + 1, gridSpacing *4 -2, gridSpacing -2, GRID_BG_COLOR);
-    DrawText(TextFormat("%06o",decimal), grid_hex_XY.x + gridSpacing *9 +24,  grid_hex_XY.y + 6, 40, GRID_COLOR);
+    DrawRectangle(grid_hex_XY.x + gridSpacing*11 , grid_hex_XY.y, gridSpacing *4, gridSpacing , GRID_COLOR);
+    DrawRectangle (grid_hex_XY.x + 1 + gridSpacing*11, grid_hex_XY.y + 1, gridSpacing *4 -2, gridSpacing -2, GRID_BG_COLOR);
+    DrawText(TextFormat("%06o",decimal), grid_hex_XY.x + gridSpacing *11 +24,  grid_hex_XY.y + 6, 40, GRID_COLOR);
 
 }
 
@@ -332,14 +334,14 @@ int main (int argc, char *argv[])
             DrawText(TextFormat("|||| %s v%s. daSOFT @2026", TOOL_NAME, TOOL_VERSION), grid_bin_XY.x, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("BIN"), grid_bin_XY.x, grid_bin_XY.y-24, 20, SKYBLUE);
-            DrawText(TextFormat("HEX"), grid_hex_XY.x, grid_hex_XY.y-24, 20, SKYBLUE);
-            DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5, grid_hex_XY.y-24, 20, SKYBLUE);
-            DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*9, grid_hex_XY.y-24, 20, SKYBLUE);
+            DrawText(TextFormat("HEX"), grid_hex_XY.x - gridSpacing, grid_hex_XY.y, 20, SKYBLUE);
+            DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5, grid_hex_XY.y, 20, SKYBLUE);
+            DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*10, grid_hex_XY.y, 20, SKYBLUE);
             
             // intestazioni riga/colonna matrice binaria
             for (int z = MAX_GRID_BIN_X - 1;z> -1; z--)
             {
-                DrawText(TextFormat("%01d",z+1),grid_bin_XY.x + 736 - (z * gridSpacing),grid_bin_XY.y + 56,20,SKYBLUE); // bit decimal value
+                DrawText(TextFormat("%02d",z+1),grid_bin_XY.x + 736 - (z * gridSpacing),grid_bin_XY.y + 56,20,SKYBLUE); // bit decimal value
                 if (z % 4 == 0 ) DrawLine(grid_bin_XY.x + 744 - (z * gridSpacing),grid_bin_XY.y - 24 ,grid_bin_XY.x + 744 - (z * gridSpacing),grid_bin_XY.y - 4, SKYBLUE);
             }
 
