@@ -21,7 +21,7 @@
 
 #define TOOL_NAME               "Binary Converter"
 #define TOOL_SHORT_NAME         "b2c"
-#define TOOL_VERSION            "1.0"
+#define TOOL_VERSION            "1.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -140,7 +140,6 @@ void draw_hex_grid(void)
             }
 }
 
-
 // legge le righe della matrice binaria e memorizza valori HEX nella matrice esadecimale
 void BinToHex (void)
 {
@@ -150,24 +149,18 @@ void BinToHex (void)
         int ssb = 0;
         int tsb = 0;
         int qsb = 0;
-
         for (int j = 0; j < 4; j++)
             psb = (psb << 1) | matrice[j][i];
-
         for (int j = 4; j < 8; j++)
             ssb = (ssb << 1) | matrice[j][i];
-
         for (int j = 8; j < 12; j++)
             tsb = (tsb << 1) | matrice[j][i];
-
         for (int j = 12; j < 16; j++)
             qsb = (qsb << 1) | matrice[j][i];
-
         hex[0][i] = charToHex(psb);
         hex[1][i] = charToHex(ssb);
         hex[2][i] = charToHex(tsb);
         hex[3][i] = charToHex(qsb);
-           // Draw text box
     }
 }
 
@@ -217,7 +210,6 @@ void printDecOctValues(void)
     DrawRectangle(grid_hex_XY.x + gridSpacing*11 , grid_hex_XY.y, gridSpacing *4, gridSpacing , GRID_COLOR);
     DrawRectangle (grid_hex_XY.x + 1 + gridSpacing*11, grid_hex_XY.y + 1, gridSpacing *4 -2, gridSpacing -2, GRID_BG_COLOR);
     DrawText(TextFormat("%06o",decimal), grid_hex_XY.x + gridSpacing *11 +24,  grid_hex_XY.y + 6, 40, GRID_COLOR);
-
 }
 
 // azzera matrice binaria e di conseguenza anche quella esadecimale, decimale e ottale
@@ -226,10 +218,9 @@ void resetMatrici()
     //reset matrice binaria
     for (int i = 0; i < MAX_GRID_BIN_Y; i++)
         {  for (int j = 0; j < MAX_GRID_BIN_X; j++)
-                    { matrice[j][i] = 0; }
+            { matrice[j][i] = 0; }
         }    
 }
-
 
 int main (int argc, char *argv[])
 {
@@ -252,9 +243,9 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    // Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    // GuiLoadStyle("assets/style_genesis.rgs");
-    // GuiSetFont(font);
+    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    GuiLoadStyle("assets/style_genesis.rgs");
+    GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     GuiSetIconScale(1);
 
@@ -333,7 +324,7 @@ int main (int argc, char *argv[])
             // print titles and some heaaders
             DrawText(TextFormat("|||| %s v%s. daSOFT @2026", TOOL_NAME, TOOL_VERSION), grid_bin_XY.x, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("BIN"), grid_bin_XY.x, grid_bin_XY.y-24, 20, SKYBLUE);
+            DrawText(TextFormat("BIN"), grid_bin_XY.x + 4 , grid_bin_XY.y-24, 20, SKYBLUE);
             DrawText(TextFormat("HEX"), grid_hex_XY.x - gridSpacing, grid_hex_XY.y, 20, SKYBLUE);
             DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5, grid_hex_XY.y, 20, SKYBLUE);
             DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*10, grid_hex_XY.y, 20, SKYBLUE);
@@ -342,7 +333,7 @@ int main (int argc, char *argv[])
             for (int z = MAX_GRID_BIN_X - 1;z> -1; z--)
             {
                 DrawText(TextFormat("%02d",z+1),grid_bin_XY.x + 736 - (z * gridSpacing),grid_bin_XY.y + 56,20,SKYBLUE); // bit decimal value
-                if (z % 4 == 0 ) DrawLine(grid_bin_XY.x + 744 - (z * gridSpacing),grid_bin_XY.y - 24 ,grid_bin_XY.x + 744 - (z * gridSpacing),grid_bin_XY.y - 4, SKYBLUE);
+                if (z % 4 == 0 ) DrawLine(grid_bin_XY.x + z*gridSpacing,grid_bin_XY.y - 22 ,grid_bin_XY.x + (z * gridSpacing),grid_bin_XY.y - 8, SKYBLUE);
             }
 
             drawGrids (); // disegna o meno laa griglia della matrice binaria
