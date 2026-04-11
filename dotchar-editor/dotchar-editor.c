@@ -441,7 +441,7 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
 
             // print titles and some heaaders
-            DrawText(TextFormat("%s - %s by: daSOFT @2026", TOOL_NAME, TOOL_VERSION), 144, 48, 20, FG_COLOR); 
+            DrawText(TextFormat("%s v%s. daSOFT @2026", TOOL_NAME, TOOL_VERSION), 144, 48, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("HEX"), grid_hex_XY.x + 32, grid_bin_XY.y - 32, 20, SKYBLUE);
             
