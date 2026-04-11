@@ -1,17 +1,28 @@
 /*******************************************************************************************
 *
-*   DOT CHAR EDITOR v.1.3
-*   a simple app to learn C using raylib library
+*   DOT CHAR EDITOR
+*   A simple app to learn C using raylib library
 * 
 *  CHANGELOG:
 * 
-*  v. 1.0 : first release: draw a 8x8 dot matrix and show/copy HEX value
-*  v. 1.2 : add controls to shift matrix up/down/left/right/invert/rotate left/right
-*  v. 1.3 : add some other trivial utilities and code cleaning
+*  v. 1.0   : first release: draw a 8x8 dot matrix and show/copy HEX value
+*  v. 1.2   : add controls to shift matrix up/down/left/right/invert/rotate left/right
+*  v. 1.3   : add some other trivial utilities and code cleaning
+*  v. 1.3.2 : add some visual improvements;
 * 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
-********************************************************************************************/
+********************************************************************************************
+*
+*   TODO LIST POSSIBLE IMPROVEMENTS:
+*       - evolvere in un vero dot font editor?
+*       - Improvement 02
+*
+*******************************************************************************************/
+
+#define TOOL_NAME               "DotChar Editor"
+#define TOOL_SHORT_NAME         "dcED"
+#define TOOL_VERSION            "1.3.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -20,12 +31,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+// raygui integration
 #define RAYGUI_IMPLEMENTATION
+//#define RAYGUI_CUSTOM_ICONS     // Custom icons set required 
+//#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
-
-// TODO
-
-// evolvere in un vero dot font editor?
 
 const int screenWidth = 724;
 const int screenHeight = 672;
@@ -49,7 +59,7 @@ char hex[MAX_GRID_HEX_X][MAX_GRID_BIN_Y];
 // NORD colors
 #define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
 #define FG_COLOR CLITERAL(Color){ 216, 219, 224, 255}
-#define GRID_COLOR CLITERAL(Color){ 191, 202, 213, 255} 
+#define GRID_COLOR CLITERAL(Color){ 176, 186, 206, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
 #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
 #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
@@ -87,24 +97,26 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
 void draw_bin_grid(void)
 {
             
-            for (int y = 0; y <= MAX_GRID_BIN_Y; y++)
+            for (int y = 0; y <= MAX_GRID_BIN_Y; y++) {
                 DrawLine((int)grid_bin_XY.x, (int)grid_bin_XY.y + y * gridSpacing,(int)grid_bin_XY.x + MAX_GRID_BIN_X* gridSpacing, (int)grid_bin_XY.y + y*gridSpacing, GRID_COLOR);
+                DrawLine((int)grid_hex_XY.x, (int)grid_hex_XY.y + y * gridSpacing,(int)grid_hex_XY.x + MAX_GRID_HEX_X* gridSpacing, (int)grid_hex_XY.y + y*gridSpacing, GRID_COLOR);
+            }
+
             for (int x = 0; x <= MAX_GRID_BIN_X; x++)
                 DrawLine((int)grid_bin_XY.x + x * gridSpacing, (int)grid_bin_XY.y,(int)grid_bin_XY.x + x * gridSpacing, (int)grid_bin_XY.y + MAX_GRID_BIN_Y*gridSpacing, GRID_COLOR);
+
+            for (int x = 0; x <= MAX_GRID_HEX_X; x++)
+                DrawLine((int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y,(int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y + MAX_GRID_HEX_Y*gridSpacing, GRID_COLOR);
 }
 
 // Draw hex matrix grid
 void draw_hex_grid(void)
 {
-
             // background
-            for (int y = 0; y <= MAX_GRID_HEX_Y; y++)
+            for (int y = 0; y < MAX_GRID_HEX_Y; y++)
             {
-                for (int x = 0; x <= MAX_GRID_HEX_X; x++)
-                {   
-                DrawLine((int)grid_hex_XY.x, (int)grid_hex_XY.y + y * gridSpacing,(int)grid_hex_XY.x + MAX_GRID_HEX_X * gridSpacing, (int)grid_hex_XY.y + y * gridSpacing, GRID_COLOR);
-                DrawLine((int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y,(int)grid_hex_XY.x + x * gridSpacing, (int)grid_hex_XY.y + MAX_GRID_HEX_Y * gridSpacing, GRID_COLOR);
-                }
+                for (int x = 0; x < MAX_GRID_HEX_X; x++) { 
+                    DrawRectangle((int)grid_hex_XY.x + x*gridSpacing, (int)grid_hex_XY.y + y * gridSpacing , gridSpacing-1, gridSpacing-1, GRID_BG_COLOR);  }
             }
 }
 
@@ -161,7 +173,7 @@ void drawBinCells()
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                         // mostra miniatura matrice per debug
-                                DrawRectangleLines(44, 64, 48, 48, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
+                                DrawRectangleLines(44, 64, 48, 48, showGrid ? GRID_COLOR : GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
                                 DrawRectangle(48 + 5*j, 68 + 5*i,4,4, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
                 }   
@@ -172,8 +184,8 @@ void printHexValues (void)
 {
       for (int i = 0; i < MAX_GRID_HEX_Y; i++)
         {
-             DrawText(TextFormat("%c", hex[0][i]), grid_hex_XY.x + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, GREEN);
-             DrawText(TextFormat("%c", hex[1][i]), grid_hex_XY.x + gridSpacing + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, LIME);
+             DrawText(TextFormat("%c", hex[0][i]), grid_hex_XY.x + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, OFF_COLOR);
+             DrawText(TextFormat("%c", hex[1][i]), grid_hex_XY.x + gridSpacing + 16, 6 + grid_hex_XY.y + gridSpacing*i, 40, ON_COLOR);
         }
 }
 
@@ -429,7 +441,7 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
 
             // print titles and some heaaders
-            DrawText("Dot char editor v.1.3 by: daSoft @2026", 144, 48, 20, FG_COLOR); 
+            DrawText(TextFormat("%s - %s by: daSOFT @2026", TOOL_NAME, TOOL_VERSION), 144, 48, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("HEX"), grid_hex_XY.x + 32, grid_bin_XY.y - 32, 20, SKYBLUE);
             
