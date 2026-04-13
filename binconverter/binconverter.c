@@ -6,8 +6,10 @@
 * 
 *  CHANGELOG:
 * 
-*   v.1.0: first release.
-*   v 1.1: some visual improvements.
+*   v. 1.0: first release.
+*   v  1.1: some visual improvements.
+*   v. 1.2: visual improvements, again!
+*   v. 1.3: smaller windows and widget size. 
 * 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
@@ -20,8 +22,8 @@
 *******************************************************************************************/
 
 #define TOOL_NAME               "Binary Converter"
-#define TOOL_SHORT_NAME         "b2c"
-#define TOOL_VERSION            "1.1"
+#define TOOL_SHORT_NAME         "binconv"
+#define TOOL_VERSION            "1.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,14 +38,14 @@
 //#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
 
-const int screenWidth = 820;
-const int screenHeight = 280;
+const int screenWidth = 672;
+const int screenHeight = 256;
 
  // initial X,Y coordinates for variuos interface elements
 Vector2 grid_bin_XY = { 24, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
 Vector2 grid_hex_XY = { 72, 200 };
 
-#define gridSpacing               48
+#define gridSpacing               36
 #define MAX_GRID_BIN_X            16
 #define MAX_GRID_BIN_Y            1
 #define MAX_GRID_HEX_X            4
@@ -177,7 +179,7 @@ void drawBinCells()
                           gridSpacing -1, 
                           gridSpacing -1, 
                           matrice[j][i] ? GRID_BG_COLOR : BG_COLOR);
-                        DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30, GRID_COLOR);
+                        DrawText(TextFormat("%i",matrice[j][i]), 10 + grid_bin_XY.x + gridSpacing*j, 4 + grid_bin_XY.y + gridSpacing*i, 30, GRID_COLOR);
                     }
                 }   
 }
@@ -187,10 +189,10 @@ void printHexValues (void)
 {
       for (int i = 0; i < MAX_GRID_HEX_Y; i++)
         {
-            DrawText(TextFormat("%c", hex[0][i]), grid_hex_XY.x + 12, 6 + grid_hex_XY.y + gridSpacing*i, 40, GRID_COLOR);
-            DrawText(TextFormat("%c", hex[1][i]), grid_hex_XY.x + 12 + gridSpacing *1, 6 + grid_hex_XY.y + gridSpacing*i, 40, GRID_COLOR);
-            DrawText(TextFormat("%c", hex[2][i]), grid_hex_XY.x + 12 + gridSpacing *2, 6 + grid_hex_XY.y + gridSpacing*i, 40, GRID_COLOR);
-            DrawText(TextFormat("%c", hex[3][i]), grid_hex_XY.x + 12 + gridSpacing *3, 6 + grid_hex_XY.y + gridSpacing*i, 40, GRID_COLOR);
+            DrawText(TextFormat("%c", hex[0][i]), grid_hex_XY.x + 12, 4 + grid_hex_XY.y + gridSpacing*i, 30, GRID_COLOR);
+            DrawText(TextFormat("%c", hex[1][i]), grid_hex_XY.x + 12 + gridSpacing *1, 4 + grid_hex_XY.y + gridSpacing*i, 30, GRID_COLOR);
+            DrawText(TextFormat("%c", hex[2][i]), grid_hex_XY.x + 12 + gridSpacing *2, 4 + grid_hex_XY.y + gridSpacing*i, 30, GRID_COLOR);
+            DrawText(TextFormat("%c", hex[3][i]), grid_hex_XY.x + 12 + gridSpacing *3, 4 + grid_hex_XY.y + gridSpacing*i, 30, GRID_COLOR);
         }
 }
 
@@ -204,12 +206,12 @@ void printDecOctValues(void)
     // disegna e stampa la parte decimale
     DrawRectangle(grid_hex_XY.x + gridSpacing*6, grid_hex_XY.y , gridSpacing *3, gridSpacing , GRID_COLOR);
     DrawRectangle(grid_hex_XY.x + 1 + gridSpacing*6, grid_hex_XY.y +1, gridSpacing *3-2,gridSpacing -2, GRID_BG_COLOR);
-    DrawText(TextFormat("%05i",decimal), 16 + grid_hex_XY.x + gridSpacing *6, grid_hex_XY.y + 6, 40, GRID_COLOR);
+    DrawText(TextFormat("%05i",decimal), 12 + grid_hex_XY.x + gridSpacing *6, grid_hex_XY.y + 4, 30, GRID_COLOR);
 
     // disegna e stampa la parte OTTALE
     DrawRectangle(grid_hex_XY.x + gridSpacing*11 , grid_hex_XY.y, gridSpacing *4, gridSpacing , GRID_COLOR);
     DrawRectangle (grid_hex_XY.x + 1 + gridSpacing*11, grid_hex_XY.y + 1, gridSpacing *4 -2, gridSpacing -2, GRID_BG_COLOR);
-    DrawText(TextFormat("%06o",decimal), grid_hex_XY.x + gridSpacing *11 +24,  grid_hex_XY.y + 6, 40, GRID_COLOR);
+    DrawText(TextFormat("%06o",decimal), grid_hex_XY.x + gridSpacing *11 + 16,  grid_hex_XY.y + 4, 30, GRID_COLOR);
 }
 
 // azzera matrice binaria e di conseguenza anche quella esadecimale, decimale e ottale
@@ -248,6 +250,7 @@ int main (int argc, char *argv[])
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     GuiSetIconScale(1);
+
 
     // Init current player state
     PlayerState player = { 0 };
@@ -322,17 +325,17 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
 
             // print titles and some heaaders
-            DrawText(TextFormat("|||| %s v%s. daSOFT @2026", TOOL_NAME, TOOL_VERSION), grid_bin_XY.x, 24, 20, FG_COLOR); 
+            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), grid_bin_XY.x, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("BIN"), grid_bin_XY.x + 4 , grid_bin_XY.y-24, 20, SKYBLUE);
-            DrawText(TextFormat("HEX"), grid_hex_XY.x - gridSpacing, grid_hex_XY.y, 20, SKYBLUE);
-            DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5, grid_hex_XY.y, 20, SKYBLUE);
-            DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*10, grid_hex_XY.y, 20, SKYBLUE);
+            DrawText(TextFormat("BIN"), grid_bin_XY.x + 8 , grid_bin_XY.y-24, 20, SKYBLUE);
+            DrawText(TextFormat("HEX"), grid_hex_XY.x - 16 - gridSpacing, grid_hex_XY.y, 20, SKYBLUE);
+            DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5 - 16, grid_hex_XY.y, 20, SKYBLUE);
+            DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*10 - 16, grid_hex_XY.y, 20, SKYBLUE);
             
             // intestazioni riga/colonna matrice binaria
             for (int z = MAX_GRID_BIN_X - 1;z> -1; z--)
             {
-                DrawText(TextFormat("%02d",z+1),grid_bin_XY.x + 736 - (z * gridSpacing),grid_bin_XY.y + 56,20,SKYBLUE); // bit decimal value
+                DrawText(TextFormat("%02d",z+1),grid_bin_XY.x + ( 12 + z * gridSpacing),grid_bin_XY.y + 4 + gridSpacing,10,SKYBLUE); // bit decimal value
                 if (z % 4 == 0 ) DrawLine(grid_bin_XY.x + z*gridSpacing,grid_bin_XY.y - 22 ,grid_bin_XY.x + (z * gridSpacing),grid_bin_XY.y - 8, SKYBLUE);
             }
 
@@ -352,12 +355,12 @@ int main (int argc, char *argv[])
                           gridSpacing -1, 
                           gridSpacing -1,
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
-            DrawText(TextFormat("%i",matrice[j][i]), 16 + grid_bin_XY.x + gridSpacing*j, 10 + grid_bin_XY.y + gridSpacing*i, 30, WHITE);
+            DrawText(TextFormat("%i",matrice[j][i]), 10 + grid_bin_XY.x + gridSpacing*j, 4 + grid_bin_XY.y + gridSpacing*i, 30, WHITE);
 
 
          // Draw buttons and left toolbar
-        btnClearPressed = GuiButton((Rectangle){ 728, 16, 32, 32 }, "#143#");
-        btnQuitPressed  = GuiButton((Rectangle){ 764, 16, 32, 32 }, "#113#");
+        btnClearPressed = GuiButton((Rectangle){ grid_bin_XY.x+8+gridSpacing*16, grid_bin_XY.y, gridSpacing, gridSpacing }, "#143#");
+        btnQuitPressed  = GuiButton((Rectangle){ grid_bin_XY.x+8+gridSpacing*16, 16, gridSpacing, gridSpacing }, "#113#");
 
        EndDrawing();
     }
