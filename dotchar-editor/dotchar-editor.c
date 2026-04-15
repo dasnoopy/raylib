@@ -44,8 +44,8 @@ const int screenWidth = 640;
 const int screenHeight = 780;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = { 96, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {498, 96 }; // posizione tabella esadecimale
+Vector2 bin_grid_XY = { 58, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {542, 96 }; // posizione tabella esadecimale
 Vector2 toolbar_XY = { 58, 420 }; // posizione toolbar
 // ASCII TABLE
 Vector2 ascii_grid_XY  = { 36, 472 };
@@ -65,20 +65,25 @@ int revert_matrix[BIN_COLS][BIN_ROWS];
 int copypaste_matrix[BIN_COLS][BIN_ROWS];
 char hex[HEX_VAL_X][HEX_VAL_Y];
 
-// NORD colors
-#define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
-#define FG_COLOR CLITERAL(Color){ 236, 241, 241, 255}
-#define GRID_COLOR CLITERAL(Color){ 201, 210, 210, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
+// // NORD colors (Dark)
+// #define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
+// #define FG_COLOR CLITERAL(Color){ 236, 241, 241, 255}
+// #define GRID_COLOR CLITERAL(Color){ 201, 210, 210, 255} 
+// #define GRID_BG_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
+// #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
+// #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
+
+// GNOME colors (light)
+#define BG_COLOR CLITERAL(Color){ 246, 245, 244, 255} 
+#define FG_COLOR CLITERAL(Color){ 36, 31, 49, 255}
+#define GRID_COLOR CLITERAL(Color){ 61, 56, 70, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 222, 221, 218, 255} 
 #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
 #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
 
 // mouse and clipoard
 bool mouseHoverCells = false;
 bool mouseHoverASCII = false;
-
-
-
 
 // bottoni toolbar
     // UI required variables
@@ -275,6 +280,9 @@ void drawBinCells()
                           gridSpacing -1, 
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
+                          // // mostra miniatura matrice per debug
+                          //       DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -4, bin_grid_XY.y + gridSpacing*3 -4 , 72, 72, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
+                          //       DrawRectangle((bin_grid_XY.x + gridSpacing*10) + 8*j, (bin_grid_XY.y + gridSpacing*3) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
                 }   
 }
@@ -341,9 +349,9 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    GuiLoadStyle("assets/style_genesis.rgs");
-    GuiSetFont(font);
+    //Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    //GuiLoadStyle("assets/style_amber.rgs");
+    //GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
@@ -554,22 +562,23 @@ int main (int argc, char *argv[])
             drawASCII_Table();
 
             // print titles and some headers
-            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), bin_grid_XY.x+ gridSpacing*3, 24, 20, FG_COLOR); 
+            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), bin_grid_XY.x+ gridSpacing*4, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("HEX"), hex_grid_XY.x + 16, bin_grid_XY.y - 32, 20, SKYBLUE);
+            DrawText(TextFormat("HEX"), hex_grid_XY.x + 16, bin_grid_XY.y - 32, 20, FG_COLOR);
             
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
             {
-                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + 14 + (z * gridSpacing),bin_grid_XY.y -32 ,20,SKYBLUE); // bit decimal value
-                DrawText  (TextFormat("%02d",potenza(2,7-z)),bin_grid_XY.x + 12 + (z * gridSpacing),bin_grid_XY.y + 12 +  (gridSpacing*BIN_ROWS),10,SKYBLUE); // potenza del due in basso
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + 14 + (z * gridSpacing),bin_grid_XY.y -28 ,20,FG_COLOR); // bit decimal value
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + 14 + (z * gridSpacing),bin_grid_XY.y + gridSpacing*8 +8  ,20,FG_COLOR); // bit decimal value
+                //DrawText  (TextFormat("%02d",potenza(2,7-z)),bin_grid_XY.x + 12 + (z * gridSpacing),bin_grid_XY.y + 12 +  (gridSpacing*BIN_ROWS),10,FG_COLOR); // potenza del due in basso
             }
 
             for (int z = 0; z < BIN_ROWS; ++z)
             {
-                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x - 28,bin_grid_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
-                //DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + gridSpacing*8 + 20,bin_grid_XY.y + 16 + (z * gridSpacing),20, SKYBLUE);
-                DrawText  ("0x",hex_grid_XY.x - 32 , hex_grid_XY.y + 12 + (z * gridSpacing),20, SKYBLUE);
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x - 28,bin_grid_XY.y + 16 + (z * gridSpacing),20, FG_COLOR);
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + gridSpacing*8 + 20,bin_grid_XY.y + 16 + (z * gridSpacing),20, FG_COLOR);
+                DrawText  ("0x",hex_grid_XY.x - 32 , hex_grid_XY.y + 12 + (z * gridSpacing),20, FG_COLOR);
             }
           
           if (showGrid) draw_bin_grid (); // disegna o meno la griglia della matrice binaria
