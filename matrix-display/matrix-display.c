@@ -12,8 +12,8 @@ const int ASCII_WIDTH = 6; // larghezza singolo carattere: max 1 byte (0-7)
 const int ASCII_HEIGHT= 7; // altezza singolo caratte fissa a 7 pixel (1-7)
 
 //messaggio da visualizzare
-//char* msg = "0123456789";
-char* msg = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz !'$%&/()=?^[]{}@#<>,.-;:_?";
+//char* msg = "0123456789"; 
+char* msg = "! \"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
 #define gridSpacing 4 // consigliato 4 / 8 / 12 / 16
 #define WIDTH gridSpacing*COLS
