@@ -22,12 +22,13 @@
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
 *           - fare toolbar con pulsante e testo perche con le icone non si capisce molto la loro funzione
+*           - fare nuovo stile per matcchare light theme android matrix tool
 *
 *******************************************************************************************/
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.2.0"
+#define TOOL_VERSION            "2.2.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -208,6 +209,10 @@ void drawASCII_Table (void)
 int x;
 int y;
 int count=0;
+        // draw nice ASCII taable background
+        DrawRectangle(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, WHITE);
+        DrawRectangleLines(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, GRID_BG_COLOR);
+        
         for (int j = 0; j < 8; ++j)
         {
             for (int i = 0; i < 16; ++i)
@@ -219,7 +224,7 @@ int count=0;
                 count++;
             }
         }
-        DrawRectangleLines(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, GRID_BG_COLOR);
+
 }
 
 // Draw binary matrix grid
@@ -343,7 +348,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    GuiLoadStyle("assets/style_amber.rgs");
+    //GuiLoadStyle("assets/style_genesis.rgs");
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
