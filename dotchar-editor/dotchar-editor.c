@@ -16,13 +16,18 @@
 *
 *   TODO LIST POSSIBLE IMPROVEMENTS:
 *       - consentire edit solo dei caratteri validi da 33 a 127
-*       - save e load tabella font
+*       - funzione specchio orrizzontale e verticale
+*       - gestione font.data : 
+*           - file missing x esempio 
+*           - warning overwrite file font.data
+*           - warning load che sovrascrive mappa caratteri attuale
+*           - fare toolbar con pulsante e testo perche con le icone non si capisce molto la loro funzione
 *
 *******************************************************************************************/
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.0.2"
+#define TOOL_VERSION            "2.2.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -44,8 +49,8 @@ const int screenWidth = 640;
 const int screenHeight = 780;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = { 58, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {542, 96 }; // posizione tabella esadecimale
+Vector2 bin_grid_XY = { 96, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {496, 96 }; // posizione tabella esadecimale
 Vector2 toolbar_XY = { 58, 420 }; // posizione toolbar
 // ASCII TABLE
 Vector2 ascii_grid_XY  = { 36, 472 };
@@ -73,17 +78,20 @@ char hex[HEX_VAL_X][HEX_VAL_Y];
 // #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
 // #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
 
-// GNOME colors (light)
-#define BG_COLOR CLITERAL(Color){ 246, 245, 244, 255} 
-#define FG_COLOR CLITERAL(Color){ 36, 31, 49, 255}
-#define GRID_COLOR CLITERAL(Color){ 61, 56, 70, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 222, 221, 218, 255} 
-#define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
-#define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
+// ARDUINO Matrix tool colors (light)
+#define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
+#define FG_COLOR CLITERAL(Color){ 79, 88, 92, 255}
+#define GRID_COLOR CLITERAL(Color){ 55, 66, 70, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 218, 227,227, 255} 
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
+#define OFF_COLOR CLITERAL(Color){ 32, 181, 186,255}
 
 // mouse and clipoard
 bool mouseHoverCells = false;
 bool mouseHoverASCII = false;
+const char *clipboardText = NULL;
+char inputBuffer[256] = ""; // Random initial string
+
 
 // bottoni toolbar
     // UI required variables
@@ -158,6 +166,7 @@ void HexToBin(char hex_number, char* bit_char) {
     }
  }
 
+// disegna le miniature dei caratteri nella tabella ASCII
 void drawLetter(int x,int y,int ASCII_CODE)
 { 
     int pos = ASCII_CODE ;
@@ -179,6 +188,7 @@ void drawLetter(int x,int y,int ASCII_CODE)
          DrawRectangleLines(ascii_grid_XY.x + curr_ascii_char % 16 * gridSpacing -2 , ascii_grid_XY.y + curr_ascii_char/16 * gridSpacing -2 , gridSpacing, gridSpacing, GRID_COLOR);
 }
 
+// carica nella matrice il carattere selezionato dalla tabella ASCII
 void LoadLetter(int ASCII_CODE)
 { 
     int pos = ASCII_CODE ;
@@ -254,7 +264,7 @@ void BinToHex (void)
         hex[0][i] = charToHex(msb);
         hex[1][i] = charToHex(lsb);
 
-        //converti in valore esadecimale il byte
+        //converti in valore esadecimale in un unico valore (byte)
         for (int i = 0; i < HEX_VAL_Y; i++) 
             {
                 uint8_t byte = 0;
@@ -315,23 +325,6 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
     }
 }
 
-
-// Source - https://stackoverflow.com/a/47871974
-// Posted by 4386427, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-04-15, License - CC BY-SA 3.0
-
-//int save_to_file (char** mat, unsigned n, unsigned m, FILE* f)
-void save_to_file (unsigned n, unsigned m, char mat[n][m])
-{
-    for(int i = 0; i < n; i++)
-        for(int j = 0; j < m; j++)
-            if(j == m-1)
-                printf("%c\n", mat[i][j]);
-            else
-                printf("%c", mat[i][j]);
-    //save_to_file(2,3,,matrice);
-}
-
 int main (int argc, char *argv[])
 {
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
@@ -349,9 +342,9 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    //Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    //GuiLoadStyle("assets/style_amber.rgs");
-    //GuiSetFont(font);
+    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    GuiLoadStyle("assets/style_amber.rgs");
+    GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
@@ -382,7 +375,10 @@ int main (int argc, char *argv[])
         if (btnCopyPressed) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
         if (btnPastePressed) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
         if (btnQuitPressed) break;
-        if (btnShowGridPressed) showGrid = !showGrid;
+        if (btnShowGridPressed) 
+            {
+                showGrid = !showGrid;
+            }
         if (btnInvertPressed)
         {
             // inverte matrice binaria
@@ -496,6 +492,24 @@ int main (int argc, char *argv[])
             }
         }
 
+        if (btnSavePressed)
+        {
+                // Source - https://stackoverflow.com/a/18597747
+                // Posted by Sergey Kalinichenko
+                // Retrieved 2026-04-16, License - CC BY-SA 3.0
+
+                FILE *fSave = fopen("font.data", "wb");
+                fwrite(TableFont, sizeof(char), sizeof(TableFont), fSave);
+                fclose(fSave);
+        }
+
+        if (btnLoadPressed)
+        {
+            FILE *fLoad = fopen("font.data", "rb"); 
+            fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
+            fclose(fLoad);
+        }
+        
         //----------------------------------------------------------------------------------
         // Player movement logic using arrow keys
         if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
@@ -576,15 +590,15 @@ int main (int argc, char *argv[])
 
             for (int z = 0; z < BIN_ROWS; ++z)
             {
-                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x - 28,bin_grid_XY.y + 16 + (z * gridSpacing),20, FG_COLOR);
-                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + gridSpacing*8 + 20,bin_grid_XY.y + 16 + (z * gridSpacing),20, FG_COLOR);
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x - 28,bin_grid_XY.y + 12 + (z * gridSpacing),20, FG_COLOR);
+                DrawText  (TextFormat("%01d",z+1),bin_grid_XY.x + gridSpacing*8 + 20,bin_grid_XY.y + 12 + (z * gridSpacing),20, FG_COLOR);
                 DrawText  ("0x",hex_grid_XY.x - 32 , hex_grid_XY.y + 12 + (z * gridSpacing),20, FG_COLOR);
             }
           
           if (showGrid) draw_bin_grid (); // disegna o meno la griglia della matrice binaria
             
             //LoadLetter(curr_ascii_char); // 0) carica il current CHAR nella matrice binaria,
-            drawBinCells(); // 1) disegna la matrice binaria disegnando lo sfondo della cella cambiando il colore di sfondo in base ai valori 1/0
+            drawBinCells(); // 1) disegna il carattere nella matrice dopo che è stato caricato in memoria al click del mouse sulla tabella ASCII
             draw_hex_grid(); // 2) disegna la matrice esadecimale
 
             BinToHex(); // 3) converti il valore binario di ogni riga nel corrispondente valore esadecimal (8 bit -> 1 byte 0x hex)
@@ -598,9 +612,8 @@ int main (int argc, char *argv[])
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
             
        
-         // Draw buttons and left toolbar
+         // Close button
         btnQuitPressed  = GuiButton((Rectangle){ 600, 20, 24, 24}, "#113#");
-
         //  toolbar
         btnShowGridPressed   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y, gridSpacing, gridSpacing }, "#97#");
         btnShiftUpPressed    = GuiButton((Rectangle){ toolbar_XY.x + 2 + gridSpacing * 1, toolbar_XY.y, gridSpacing, gridSpacing }, "#117#");
@@ -614,8 +627,8 @@ int main (int argc, char *argv[])
         btnPastePressed      = GuiButton((Rectangle){ toolbar_XY.x + 18 + gridSpacing * 9, toolbar_XY.y, gridSpacing, gridSpacing }, "#18#");
         btnRevertPressed     = GuiButton((Rectangle){ toolbar_XY.x + 20 + gridSpacing *10, toolbar_XY.y, gridSpacing, gridSpacing }, "#211#");
         btnClearPressed      = GuiButton((Rectangle){ toolbar_XY.x + 22 + gridSpacing *11, toolbar_XY.y, gridSpacing, gridSpacing }, "#143#");
-        btnLoadPressed       = GuiButton((Rectangle){ toolbar_XY.x + 24 + gridSpacing *12, toolbar_XY.y, gridSpacing, gridSpacing }, "#5#");
-        btnSavePressed       = GuiButton((Rectangle){ toolbar_XY.x + 26 + gridSpacing *13, toolbar_XY.y, gridSpacing, gridSpacing }, "#6#");
+        btnLoadPressed       = GuiButton((Rectangle){ toolbar_XY.x + 24 + gridSpacing *12, toolbar_XY.y, gridSpacing, gridSpacing }, "#1#");
+        btnSavePressed       = GuiButton((Rectangle){ toolbar_XY.x + 26 + gridSpacing *13, toolbar_XY.y, gridSpacing, gridSpacing }, "#2#");
 
 
         EndDrawing();

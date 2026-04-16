@@ -1,6 +1,6 @@
 // Declare and Init the font array data
-// ogni carattere e' di 8x7
-// se si cambia adattare drawLetter() con i parametri corretti
+// ogni carattere e' di 8x8
+//
 int TableFont[128][8] = 
 {
    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},

@@ -6,21 +6,26 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "custom_font.h"
+#include "custom_font.h" // load default FontTable
+//int TableFont[128][8] = {};
 
-const int ASCII_WIDTH = 6; // larghezza singolo carattere: max 1 byte (0-7)
-const int ASCII_HEIGHT= 7; // altezza singolo caratte fissa a 7 pixel (1-7)
+// larghezza singolo carattere: max. 8 bit
+// il carattere e' di 8x8 bit.. impostare sotto quanto e' la dimensione del
+// carattere W x H in base al font set creato con dotchar-editor
+const int ASCII_WIDTH = 6; 
+// altezza singolo carattere max. 8 bit
+const int ASCII_HEIGHT= 8; 
 
 //messaggio da visualizzare
 //char* msg = "0123456789"; 
 char* msg = "! \"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-
-#define gridSpacing 4 // consigliato 4 / 8 / 12 / 16
-#define WIDTH gridSpacing*COLS
-#define HEIGHT gridSpacing*ROWS
-
 const int ROWS=11;  // 1 riga = ROWS*gridSpacing
 const int COLS=326; //TODO: adattare in base al vaolore di CELL SIZE 
+
+#define gridSpacing 4 // consigliato 4 / 8 / 12 / 16
+
+#define WIDTH gridSpacing*COLS
+#define HEIGHT gridSpacing*ROWS
 
 const bool debug = false; // visualizza info di debug si / no (sia a video che in console)
 bool pausa = false; // flag per mettete in pausa lo scorrimento con SPACEBAR
@@ -156,10 +161,22 @@ int main (int argc, char *argv[])
 
     while (!WindowShouldClose())
     {
+        //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
         if (IsKeyPressed(KEY_SPACE)) pausa = !pausa;
-		// Draw
+
+        // Load at runtime, custom font chars from font.data file!
+        // se si vuole cambiare il disegno dei caratteri e' sufficiente aprire
+        // il file font.data con l' altro programma dotchar-editor!, modificarlo,
+        // salvarlo e ricopiarlo qui!  :-)
+        // questo sovrascrive la tabella caratteri di default definita nel file: include.h
+           FILE *fLoad = fopen("font.data", "rb"); 
+            fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
+            fclose(fLoad);
+
+        //----------------------------------------------------------------------------------
+        // Draw
         //----------------------------------------------------------------------------------
 
         BeginTextureMode(target);
