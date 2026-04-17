@@ -16,17 +16,21 @@
 *
 *   TODO LIST POSSIBLE IMPROVEMENTS:
 *       - consentire edit solo dei caratteri validi da 33 a 127
+*       - funzione specchio orrizzontale e verticale
 *       - gestione font.data : 
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
+*           - fare toolbar con pulsante e testo perche con le icone non si capisce molto la loro funzione
+*           - fare nuovo stile per matcchare light theme android matrix tool
 *           - evidenziare meglio il current char nella tabella ASCII
+*           - nel titolo aggiunger nome del font file caricato...  dot cahr -- miofont.fnt
 *
 *******************************************************************************************/
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.5.0"
+#define TOOL_VERSION            "2.2.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -44,15 +48,15 @@
 //#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
 
-const int screenWidth = 772;
-const int screenHeight = 740;
+const int screenWidth = 640;
+const int screenHeight = 780;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {224, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {640, 96 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 32, 72 }; // posizione toolbar
+Vector2 bin_grid_XY = { 96, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {496, 96 }; // posizione tabella esadecimale
+Vector2 toolbar_XY = { 58, 420 }; // posizione toolbar
 // ASCII TABLE
-Vector2 ascii_grid_XY  = { 172, 432 };
+Vector2 ascii_grid_XY  = { 36, 472 };
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
 
 #define gridSpacing       36
@@ -64,13 +68,18 @@ int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII :
 bool showGrid = true;
 
 // definizione matrici
-int matrice[BIN_ROWS][BIN_COLS];
+int matrice[BIN_COLS][BIN_ROWS];
+int revert_matrix[BIN_COLS][BIN_ROWS];
+int copypaste_matrix[BIN_COLS][BIN_ROWS];
 char hex[HEX_VAL_X][HEX_VAL_Y];
 
-// matrici copia per varie utilita
-int revert_matrix[BIN_ROWS][BIN_COLS];
-int copypaste_matrix[BIN_ROWS][BIN_COLS];
-int mirrorV_matrix[BIN_ROWS][BIN_COLS];
+// // NORD colors (Dark)
+// #define BG_COLOR CLITERAL(Color){ 59, 66, 82, 255} 
+// #define FG_COLOR CLITERAL(Color){ 236, 241, 241, 255}
+// #define GRID_COLOR CLITERAL(Color){ 201, 210, 210, 255} 
+// #define GRID_BG_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
+// #define ON_COLOR CLITERAL(Color){ 208, 135, 112,255}
+// #define OFF_COLOR CLITERAL(Color){ 191, 97, 106,255}
 
 // ARDUINO Matrix tool colors (light)
 #define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
@@ -87,24 +96,22 @@ const char fNAME[] = "data.fnt";
 
 // bottoni toolbar
     // UI required variables
-    bool btnCopy = false;
-    bool btnLoad = false;
-    bool btnSave = false;
-    bool btnPaste = false;
-    bool btnClear = false;
-    bool btnQuit = false;
+    bool btnCopyPressed = false;
+    bool btnLoadPressed = false;
+    bool btnSavePressed = false;
+    bool btnPastePressed = false;
+    bool btnClearPressed = false;
+    bool btnQuitPressed = false;
     // toolbar
-    bool btnShowGrid = false;
-    bool btnShiftRight = false;
-    bool btnShiftLeft = false;
-    bool btnShiftDown = false;
-    bool btnShiftUp = false;
-    bool btnInvert = false;
+    bool btnShowGridPressed = false;
+    bool btnShiftRightPressed = false;
+    bool btnShiftLeftPressed = false;
+    bool btnShiftDownPressed = false;
+    bool btnShiftUpPressed = false;
+    bool btnInvertPressed = false;
     bool btnRotateLeft = false;
     bool btnRotateRight = false;
-    bool btnRevert = false;
-    bool btnMirrorH = false;
-    bool btnMirrorV = false;
+    bool btnRevertPressed = false;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -363,21 +370,21 @@ int main (int argc, char *argv[])
         // Update
         //----------------------------------------------------------------------------------
 
-        if (btnRevert) copy_matrix_2d(&revert_matrix[0][0], &matrice[0][0], 8, 8);
-        if (btnClear)
+        if (btnRevertPressed) copy_matrix_2d(&revert_matrix[0][0], &matrice[0][0], 8, 8);
+        if (btnClearPressed)
         {
             reset_matrix();
             player.cell.x = 0;
             player.cell.y = 0;
         }
-        if (btnCopy) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
-        if (btnPaste) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
-        if (btnQuit) break;
-        if (btnShowGrid) 
+        if (btnCopyPressed) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
+        if (btnPastePressed) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
+        if (btnQuitPressed) break;
+        if (btnShowGridPressed) 
             {
                 showGrid = !showGrid;
             }
-        if (btnInvert)
+        if (btnInvertPressed)
         {
             // inverte matrice binaria
             for (int i = 0; i < BIN_ROWS; i++) {
@@ -385,7 +392,7 @@ int main (int argc, char *argv[])
                     matrice[j][i] = !matrice[j][i]; } }
         }
         
-        if (btnShiftRight) // shift bin array right by 1
+        if (btnShiftRightPressed) // shift bin array right by 1
         {
      
             for (int i = 0; i < BIN_ROWS; i++) // righe
@@ -402,7 +409,7 @@ int main (int argc, char *argv[])
                 }
         }
 
-        if (btnShiftLeft) // shift bin array left by 1
+        if (btnShiftLeftPressed) // shift bin array left by 1
         {
      
             for (int i = 0; i < BIN_ROWS; i++) // righe
@@ -419,7 +426,7 @@ int main (int argc, char *argv[])
                 }
         }
 
-        if (btnShiftUp) // shift bin array down by 1
+        if (btnShiftUpPressed) // shift bin array down by 1
         {
      
             for (int i = 0; i < BIN_COLS; i++) // colonne
@@ -436,7 +443,7 @@ int main (int argc, char *argv[])
                 }
         }
  
-         if (btnShiftDown) // shift bin array up by 1
+         if (btnShiftDownPressed) // shift bin array up by 1
          {
                 for (int i = 0; i < BIN_COLS; i++) // colonne
                     {
@@ -490,31 +497,7 @@ int main (int argc, char *argv[])
             }
         }
 
-        if (btnMirrorH)
-        {
-            int temp;
-            for (int i = 0; i < BIN_ROWS; ++i)
-            {
-                for (int j = 0; j < BIN_COLS / 2; j++) {
-                temp = matrice[j][i];
-                matrice[j][i] = matrice[BIN_COLS - 1 - j][i];
-                matrice[BIN_COLS - 1 - j][i] = temp;
-                }
-            }
-        }
-
-        if (btnMirrorV)
-        {
-            copy_matrix_2d(&matrice[0][0], &mirrorV_matrix[0][0], 8, 8);
-            for (int i = 0; i < BIN_ROWS; ++i)
-            {
-                for (int j = 0; j < BIN_COLS; j++) {
-                    matrice[j][BIN_ROWS -1 -i] = mirrorV_matrix[j][i];
-                }
-            }
-        }
-
-        if (btnSave)
+        if (btnSavePressed)
         {
                 // Source - https://stackoverflow.com/a/18597747
                 // Posted by Sergey Kalinichenko
@@ -525,16 +508,11 @@ int main (int argc, char *argv[])
                 fclose(fSave);
         }
 
-        if (btnLoad)
+        if (btnLoadPressed)
         {
-
-
             FILE *fLoad = fopen(fNAME, "rb"); 
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
             fclose(fLoad);
-            // aggiorna carattere selezionato dopo load font table
-            curr_ascii_char = 32;
-            LoadLetter(curr_ascii_char);
         }
         
         //----------------------------------------------------------------------------------
@@ -571,10 +549,10 @@ int main (int argc, char *argv[])
 
                     player1.cell.x = (GetMouseX() - ascii_grid_XY.x) / gridSpacing;
                     player1.cell.y = (GetMouseY() - ascii_grid_XY.y) / gridSpacing;
-
+                    copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
+                    
                     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) 
                     {
-                        copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
                         curr_ascii_char = player1.cell.x +(player1.cell.y *16);
                         LoadLetter(curr_ascii_char);
                     }
@@ -603,7 +581,7 @@ int main (int argc, char *argv[])
             drawASCII_Table();
 
             // print titles and some headers
-            DrawText(TextFormat("%s v%s - %s", TOOL_NAME, TOOL_VERSION, fNAME), 240, 24, 20, FG_COLOR); 
+            DrawText(TextFormat("%s v%s - %s", TOOL_NAME, TOOL_VERSION, fNAME), 48, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("HEX"), hex_grid_XY.x + 16, bin_grid_XY.y - 32, 20, FG_COLOR);
             
@@ -640,24 +618,23 @@ int main (int argc, char *argv[])
             
        
          // Close button
-        btnQuit  = GuiButton((Rectangle){ 728, 20, 24, 24}, "#113#");
+        btnQuitPressed  = GuiButton((Rectangle){ 600, 20, 24, 24}, "#113#");
         //  toolbar
-        btnShowGrid   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y , gridSpacing*3, gridSpacing }, "Show/Hide grid");
-        btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
-        btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, gridSpacing*3, gridSpacing }, "Shift right");
-        btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, gridSpacing*3, gridSpacing }, "Shift left");
-        btnShiftDown  = GuiButton((Rectangle){ toolbar_XY.x, 8 + toolbar_XY.y + gridSpacing*4, gridSpacing*3, gridSpacing }, "Shift down");
-        btnRotateLeft = GuiButton((Rectangle){ toolbar_XY.x,10 + toolbar_XY.y + gridSpacing*5, gridSpacing*3, gridSpacing }, "Rotate left");
-        btnRotateRight= GuiButton((Rectangle){ toolbar_XY.x,12 + toolbar_XY.y + gridSpacing*6, gridSpacing*3, gridSpacing }, "Rotate right");
-        btnMirrorH    = GuiButton((Rectangle){ toolbar_XY.x,14 + toolbar_XY.y + gridSpacing*7, gridSpacing*3, gridSpacing }, "Horiz. mirror");
-        btnMirrorV    = GuiButton((Rectangle){ toolbar_XY.x,16 + toolbar_XY.y + gridSpacing*8, gridSpacing*3, gridSpacing }, "Vert. mirror");
-        btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,18 + toolbar_XY.y + gridSpacing*9, gridSpacing*3, gridSpacing }, "Invert dots");
-        btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, gridSpacing*3, gridSpacing }, "Copy char");
-        btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, gridSpacing*3, gridSpacing }, "Paste char");
-        btnRevert     = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, gridSpacing*3, gridSpacing }, "Revert char");
-        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, gridSpacing*3, gridSpacing }, "Clear all");
-        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*15, gridSpacing*3, gridSpacing }, "Load .fnt file");
-        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*16, gridSpacing*3, gridSpacing }, "Save .fnt file");
+        btnShowGridPressed   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y, gridSpacing, gridSpacing }, "#97#");
+        btnShiftUpPressed    = GuiButton((Rectangle){ toolbar_XY.x + 2 + gridSpacing * 1, toolbar_XY.y, gridSpacing, gridSpacing }, "#117#");
+        btnShiftRightPressed = GuiButton((Rectangle){ toolbar_XY.x + 4 + gridSpacing * 2, toolbar_XY.y, gridSpacing, gridSpacing }, "#115#");
+        btnShiftLeftPressed  = GuiButton((Rectangle){ toolbar_XY.x + 6 + gridSpacing * 3, toolbar_XY.y, gridSpacing, gridSpacing }, "#114#");
+        btnShiftDownPressed  = GuiButton((Rectangle){ toolbar_XY.x + 8+ gridSpacing * 4, toolbar_XY.y, gridSpacing, gridSpacing }, "#116#");
+        btnRotateLeft        = GuiButton((Rectangle){ toolbar_XY.x + 10 + gridSpacing * 5, toolbar_XY.y, gridSpacing, gridSpacing }, "#72#");
+        btnRotateRight       = GuiButton((Rectangle){ toolbar_XY.x + 12 + gridSpacing * 6, toolbar_XY.y, gridSpacing, gridSpacing }, "#73#");
+        btnInvertPressed     = GuiButton((Rectangle){ toolbar_XY.x + 14 + gridSpacing * 7, toolbar_XY.y, gridSpacing, gridSpacing }, "#94#");
+        btnCopyPressed       = GuiButton((Rectangle){ toolbar_XY.x + 16 + gridSpacing * 8, toolbar_XY.y, gridSpacing, gridSpacing }, "#16#");
+        btnPastePressed      = GuiButton((Rectangle){ toolbar_XY.x + 18 + gridSpacing * 9, toolbar_XY.y, gridSpacing, gridSpacing }, "#18#");
+        btnRevertPressed     = GuiButton((Rectangle){ toolbar_XY.x + 20 + gridSpacing *10, toolbar_XY.y, gridSpacing, gridSpacing }, "#211#");
+        btnClearPressed      = GuiButton((Rectangle){ toolbar_XY.x + 22 + gridSpacing *11, toolbar_XY.y, gridSpacing, gridSpacing }, "#143#");
+        btnLoadPressed       = GuiButton((Rectangle){ toolbar_XY.x + 24 + gridSpacing *12, toolbar_XY.y, gridSpacing, gridSpacing }, "#5#");
+        btnSavePressed       = GuiButton((Rectangle){ toolbar_XY.x + 26 + gridSpacing *13, toolbar_XY.y, gridSpacing, gridSpacing }, "#6#");
+
 
         EndDrawing();
     }
