@@ -1,3 +1,8 @@
+// TODO
+// bug carattere iniziale se dimensione 8x8 (es  6x8 non lo fa)
+// todo: caricare stringa custom da linea di comando
+// altro parametro  da caricate opacita sfondo 0-255
+
 #include <stdio.h>
 #include <time.h>
 #include <raylib.h>
@@ -6,41 +11,42 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "custom_font.h" // load default FontTable
-//int TableFont[128][8] = {};
+#define TOOL_NAME               "Matrix Display"
+#define TOOL_SHORT_NAME         "MatrixDisp"
+#define TOOL_VERSION            "2.0.0"
 
-// larghezza singolo carattere: max. 8 bit
-// il carattere e' di 8x8 bit.. impostare sotto quanto e' la dimensione del
-// carattere W x H in base al font set creato con dotchar-editor
+//#include "custom_font.h" // load default FontTable
+int TableFont[128][8] = {};
+
+// valore W e H da adattare in base al fontset creato con dotchar-editor (max. 8x8)
 const int ASCII_WIDTH = 6; 
-// altezza singolo carattere max. 8 bit
 const int ASCII_HEIGHT= 8; 
 
+
 //messaggio da visualizzare
-//char* msg = "0123456789"; 
-char* msg = "! \"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-const int ROWS=11;  // 1 riga = ROWS*gridSpacing
-const int COLS=326; //TODO: adattare in base al vaolore di CELL SIZE 
+//char *msg = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+char *msg = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+const int ROWS=11;  // 1 riga = ROWS*dotSize
+const int COLS=328 ; //TODO: adattare in base al vaolore di: dotSize
+#define dotSize 4 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
-#define gridSpacing 4 // consigliato 4 / 8 / 12 / 16
-
-#define WIDTH gridSpacing*COLS
-#define HEIGHT gridSpacing*ROWS
+#define WIDTH dotSize*COLS
+#define HEIGHT dotSize*ROWS
 
 const bool debug = false; // visualizza info di debug si / no (sia a video che in console)
 bool pausa = false; // flag per mettete in pausa lo scorrimento con SPACEBAR
 
 // numero di caratteri per riga visualizzzabili in base alle colonne e alla
-// grandezza del "pixel" (gridSpacing)
+// grandezza del "pixel" (dotSize)
 // questo valore  definisce anche quanti spazi mettere prima e dopo
 // il messaggio per evitare segmentation fault accedendo ai vari caratteri che
 // compongono il messaggio
-int max_char = (gridSpacing*COLS) / (gridSpacing*ASCII_WIDTH); 
+int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH); 
 
 // NORD colors
-#define FG_COLOR CLITERAL(Color){ 236, 239, 244, 232}
+#define FG_COLOR CLITERAL(Color){ 236, 239, 244, 255}
 #define BG_COLOR CLITERAL(Color){67, 76, 94, 232}
-#define GRID_COLOR CLITERAL(Color){59, 66, 82, 232} 
+#define GRID_COLOR CLITERAL(Color){59, 66, 82, 0} 
 
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
@@ -53,15 +59,15 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
 void drawGrid(int cols, int rows, Color color)
 // da fare : se cell size minore di 10 non disegnare e esci subito
 {
-            for (int h = 0; h < (GetScreenHeight()/gridSpacing) + 1; h++)
+            for (int h = 0; h < (GetScreenHeight()/dotSize) + 1; h++)
             {
-               if (debug) DrawText(TextFormat("%02i", h*gridSpacing), 4, h*gridSpacing - 4, 10, SKYBLUE);
-               DrawLine(0, h*gridSpacing, GetScreenWidth(), h*gridSpacing, GRID_COLOR);
+               if (debug) DrawText(TextFormat("%02i", h), 4, 4+ h*dotSize, 10, SKYBLUE);
+               DrawLine(0, h*dotSize, GetScreenWidth(), h*dotSize, GRID_COLOR);
             }
-            for (int v = 0; v < (GetScreenWidth()/gridSpacing) + 1; v++)
+            for (int v = 0; v < (GetScreenWidth()/dotSize) + 1; v++)
             {
-               if (debug) DrawText(TextFormat("%02i", v*gridSpacing), v*gridSpacing - 10, 4, 10, SKYBLUE);
-               DrawLine(v*gridSpacing, 0, v*gridSpacing, GetScreenHeight(), GRID_COLOR);
+               if (debug) DrawText(TextFormat("%02i", v), 4 + v*dotSize , 4, 10, SKYBLUE);
+               DrawLine(v*dotSize, 0, v*dotSize, GetScreenHeight(), GRID_COLOR);
             }
 }
 
@@ -83,22 +89,22 @@ void drawLetter(int col,int row,int ASCII_CODE)
 { 
     int pos = ASCII_CODE ;
     char byte[8]={0,0,0,0,0,0,0,0};
-    //int posX = row * gridSpacing;
-    int posY = row * gridSpacing;
+    //int posX = row * dotSize;
+    int posY = row * dotSize;
             for (int y=0; y<ASCII_HEIGHT; y++) // scansiona le 7 linee HEX che formano altezza carattere
             {
             HexToBin(TableFont[pos][y],byte);
-            int posX = col * gridSpacing;
-            for(int i=ASCII_WIDTH -1; i>-1 ; i--)
+            int posX = col * dotSize;
+            for(int i=ASCII_WIDTH - 1; i>-1 ; i--)
                 {
-                drawRectangleRounded(posX,posY,gridSpacing,gridSpacing, byte[i] ? FG_COLOR : BLANK);          
-                posX += gridSpacing;
+                drawRectangleRounded(posX,posY,dotSize -1 ,dotSize -1 , byte[i] ? FG_COLOR : BLANK);          
+                posX += dotSize;
                 }
-            posY += gridSpacing;
+            posY += dotSize;
             }   
 }
 
-void drawString(int col, int row, char str[])
+void drawString(int col, int row, char *str)
 {
     for (int pos=0; pos < strlen(str); pos++)
       { 
@@ -109,17 +115,18 @@ void drawString(int col, int row, char str[])
 }
 
 // funzione per estrarre substringa da stringa principale
-char* substring(const char* str, size_t start, size_t len)
+char *substring(char *str, size_t start, size_t len)
 {
   if (str == 0 || strlen(str) == 0 || strlen(str) < start || strlen(str) < (start+len)) return 0;
-  char* result = strndup(str + start, len);
-  return result;
+  char *stringa = strndup(str + start , len);
+  return stringa;
 }
 
 // funzione per creare stringa di tot spazi (o caraattere a piacimento)
-char* creaSPAZI(int N) {
+char *creaSPAZI(int N) {
     if (N <= 0) return NULL;
-    char *str = malloc(N);
+    // char *str = malloc(N); //se si usa N carattere strano che appare con ASCII_WIDTH=8 .. solo con questo valore 
+    char *str = malloc(256); // imposto allora un valore fisso 
     if (str == NULL) return NULL;
     memset(str, ' ', N);
     return str;
@@ -144,16 +151,16 @@ int main (int argc, char *argv[])
 
     // crea stringa spazi e appendila prima e dopo il messaggio originale
     char *spazi = creaSPAZI(max_char);
-    if (spazi == NULL) {
-        printf("Errore nella creazione della stringa\n");
-        return 1;
-        }
+        if (spazi == NULL) {
+            printf("Errore nella creazione della stringa\n");
+            return 1;
+            }
     // creo stringa finale da visualizzare (result) con spazi prima e dopo
-    char *result = malloc(strlen(spazi) + strlen(msg) + strlen(spazi));
-
-    strcpy(result, spazi);
-    strcat(result, msg);
-    strcat(result, spazi);
+    //char *result = malloc( strlen(spazi) + strlen(msg) + strlen(spazi) );
+    char *result = malloc(512); // il size di malloc qui genera errori combinazione dot size colonne
+        strcpy(result, spazi);
+        strcat(result, msg);
+        strcat(result, spazi);
     //---------------------------------------------------------------------
     size_t start = 0;
     size_t end = max_char; //visualizza sempre [max_char] per volta! attiva debug per vedere come funzionaae
@@ -171,7 +178,11 @@ int main (int argc, char *argv[])
         // il file font.data con l' altro programma dotchar-editor!, modificarlo,
         // salvarlo e ricopiarlo qui!  :-)
         // questo sovrascrive la tabella caratteri di default definita nel file: include.h
-           FILE *fLoad = fopen("font.data", "rb"); 
+            FILE *fLoad = fopen("data.fnt", "rb"); 
+            if (fLoad == NULL) {
+                printf("File [data.fnt] non trovato!\n");
+            return 1;
+            }
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
             fclose(fLoad);
 
@@ -195,8 +206,9 @@ int main (int argc, char *argv[])
                 if (!pausa)
                 {
                     char* substr = substring(result, start, end);
-                    drawString(1,2,substr);
-                    if (debug) printf("%s - %li,%li\n", substr,start,end);
+                    drawString(2,2,substr);
+                     if (debug) printf("%s\n", result);
+                    if (debug) printf("%s-%li,%li\n", substr,start,end);
                     start++;
                     //loop continuo: alla fine della string riparti da zero.
                     if (start > (len - max_char)) start=0;
@@ -204,14 +216,14 @@ int main (int argc, char *argv[])
                 else
                 {
                     char* substr = substring(result, start, end);
-                    drawString(1,2,substr);
+                    drawString(2,2,substr);
                 }
             }
             // draw "pixels" grid as last step
-            drawGrid (COLS,ROWS,GRID_COLOR);
+            //drawGrid (COLS,ROWS,GRID_COLOR);
 
             //draw window border
-            DrawRectangleLines (1,1,WIDTH-1, HEIGHT-1, GRID_COLOR);
+            //DrawRectangleLines (1,1,WIDTH-1, HEIGHT-1, GRID_COLOR);
         EndDrawing();
     }
 
