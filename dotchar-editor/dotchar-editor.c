@@ -20,7 +20,7 @@
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
-*           - evidenziare meglio il current char nella tabella ASCII
+*           - miglior gestione load font iniziale - ripristino font completo di default / titolo con nome font
 *
 *******************************************************************************************/
 
@@ -40,8 +40,6 @@
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
-//#define RAYGUI_CUSTOM_ICONS     // Custom icons set required 
-//#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
 
 const int screenWidth = 772;
@@ -69,6 +67,7 @@ char hex[HEX_VAL_X][HEX_VAL_Y];
 
 // matrici copia per varie utilita
 int revert_matrix[BIN_ROWS][BIN_COLS];
+int revert_font[128][8];
 int copypaste_matrix[BIN_ROWS][BIN_COLS];
 int mirrorV_matrix[BIN_ROWS][BIN_COLS];
 
@@ -102,9 +101,10 @@ const char fNAME[] = "data.fnt";
     bool btnInvert = false;
     bool btnRotateLeft = false;
     bool btnRotateRight = false;
-    bool btnRevert = false;
+    bool btnRevertChar = false;
     bool btnMirrorH = false;
     bool btnMirrorV = false;
+    bool btnRevertFont = false;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -160,7 +160,6 @@ void HexToBin(char hex_number, char* bit_char) {
     }
  }
 
-// disegna le miniature dei caratteri nella tabella ASCII
 void drawLetter(int x,int y,int ASCII_CODE)
 { 
     int pos = ASCII_CODE ;
@@ -177,9 +176,6 @@ void drawLetter(int x,int y,int ASCII_CODE)
                 }
             posY += 4;
             }   
-
-        // quadrato bianco attorno alla lettera ASCII selezionata
-         DrawRectangleLines(ascii_grid_XY.x + curr_ascii_char % 16 * gridSpacing -2 , ascii_grid_XY.y + curr_ascii_char/16 * gridSpacing -2 , gridSpacing, gridSpacing, GRID_COLOR);
 }
 
 // carica nella matrice il carattere selezionato dalla tabella ASCII
@@ -202,9 +198,12 @@ void drawASCII_Table (void)
 int x;
 int y;
 int count=0;
-        // draw nice ASCII taable background
-        DrawRectangle(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, WHITE);
-        DrawRectangleLines(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, GRID_BG_COLOR);
+    // draw nice ASCII table background
+    DrawRectangle(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, RAYWHITE);
+    DrawRectangleLines(ascii_grid_XY.x -6, ascii_grid_XY.y -6 , 8 + gridSpacing*16, 8 + gridSpacing*8, GRID_BG_COLOR);
+
+    // sfondo grigio per evidenziare la lettera ASCII selezionata
+    DrawRectangle(ascii_grid_XY.x + curr_ascii_char % 16 * gridSpacing -2 , ascii_grid_XY.y + curr_ascii_char/16 * gridSpacing -2 , gridSpacing-1, gridSpacing-1, (Color){ 188, 197, 197,255}); 
         
         for (int j = 0; j < 8; ++j)
         {
@@ -213,7 +212,7 @@ int count=0;
                 x= ascii_grid_XY.x + (i*gridSpacing);
                 y= ascii_grid_XY.y + (j*gridSpacing);
                 drawLetter(x,y, count);
-                DrawText(TextFormat("%d",count), x, y, 10 ,RED);
+                DrawText(TextFormat("%d",count), x, y-1, 10 ,RED);
                 count++;
             }
         }
@@ -278,6 +277,9 @@ void BinToHex (void)
 //  disegna bit delle matrice in base al loro valore
 void drawBinCells()
 {
+// sfondo e cornice miniatura carattere
+    DrawRectangle(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, RAYWHITE);
+    DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, GRID_BG_COLOR);
             for (int i = 0; i < BIN_ROWS; i++)
                 {
                     for (int j = 0; j < BIN_COLS; j++)
@@ -288,15 +290,14 @@ void drawBinCells()
                           gridSpacing -1, 
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
-                          // mostra miniatura matrice per debug
-                                DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -16, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
-                                DrawRectangle((bin_grid_XY.x + gridSpacing*10-12) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
 
-                                DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*4 +12, 10,FG_COLOR);
-                                DrawText(TextFormat("Decimal: %i",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
-                                DrawText("Size: 8 x 8",bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*6 -10, 10,FG_COLOR);
+                          // mostra miniatura matrice per debug
+                        DrawRectangle((bin_grid_XY.x + gridSpacing*10-8) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
-                }   
+                } 
+    DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*4 +12, 10,FG_COLOR);
+    DrawText(TextFormat("Decimal: %i",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
+    DrawText("Size: 8 x 8",bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*6 -10, 10,FG_COLOR);  
 }
 
 // stampa valori esadecimali nella relativa griglia
@@ -361,13 +362,20 @@ int main (int argc, char *argv[])
     //reset matrice binaria
     reset_matrix();
 
+    // copia la tabella caratteri ASCII un una matrice copia per un succ. revert completo...
+     copy_matrix_2d(&TableFont[0][0], &revert_font[0][0], 128, 8);
+
     while (!WindowShouldClose())
     {
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
 
-        if (btnRevert) copy_matrix_2d(&revert_matrix[0][0], &matrice[0][0], 8, 8);
+        if (btnRevertFont) 
+        {   copy_matrix_2d(&revert_font[0][0], &TableFont[0][0], 128, 8);
+            LoadLetter(curr_ascii_char);
+        }
+        if (btnRevertChar) copy_matrix_2d(&revert_matrix[0][0], &matrice[0][0], 8, 8);
         if (btnClear)
         {
             reset_matrix();
@@ -376,7 +384,7 @@ int main (int argc, char *argv[])
         }
         if (btnCopy) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
         if (btnPaste) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
-        if (btnQuit) break;
+        if (btnQuit) exit(0);
         if (btnShowGrid) 
             {
                 showGrid = !showGrid;
@@ -586,6 +594,7 @@ int main (int argc, char *argv[])
 
                     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) 
                     {
+                        //fai sempre una copia di sicurezza del carattere selezionato per un successivo revert...
                         copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
                         curr_ascii_char = player1.cell.x +(player1.cell.y *16);
                         LoadLetter(curr_ascii_char);
@@ -611,11 +620,11 @@ int main (int argc, char *argv[])
 
             // draw round rectangle as "fake" background with some opacity
             drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
-            // stampa la tabella ASCII
+            // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
             // print titles and some headers
-            DrawText(TextFormat("%s v%s - %s", TOOL_NAME, TOOL_VERSION, fNAME), 240, 24, 20, FG_COLOR); 
+            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), 280, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
             DrawText(TextFormat("HEX"), hex_grid_XY.x + 16, bin_grid_XY.y - 32, 20, FG_COLOR);
             
@@ -666,11 +675,11 @@ int main (int argc, char *argv[])
         btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,18 + toolbar_XY.y + gridSpacing*9, gridSpacing*3, gridSpacing }, "Invert dots");
         btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, gridSpacing*3, gridSpacing }, "Copy char");
         btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, gridSpacing*3, gridSpacing }, "Paste char");
-        btnRevert     = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, gridSpacing*3, gridSpacing }, "Revert char");
+        btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, gridSpacing*3, gridSpacing }, "Revert char");
         btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, gridSpacing*3, gridSpacing }, "Clear all");
-        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*15, gridSpacing*3, gridSpacing }, "Load .fnt file");
-        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*16, gridSpacing*3, gridSpacing }, "Save .fnt file");
-
+        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, gridSpacing*3, gridSpacing }, "Load data.fnt");
+        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, gridSpacing*3, gridSpacing }, "Save data.fnt");
+        btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, gridSpacing*3, gridSpacing }, "Default font");
         EndDrawing();
     }
     UnloadRenderTexture(target);

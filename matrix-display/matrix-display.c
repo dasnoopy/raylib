@@ -2,6 +2,7 @@
 // bug carattere iniziale se dimensione 8x8 (es  6x8 non lo fa)
 // todo: caricare stringa custom da linea di comando
 // altro parametro  da caricate opacita sfondo 0-255
+// altri parametri .. posizione iniziale barra caratteri
 
 #include <stdio.h>
 #include <time.h>
@@ -9,7 +10,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <getopt.h>
+#include <inttypes.h>
 
 #define TOOL_NAME               "Matrix Display"
 #define TOOL_SHORT_NAME         "MatrixDisp"
@@ -24,10 +26,9 @@ const int ASCII_HEIGHT= 8;
 
 
 //messaggio da visualizzare
-//char *msg = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-char *msg = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-const int ROWS=11;  // 1 riga = ROWS*dotSize
-const int COLS=328 ; //TODO: adattare in base al vaolore di: dotSize
+char msg[2048] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+const int ROWS=10;  // 1 riga = ROWS*dotSize
+const int COLS=326 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 4 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
 #define WIDTH dotSize*COLS
@@ -45,8 +46,8 @@ int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH);
 
 // NORD colors
 #define FG_COLOR CLITERAL(Color){ 236, 239, 244, 255}
-#define BG_COLOR CLITERAL(Color){67, 76, 94, 232}
-#define GRID_COLOR CLITERAL(Color){59, 66, 82, 0} 
+Color BG_COLOR = CLITERAL(Color){67, 76, 94, 232};
+#define GRID_COLOR CLITERAL(Color){59, 66, 82, 232} 
 
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
@@ -97,7 +98,7 @@ void drawLetter(int col,int row,int ASCII_CODE)
             int posX = col * dotSize;
             for(int i=ASCII_WIDTH - 1; i>-1 ; i--)
                 {
-                drawRectangleRounded(posX,posY,dotSize -1 ,dotSize -1 , byte[i] ? FG_COLOR : BLANK);          
+                drawRectangleRounded(posX,posY,dotSize -1 ,dotSize -1 , byte[i] ? FG_COLOR : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -126,7 +127,7 @@ char *substring(char *str, size_t start, size_t len)
 char *creaSPAZI(int N) {
     if (N <= 0) return NULL;
     // char *str = malloc(N); //se si usa N carattere strano che appare con ASCII_WIDTH=8 .. solo con questo valore 
-    char *str = malloc(256); // imposto allora un valore fisso 
+    char *str = malloc(256); // imposto allora un valore fisso massimo di spazi per stringa
     if (str == NULL) return NULL;
     memset(str, ' ', N);
     return str;
@@ -134,9 +135,28 @@ char *creaSPAZI(int N) {
 
 int main (int argc, char *argv[])
 {
-
+    //char input_msg[1024];
     // gestione parametri da linea di comando
-    //int opt = getopt(argc, argv, "m");
+    int opt;
+    // -m message to display
+    //- t transparency 0-255
+    while ( (opt = getopt(argc, argv, ":m:t:")) != -1)
+    {
+        switch (opt)
+        {
+            case 'm':
+                printf("%s\n",msg );
+                strcpy(msg,optarg);
+                break;
+            case 't':
+             BG_COLOR =  CLITERAL(Color){67, 76, 94, atoi(optarg)};
+             break;
+            //ciao
+            default:
+                printf("Formato di input non valido!!! Il programma terminerà\n");
+                exit(1);
+        }
+    }
 
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
@@ -206,7 +226,7 @@ int main (int argc, char *argv[])
                 if (!pausa)
                 {
                     char* substr = substring(result, start, end);
-                    drawString(2,2,substr);
+                    drawString(1,1,substr);
                      if (debug) printf("%s\n", result);
                     if (debug) printf("%s-%li,%li\n", substr,start,end);
                     start++;
@@ -216,14 +236,14 @@ int main (int argc, char *argv[])
                 else
                 {
                     char* substr = substring(result, start, end);
-                    drawString(2,2,substr);
+                    drawString(1,1,substr);
                 }
             }
             // draw "pixels" grid as last step
             //drawGrid (COLS,ROWS,GRID_COLOR);
 
             //draw window border
-            //DrawRectangleLines (1,1,WIDTH-1, HEIGHT-1, GRID_COLOR);
+            // DrawRectangleLines (1,1,WIDTH-1, HEIGHT-1, GRID_COLOR);
         EndDrawing();
     }
 
