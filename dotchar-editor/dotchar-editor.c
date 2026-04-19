@@ -26,7 +26,7 @@
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.5.0"
+#define TOOL_VERSION            "2.6.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -48,8 +48,8 @@ const int screenWidth = 772;
 const int screenHeight = 740;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {224, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {640, 96 }; // posizione tabella esadecimale
+Vector2 bin_grid_XY = {192, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {672, 96 }; // posizione tabella esadecimale
 Vector2 toolbar_XY = { 32, 72 }; // posizione toolbar
 // ASCII TABLE
 Vector2 ascii_grid_XY  = { 172, 432 };
@@ -288,9 +288,13 @@ void drawBinCells()
                           gridSpacing -1, 
                           gridSpacing -1, 
                           matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
-                          // // mostra miniatura matrice per debug
-                          //       DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -4, bin_grid_XY.y + gridSpacing*3 -4 , 72, 72, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
-                          //       DrawRectangle((bin_grid_XY.x + gridSpacing*10) + 8*j, (bin_grid_XY.y + gridSpacing*3) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
+                          // mostra miniatura matrice per debug
+                                DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -16, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, GRID_BG_COLOR);  // NOTE: Uses QUADS internally, not lines
+                                DrawRectangle((bin_grid_XY.x + gridSpacing*10-12) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
+
+                                DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*4 +12, 10,FG_COLOR);
+                                DrawText(TextFormat("Decimal: %i",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
+                                DrawText("Size: 8 x 8",bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*6 -10, 10,FG_COLOR);
                     }
                 }   
 }
@@ -530,8 +534,16 @@ int main (int argc, char *argv[])
 
 
             FILE *fLoad = fopen(fNAME, "rb"); 
+                if (fLoad == NULL) {
+                    printf("File [data.fnt] non trovato!\n");
+                    return 1;
+                    // gestire file not found con finestra
+
+                    }
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
             fclose(fLoad);
+
+
             // aggiorna carattere selezionato dopo load font table
             curr_ascii_char = 32;
             LoadLetter(curr_ascii_char);
@@ -640,7 +652,7 @@ int main (int argc, char *argv[])
             
        
          // Close button
-        btnQuit  = GuiButton((Rectangle){ 728, 20, 24, 24}, "#113#");
+        btnQuit  = GuiButton((Rectangle){ 20, 20, 24, 24}, "#113#");
         //  toolbar
         btnShowGrid   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y , gridSpacing*3, gridSpacing }, "Show/Hide grid");
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
