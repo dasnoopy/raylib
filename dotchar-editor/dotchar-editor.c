@@ -26,7 +26,7 @@
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.6.2"
+#define TOOL_VERSION            "2.6.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -294,9 +294,10 @@ void drawBinCells()
                         DrawRectangle((bin_grid_XY.x + gridSpacing*10-8) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
                     }
                 } 
-    DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*4 +12, 10,FG_COLOR);
-    DrawText(TextFormat("Decimal: %i",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
-    DrawText("Size: 8 x 8",bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*6 -10, 10,FG_COLOR);  
+    DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + (gridSpacing*4) + 8, 10,FG_COLOR);
+    DrawText(TextFormat("Dec: %i",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
+    DrawText(TextFormat("Hex: %x",curr_ascii_char),bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*6-8, 10,FG_COLOR);
+    DrawText("Size: 8 x 8",bin_grid_XY.x + gridSpacing*10 -8, bin_grid_XY.y + gridSpacing*7-16, 10,FG_COLOR);  
 }
 
 // stampa valori esadecimali nella relativa griglia
@@ -374,8 +375,12 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
 
         if (btnRevertFont) 
-        {   copy_matrix_2d(&revert_font[0][0], &TableFont[0][0], 128, 8);
+        {   
+            //ripristina copia orginale matrice TableFont ...
+            copy_matrix_2d(&revert_font[0][0], &TableFont[0][0], 128, 8);
             LoadLetter(curr_ascii_char);
+            // copia di backup del carattere corrente
+            copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
         }
         if (btnRevertChar) copy_matrix_2d(&revert_matrix[0][0], &matrice[0][0], 8, 8);
         if (btnClear)
@@ -541,7 +546,6 @@ int main (int argc, char *argv[])
         if (btnLoad)
         {
 
-
             FILE *fLoad = fopen(fNAME, "rb"); 
                 if (fLoad == NULL) {
                     printf("File [data.fnt] non trovato!\n");
@@ -552,10 +556,11 @@ int main (int argc, char *argv[])
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
             fclose(fLoad);
 
-
             // aggiorna carattere selezionato dopo load font table
-            //curr_ascii_char = 32;
             LoadLetter(curr_ascii_char);
+
+            // copia di backup del carattere corrente
+            copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
         }
         
         //----------------------------------------------------------------------------------
@@ -595,7 +600,7 @@ int main (int argc, char *argv[])
                     player1.cell.x = (GetMouseX() - ascii_grid_XY.x) / gridSpacing;
                     player1.cell.y = (GetMouseY() - ascii_grid_XY.y) / gridSpacing;
 
-                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+                    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) 
                     {
                         //fai sempre una copia di sicurezza del carattere selezionato per un successivo revert...
                         copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
@@ -624,9 +629,10 @@ int main (int argc, char *argv[])
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
-
-            DrawText(TextFormat("version: %s",TOOL_VERSION), screenWidth - 72, 8, 10, FG_COLOR);
-            
+            // some windows info e tricks
+            DrawText(TextFormat("vers. %s",TOOL_VERSION), screenWidth - 64, 8, 10, FG_COLOR);
+            DrawLine(0,1,screenWidth,1,GRID_BG_COLOR);
+            DrawLine(0,2,screenWidth,2,WHITE);
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
             {
