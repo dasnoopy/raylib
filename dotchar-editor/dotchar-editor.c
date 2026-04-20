@@ -26,7 +26,7 @@
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.6.0"
+#define TOOL_VERSION            "2.6.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -46,9 +46,9 @@ const int screenWidth = 772;
 const int screenHeight = 740;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {192, 96 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {672, 96 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 32, 72 }; // posizione toolbar
+Vector2 bin_grid_XY = {192, 64 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {672, 64 }; // posizione tabella esadecimale
+Vector2 toolbar_XY = { 32, 36 }; // posizione toolbar
 // ASCII TABLE
 Vector2 ascii_grid_XY  = { 172, 432 };
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
@@ -91,7 +91,6 @@ const char fNAME[] = "data.fnt";
     bool btnSave = false;
     bool btnPaste = false;
     bool btnClear = false;
-    bool btnQuit = false;
     // toolbar
     bool btnShowGrid = false;
     bool btnShiftRight = false;
@@ -330,13 +329,16 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "DotChar Editor");
     
+    // General variables
+    Vector2 mousePosition = { 0 };
+    Vector2 windowPosition = {GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2 };
+
     // center window on the screen
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetWindowState(FLAG_WINDOW_UNDECORATED);
-    //SetWindowState(FLAG_WINDOW_TOPMOST);
+    SetWindowPosition(windowPosition.x, windowPosition.y);
+
+
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
@@ -384,7 +386,6 @@ int main (int argc, char *argv[])
         }
         if (btnCopy) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
         if (btnPaste) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
-        if (btnQuit) exit(0);
         if (btnShowGrid) 
             {
                 showGrid = !showGrid;
@@ -553,7 +554,7 @@ int main (int argc, char *argv[])
 
 
             // aggiorna carattere selezionato dopo load font table
-            curr_ascii_char = 32;
+            //curr_ascii_char = 32;
             LoadLetter(curr_ascii_char);
         }
         
@@ -570,9 +571,11 @@ int main (int argc, char *argv[])
         else if (player.cell.y < 0) player.cell.y = 0 ;
         else if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS-1;
 
+        mousePosition = GetMousePosition();
+        
         // rileva se la posizione mouse e' dentro la matrice binaria...
-        mouseHoverCells = CheckCollisionPointRec(GetMousePosition(),(Rectangle){bin_grid_XY.x, bin_grid_XY.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
-        mouseHoverASCII = CheckCollisionPointRec(GetMousePosition(),(Rectangle){ascii_grid_XY.x, ascii_grid_XY.y,16*gridSpacing,8*gridSpacing});
+        mouseHoverCells = CheckCollisionPointRec(mousePosition,(Rectangle){bin_grid_XY.x, bin_grid_XY.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
+        mouseHoverASCII = CheckCollisionPointRec(mousePosition,(Rectangle){ascii_grid_XY.x, ascii_grid_XY.y,16*gridSpacing,8*gridSpacing});
             
             if (mouseHoverCells)
             {
@@ -592,7 +595,7 @@ int main (int argc, char *argv[])
                     player1.cell.x = (GetMouseX() - ascii_grid_XY.x) / gridSpacing;
                     player1.cell.y = (GetMouseY() - ascii_grid_XY.y) / gridSpacing;
 
-                    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) 
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
                     {
                         //fai sempre una copia di sicurezza del carattere selezionato per un successivo revert...
                         copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
@@ -600,7 +603,7 @@ int main (int argc, char *argv[])
                         LoadLetter(curr_ascii_char);
                     }
             }
-   
+
         // aggiorna posizione "cursore" quando ci si sposta sulla matrice binaria con i tasto oppure il mouse
         int j= player.cell.x;
         int i= player.cell.y;
@@ -612,21 +615,17 @@ int main (int argc, char *argv[])
 		// Draw
         //----------------------------------------------------------------------------------
         BeginTextureMode(target);
-            ClearBackground(BLANK);
+            ClearBackground(BG_COLOR);
         EndTextureMode();
 
         BeginDrawing();
-            ClearBackground(BLANK);
+            ClearBackground(BG_COLOR);
 
-            // draw round rectangle as "fake" background with some opacity
-            drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
-            // print titles and some headers
-            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), 280, 24, 20, FG_COLOR); 
-            //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("HEX"), hex_grid_XY.x + 16, bin_grid_XY.y - 32, 20, FG_COLOR);
+
+            DrawText(TextFormat("version: %s",TOOL_VERSION), screenWidth - 72, 8, 10, FG_COLOR);
             
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
@@ -660,8 +659,6 @@ int main (int argc, char *argv[])
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
             
        
-         // Close button
-        btnQuit  = GuiButton((Rectangle){ 20, 20, 24, 24}, "#113#");
         //  toolbar
         btnShowGrid   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y , gridSpacing*3, gridSpacing }, "Show/Hide grid");
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
@@ -676,7 +673,7 @@ int main (int argc, char *argv[])
         btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, gridSpacing*3, gridSpacing }, "Copy char");
         btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, gridSpacing*3, gridSpacing }, "Paste char");
         btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, gridSpacing*3, gridSpacing }, "Revert char");
-        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, gridSpacing*3, gridSpacing }, "Clear all");
+        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, gridSpacing*3, gridSpacing }, "Delete char");
         btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, gridSpacing*3, gridSpacing }, "Load data.fnt");
         btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, gridSpacing*3, gridSpacing }, "Save data.fnt");
         btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, gridSpacing*3, gridSpacing }, "Default font");
