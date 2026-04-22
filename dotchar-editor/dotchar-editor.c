@@ -42,19 +42,19 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-const int screenWidth = 772;
-const int screenHeight = 740;
+const int screenWidth = 768;
+const int screenHeight = 696;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {192, 64 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {672, 64 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 32, 36 }; // posizione toolbar
+Vector2 bin_grid_XY = {188, 48 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {668, 48 }; // posizione tabella esadecimale
+Vector2 toolbar_XY = { 24, 24 }; // posizione toolbar
 // ASCII TABLE
-Vector2 ascii_grid_XY  = { 172, 432 };
+Vector2 ascii_grid_XY  = { 168, 384 };
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
 
 #define gridSpacing       36
-#define BIN_COLS        8 // larghezza matrice binario (nr.colonne)del disegno  (1-8)
+#define BIN_COLS        8// larghezza matrice binario (nr.colonne)del disegno  (1-8)
 #define BIN_ROWS       8 // altezza matrice binaria( nr. righe) del singolo carattere (1-8)
 #define HEX_VAL_X         2 // larghezza matrice esadecimale (nr. colonne) per nibble 1 e 2 (nibble = mezzo byte MSB e LSB)
 #define HEX_VAL_Y         8 // deve corrispondere a CHAR_ROW : altezza matrice esadecimale( nr. righe) (1-8)
@@ -62,7 +62,7 @@ int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII :
 bool showGrid = true;
 
 // definizione matrici
-int matrice[BIN_ROWS][BIN_COLS];
+int matrice[BIN_COLS][BIN_ROWS];
 char hex[HEX_VAL_X][HEX_VAL_Y];
 
 // matrici copia per varie utilita
@@ -588,8 +588,8 @@ int main (int argc, char *argv[])
                     player.cell.x = (GetMouseX() - bin_grid_XY.x) / gridSpacing ;
                     player.cell.y = (GetMouseY() - bin_grid_XY.y) / gridSpacing;
                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
-                    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = 1;
-                    if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] =!matrice[player.cell.x][player.cell.y];
+                    //  if  (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
             }
                     
             // rileva se la posizione mouse e' dentro la tabella ASCIIa...
