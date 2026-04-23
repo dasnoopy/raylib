@@ -1,0 +1,315 @@
+/*******************************************************************************************
+*
+* 
+*   Resistor Calculator
+*   Small utility to calculate resistor values
+*   A simple app to learn C using raylib library
+* 
+*  CHANGELOG:
+* 
+*   v. 1.0: first release.
+* 
+*   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
+*
+********************************************************************************************
+*
+*   TODO LIST POSSIBLE IMPROVEMENTS:
+*
+*  sotto la relativa fascia scrivere valore e sfondo del valore (come da app web)?
+*  zone offlimits tipo nero banda 1 e per tutte le celle senza un valore
+*   scritta resistenza deve essere centrata nella finestra
+*  pulsante reset a valori iniziali 100 Ohm +/- 5%
+*  mostrare valore tolleranza minimaa massima in base al valore selezionato come nella app web
+*
+* caratteri OMEGA e +/- in utf 8
+*
+*   BUGS:
+
+* 
+*******************************************************************************************/
+
+#define TOOL_NAME               "Resistor Calculator"
+#define TOOL_SHORT_NAME         "ResCalc"
+#define TOOL_VERSION            "1.0"
+
+#include <stdio.h>
+#include <time.h>
+#include <raylib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+// raygui integration
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+
+// screen size
+    const int screenWidth = 768;
+    const int screenHeight = 696;
+
+// Elements positoning
+const Vector2 coord_resistor_image = {134, 16};
+const Vector2 bin_grid_XY = {140, 270};
+const Vector2 coord_Values = {210, 186 };
+
+// ARDUINO colors (light)
+#define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
+#define FG_COLOR CLITERAL(Color){ 79, 88, 92, 255}
+#define GRID_COLOR CLITERAL(Color){ 55, 66, 70, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 218, 227,227, 255} 
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
+#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
+
+#define MAX_COLORS_COUNT    13
+#define MAX_BANDS   5
+
+#define gridSpacingX    96
+#define gridSpacingY    30
+
+// definizione matrici
+int matrice[MAX_BANDS][MAX_COLORS_COUNT];
+
+double valori[MAX_COLORS_COUNT][MAX_BANDS] = 
+{
+    {-1, 0, 0,1, -1},
+    {1, 1, 1, 10, 1},
+    {2, 2, 2, 100, 2},
+    {3, 3, 3, 1000, 0.05},
+    {4, 4, 4, 10000, 0.02},
+    {5, 5, 5, 100000, 0.5},
+    {6, 6, 6, 1000000, 0.25},
+    {7, 7, 7, 10000000, 0.10},
+    {8, 8, 8, 100000000, 0.01},
+    {9, 9, 9, 1000000000, -1},
+    {-1, -1, -1, 0.1, 5},
+    {-1, -1, -1, 0.01, 10},
+    {-1, -1, -1, 0.001, -1}
+};
+
+const char *bande[5]={"1st BAND","2nd BAND","3rd BAND","MULTIPLIER","TOLERANCE"};
+double bandVal[MAX_BANDS] ={1,0,0,100,5};
+int colorBand[MAX_BANDS] = {1,0,0,2,10};
+float resistenza;
+
+// Colors to choose from
+Color bandColors[MAX_COLORS_COUNT] = {BLACK, BROWN, RED, ORANGE, YELLOW, LIME, BLUE, VIOLET, GRAY, WHITE, GOLD, LIGHTGRAY, PINK};
+const char *colorNames[MAX_COLORS_COUNT] = {"BLACK", "BROWN", "RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "VIOLET", "GRAY", "WHITE", "GOLD", "SILVER", "PINK"};
+
+//----------------------------------------------------------------------------------
+// Types and Structures Definition
+//----------------------------------------------------------------------------------
+// Point struct, like Vector2 but using int
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// Player state struct
+typedef struct {
+    Point cell;
+    Color color;
+} PlayerState;
+
+// mouse and clipoard
+bool mouseHoverCells = false;
+
+void drawRectangleRounded (int x, int y, int w, int h, Color color)  
+{
+  Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
+  float radius = 0.0f; // no radius
+  int   segs   = 12; // non segments
+  DrawRectangleRounded ( rect, radius, segs, color );
+}
+
+const char* fint(float n) {
+    static char buf[22];
+
+    if (n >= 1000000000)
+        sprintf(buf, "%.1fG", n / 1000000000);
+    else if (n >= 1000000)
+        sprintf(buf, "%.1fM", n / 1000000);
+    else if (n >= 1000)
+        sprintf(buf, "%.1fK", n / 1000);
+    else if (n >= 1)
+        sprintf(buf, "%.0f", n / 1);
+    else
+        sprintf(buf, "%.3f", n);
+    return buf;
+}
+
+
+
+//  disegna matrice colori
+void drawColorTable(void)
+{
+
+    bool colore = true; // serve per cambiare fg_color in base ai colori chiari
+
+            DrawRectangle(bin_grid_XY.x-1,bin_grid_XY.y-1, 6+gridSpacingX*5, 14+gridSpacingY*13,GRID_COLOR);
+            for (int i = 0; i < MAX_COLORS_COUNT; i++)
+                {
+                    // colore giallo bianco rosa e grigio chiaro , usa colore nero per FG_COLOR
+                    if (i==4 || i>=9) colore=false; 
+                    // nome dei colori a destra e sinistra
+                    DrawText(colorNames[i], bin_grid_XY.x-10-MeasureText(colorNames[i], 10) , (bin_grid_XY.y + 8) +  (gridSpacingY+1 )*i , 10, FG_COLOR);
+                    DrawText(colorNames[i], 14+bin_grid_XY.x+gridSpacingX*5, (bin_grid_XY.y + 8) +  (gridSpacingY+1 )*i , 10, FG_COLOR);
+
+                    for (int j = 0; j < MAX_BANDS; j++)
+                    {
+                        //intestazioni di colonna : nome bande
+                        DrawText(bande[j],(bin_grid_XY.x + 20)+(gridSpacingX+1)*j, bin_grid_XY.y - 20,10,FG_COLOR);
+                       
+                        // disegna sfondo cella  in base al valore 1/0 di matrice
+                        DrawRectangle(bin_grid_XY.x + (gridSpacingX*j) + j,
+                                     bin_grid_XY.y + (gridSpacingY*i) + i, 
+                                    gridSpacingX, 
+                                    gridSpacingY, 
+                                    matrice[j][i] ? Fade(bandColors[i], 0.4f) : bandColors[i]);
+                        // stampa i valori della colonne formattando  il testo in base al tipo di dato.
+                        if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%.e",(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                        else  if (valori[i][j]>=0 && j ==4) DrawText(TextFormat("±%g%%",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                    }
+                    colore=true;
+                }   
+}
+
+void reset_matrix_column(int col)
+{
+    //reset matrice binaria per colonna
+    for (int i = 0; i < MAX_COLORS_COUNT; i++) matrice[col][i] = 0; 
+}
+
+void calcoloResistenza(void)
+{
+     // Res = (digit1 × 100 + digit2 × 10 + digit3 ) × multiplier ±tolerance 
+    resistenza = (bandVal[0] *100 + bandVal[1] *10 + bandVal[2]) * bandVal[3];
+}
+
+int main (int argc, char *argv[])
+{
+    //----------------------------------------------------------------------------------
+    // Initialization
+    //----------------------------------------------------------------------------------
+    InitWindow(screenWidth, screenHeight, "5 Band resistor calculator");
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
+    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
+    Font font = LoadFontEx("assets/DinProM.otf", 48, 0, 0);
+ // NOTE: Textures MUST be loaded after Window initialization (OpenGL context is required)
+    Image image = LoadImage("assets/resistor.png");     // Loaded in CPU memory (RAM)
+    Texture2D texture = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+
+    // coordinate fascie resistenza
+    Rectangle bands[MAX_BANDS]  = {0};
+    // coordinate 1a fascia
+    bands[0].x = coord_resistor_image.x + 90;
+    bands[0].y = coord_resistor_image.y;
+    bands[0].width = 32;
+    bands[0].height = 160;
+    // coordinate 2a fascia
+    bands[1].x = coord_resistor_image.x + 170;
+    bands[1].y = coord_resistor_image.y +  16;
+    bands[1].width = 32;
+    bands[1].height = 128;
+    // coordinate 3a fascia
+    bands[2].x = coord_resistor_image.x + 220;
+    bands[2].y = coord_resistor_image.y + 16;
+    bands[2].width = 32;
+    bands[2].height = 128;
+    // coordinate 4a fascia
+    bands[3].x = coord_resistor_image.x + 270;
+    bands[3].y = coord_resistor_image.y + 16;
+    bands[3].width = 32;
+    bands[3].height = 128;
+    // coordinate 5a fascia
+    bands[4].x = coord_resistor_image.x + 372;
+    bands[4].y = coord_resistor_image.y;
+    bands[4].width = 32;
+    bands[4].height = 160;
+
+    // Init current player state
+    PlayerState player = { 0 };
+    player.cell = (Point){ 0, 0 };
+    
+    int currSelBand = 0;
+
+    // set FPS (uso questo sistema per regolare la velocità di scorrimento)
+    SetTargetFPS(60);
+    RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
+
+while (!WindowShouldClose())
+    {
+        //----------------------------------------------------------------------------------
+        // Update
+        //----------------------------------------------------------------------------------
+
+        mouseHoverCells = CheckCollisionPointRec(GetMousePosition(),(Rectangle){bin_grid_XY.x, bin_grid_XY.y, MAX_BANDS*gridSpacingX,MAX_COLORS_COUNT*gridSpacingY });
+            
+            if (mouseHoverCells)
+            {
+                 // Icon painting mouse logic
+                    player.cell.x = (GetMouseX() - bin_grid_XY.x) / (gridSpacingX+1);
+                    player.cell.y = (GetMouseY() - bin_grid_XY.y) / (gridSpacingY+1);
+
+                    // zone off limits
+
+                    if (player.cell.x < 0 ) player.cell.x = 0;
+                    else if (player.cell.x >= MAX_BANDS) player.cell.x = MAX_BANDS-1;
+                    else if (player.cell.y < 0) player.cell.y = 0 ;
+                    else if (player.cell.y >= MAX_COLORS_COUNT) player.cell.y = MAX_COLORS_COUNT-1;
+
+                    // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                        currSelBand = player.cell.x;
+                        reset_matrix_column(currSelBand);
+                        matrice[player.cell.x][player.cell.y]  = 1;
+                        // imposta colore relativa banda resistenza
+                        colorBand[currSelBand] = player.cell.y;
+                        // aassegna valore bande
+                        bandVal[currSelBand] = valori[player.cell.y][player.cell.x];
+                    }
+            }
+      // int px=player.cell.x;
+      // int py=player.cell.y;
+
+        //----------------------------------------------------------------------------------
+        // Draw
+        //----------------------------------------------------------------------------------
+
+    BeginTextureMode(target);
+        ClearBackground(BG_COLOR);
+    EndTextureMode();
+
+
+    BeginDrawing();
+            ClearBackground(BG_COLOR);
+                // sfondo sotto la resistenza
+                DrawRectangle(0, 0 ,screenWidth,240 , GRID_BG_COLOR);
+
+            // show resistor PNG images
+            DrawTexture(texture, coord_resistor_image.x, coord_resistor_image.y, WHITE);
+
+            for (int y = 0; y < MAX_BANDS; ++y)
+            {
+                // disegna le 5 bande della resistenza...
+                DrawRectangleRec(bands[y], bandColors[colorBand[y]]);
+            }
+                // disegna tabella colori e valori resistenza
+                drawColorTable();
+                //calcolo della resistenza
+                calcoloResistenza();
+                // stampa il valore della resistenza (hardcoded)
+                DrawTextEx(font, TextFormat("%s Ohms | +/- %g%%",fint(resistenza),bandVal[4]),(Vector2){coord_Values.x, coord_Values.y}, 48,0, FG_COLOR);
+                // DrawText(TextFormat("%s Ohms | +/- %g%%",fint(resistenza),bandVal[4]),coord_Values.x, coord_Values.y, 40,FG_COLOR);
+                
+                //DrawText(TextFormat("%d %d %i", px,py,currSelBand),400,600,20,RED);
+    
+    EndDrawing();
+    }
+    UnloadRenderTexture(target);
+    UnloadFont(font);
+CloseWindow();
+return 0;
+}
