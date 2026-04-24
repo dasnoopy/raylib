@@ -686,6 +686,7 @@ int main (int argc, char *argv[])
         EndDrawing();
     }
     UnloadRenderTexture(target);
+    UnloadFont(font);
     CloseWindow();
     return 0;
 }

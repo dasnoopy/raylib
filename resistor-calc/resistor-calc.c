@@ -16,13 +16,10 @@
 *   TODO LIST POSSIBLE IMPROVEMENTS:
 *
 *  sotto la relativa fascia scrivere valore e sfondo del valore (come da app web)?
-*  zone offlimits tipo nero banda 1 e per tutte le celle senza un valore
 *   scritta resistenza deve essere centrata nella finestra
 *  pulsante reset a valori iniziali 100 Ohm +/- 5%
 *  mostrare valore tolleranza minimaa massima in base al valore selezionato come nella app web
-*
-* caratteri OMEGA e +/- in utf 8
-*
+*  carattere OMEGA
 *   BUGS:
 
 * 
@@ -51,7 +48,7 @@
 // Elements positoning
 const Vector2 coord_resistor_image = {134, 16};
 const Vector2 bin_grid_XY = {140, 270};
-const Vector2 coord_Values = {210, 186 };
+const Vector2 coord_Values = {240, 190 };
 
 // ARDUINO colors (light)
 #define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
@@ -93,7 +90,7 @@ int colorBand[MAX_BANDS] = {1,0,0,2,10};
 float resistenza;
 
 // Colors to choose from
-Color bandColors[MAX_COLORS_COUNT] = {BLACK, BROWN, RED, ORANGE, YELLOW, LIME, BLUE, VIOLET, GRAY, WHITE, GOLD, LIGHTGRAY, PINK};
+const Color bandColors[MAX_COLORS_COUNT] = {BLACK, BROWN, RED, ORANGE, YELLOW, GREEN, BLUE, VIOLET, GRAY, WHITE, GOLD, LIGHTGRAY, PINK};
 const char *colorNames[MAX_COLORS_COUNT] = {"BLACK", "BROWN", "RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "VIOLET", "GRAY", "WHITE", "GOLD", "SILVER", "PINK"};
 
 //----------------------------------------------------------------------------------
@@ -145,8 +142,8 @@ void drawColorTable(void)
 {
 
     bool colore = true; // serve per cambiare fg_color in base ai colori chiari
-
-            DrawRectangle(bin_grid_XY.x-1,bin_grid_XY.y-1, 6+gridSpacingX*5, 14+gridSpacingY*13,GRID_COLOR);
+            // sfondo sotto la tabella per simulare la grigliaa
+            DrawRectangle(bin_grid_XY.x-1,bin_grid_XY.y-1, 6+gridSpacingX*5, 14+gridSpacingY*13,FG_COLOR);
             for (int i = 0; i < MAX_COLORS_COUNT; i++)
                 {
                     // colore giallo bianco rosa e grigio chiaro , usa colore nero per FG_COLOR
@@ -168,7 +165,7 @@ void drawColorTable(void)
                                     matrice[j][i] ? Fade(bandColors[i], 0.4f) : bandColors[i]);
                         // stampa i valori della colonne formattando  il testo in base al tipo di dato.
                         if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
-                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%.e",(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%s",fint(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                         else  if (valori[i][j]>=0 && j ==4) DrawText(TextFormat("±%g%%",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                     }
                     colore=true;
@@ -185,6 +182,7 @@ void calcoloResistenza(void)
 {
      // Res = (digit1 × 100 + digit2 × 10 + digit3 ) × multiplier ±tolerance 
     resistenza = (bandVal[0] *100 + bandVal[1] *10 + bandVal[2]) * bandVal[3];
+    if (resistenza<=0) resistenza=0;
 }
 
 int main (int argc, char *argv[])
@@ -195,39 +193,23 @@ int main (int argc, char *argv[])
     InitWindow(screenWidth, screenHeight, "5 Band resistor calculator");
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
-    Font font = LoadFontEx("assets/DinProM.otf", 48, 0, 0);
+    Font font = LoadFontEx("assets/Dot.ttf", 40, 0, 250);
+
+ 
  // NOTE: Textures MUST be loaded after Window initialization (OpenGL context is required)
     Image image = LoadImage("assets/resistor.png");     // Loaded in CPU memory (RAM)
     Texture2D texture = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
 
-    // coordinate fascie resistenza
-    Rectangle bands[MAX_BANDS]  = {0};
-    // coordinate 1a fascia
-    bands[0].x = coord_resistor_image.x + 90;
-    bands[0].y = coord_resistor_image.y;
-    bands[0].width = 32;
-    bands[0].height = 160;
-    // coordinate 2a fascia
-    bands[1].x = coord_resistor_image.x + 170;
-    bands[1].y = coord_resistor_image.y +  16;
-    bands[1].width = 32;
-    bands[1].height = 128;
-    // coordinate 3a fascia
-    bands[2].x = coord_resistor_image.x + 220;
-    bands[2].y = coord_resistor_image.y + 16;
-    bands[2].width = 32;
-    bands[2].height = 128;
-    // coordinate 4a fascia
-    bands[3].x = coord_resistor_image.x + 270;
-    bands[3].y = coord_resistor_image.y + 16;
-    bands[3].width = 32;
-    bands[3].height = 128;
-    // coordinate 5a fascia
-    bands[4].x = coord_resistor_image.x + 372;
-    bands[4].y = coord_resistor_image.y;
-    bands[4].width = 32;
-    bands[4].height = 160;
+
+   // Coordinate grafiche per disegnare le 5 bande della resistenza.
+    const Rectangle bands[] = {
+        (Rectangle){  coord_resistor_image.x + 90, coord_resistor_image.y, 32, 160 },
+        (Rectangle){  coord_resistor_image.x + 170, coord_resistor_image.y +16, 32, 128 },
+        (Rectangle){  coord_resistor_image.x + 220, coord_resistor_image.y +16, 32, 128 },
+        (Rectangle){  coord_resistor_image.x + 270, coord_resistor_image.y +16, 32, 128 },
+        (Rectangle){  coord_resistor_image.x + 372, coord_resistor_image.y, 32, 160 }
+    };
 
     // Init current player state
     PlayerState player = { 0 };
@@ -262,13 +244,15 @@ while (!WindowShouldClose())
 
                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
                     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                        currSelBand = player.cell.x;
-                        reset_matrix_column(currSelBand);
-                        matrice[player.cell.x][player.cell.y]  = 1;
-                        // imposta colore relativa banda resistenza
-                        colorBand[currSelBand] = player.cell.y;
-                        // aassegna valore bande
-                        bandVal[currSelBand] = valori[player.cell.y][player.cell.x];
+                        if (valori[player.cell.y][player.cell.x]>=0) {
+                            currSelBand = player.cell.x;
+                            reset_matrix_column(currSelBand);
+                            matrice[player.cell.x][player.cell.y]  = 1;
+                            // imposta colore relativa banda resistenza
+                            colorBand[currSelBand] = player.cell.y;
+                            // aassegna valore bande
+                            bandVal[currSelBand] = valori[player.cell.y][player.cell.x];
+                        }
                     }
             }
       // int px=player.cell.x;
@@ -301,8 +285,8 @@ while (!WindowShouldClose())
                 //calcolo della resistenza
                 calcoloResistenza();
                 // stampa il valore della resistenza (hardcoded)
-                DrawTextEx(font, TextFormat("%s Ohms | +/- %g%%",fint(resistenza),bandVal[4]),(Vector2){coord_Values.x, coord_Values.y}, 48,0, FG_COLOR);
-                // DrawText(TextFormat("%s Ohms | +/- %g%%",fint(resistenza),bandVal[4]),coord_Values.x, coord_Values.y, 40,FG_COLOR);
+                DrawTextEx(font, TextFormat("%sOhms ±%g%%",fint(resistenza),bandVal[4]),(Vector2){coord_Values.x, coord_Values.y}, 40,0, BLACK);
+                // DrawText(TextFormat("%s Ohms | ±%g%%",fint(resistenza),bandVal[4]),coord_Values.x, coord_Values.y, 40,FG_COLOR);
                 
                 //DrawText(TextFormat("%d %d %i", px,py,currSelBand),400,600,20,RED);
     
