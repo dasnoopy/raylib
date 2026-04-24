@@ -45,7 +45,7 @@
 // Elements positoning
 const Vector2 coord_resistor_image = {24, 36};
 const Vector2 bin_grid_XY = {140, 270};
-const Vector2 coord_Values = {560, 8};
+const Vector2 coord_Values = {560, 48};
 
 // ARDUINO colors (light)
 #define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
@@ -84,7 +84,7 @@ double valori[MAX_COLORS_COUNT][MAX_BANDS] =
 const char *bande[5]={"1st BAND","2nd BAND","3rd BAND","MULTIPLIER","TOLERANCE"};
 double bandVal[MAX_BANDS] ={1,0,0,100,5};
 int colorBand[MAX_BANDS] = {1,0,0,2,10};
-float resistenza;
+float resistenza, mintolerance, maxtolerance;
 
 // Colors to choose from
 const Color bandColors[MAX_COLORS_COUNT] = {BLACK, BROWN, RED, ORANGE, YELLOW, GREEN, BLUE, VIOLET, GRAY, WHITE, GOLD, LIGHTGRAY, PINK};
@@ -116,7 +116,7 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
-const char* fint(float n) {
+const char* res_int(float n) {
     static char buf[22];
 
     if (n >= 1000000000)
@@ -132,6 +132,21 @@ const char* fint(float n) {
     return buf;
 }
 
+const char* tol_int(float n) {
+    static char buf[22];
+
+    if (n >= 1000000000)
+        sprintf(buf, "%.5fG", n / 1000000000);
+    else if (n >= 1000000)
+        sprintf(buf, "%.5fM", n / 1000000);
+    else if (n >= 1000)
+        sprintf(buf, "%.5fK", n / 1000);
+    else if (n >= 1)
+        sprintf(buf, "%.5f", n / 1);
+    else
+        sprintf(buf, "%.5f", n);
+    return buf;
+}
 
 
 //  disegna matrice colori
@@ -162,7 +177,7 @@ void drawColorTable(void)
                                     matrice[j][i] ? Fade(bandColors[i], 0.4f) : bandColors[i]);
                         // stampa i valori della colonne formattando  il testo in base al tipo di dato.
                         if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
-                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%s",fint(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%s",res_int(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                         else  if (valori[i][j]>=0 && j ==4) DrawText(TextFormat("±%g%%",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                     }
                     colore=true;
@@ -180,25 +195,28 @@ void calcoloResistenza(void)
      // Res = (digit1 × 100 + digit2 × 10 + digit3 ) × multiplier ±tolerance 
     resistenza = (bandVal[0] *100 + bandVal[1] *10 + bandVal[2]) * bandVal[3];
     if (resistenza<=0) resistenza=0;
+
+    mintolerance = resistenza - ((resistenza * bandVal[4])/100);
+    maxtolerance = resistenza + ((resistenza * bandVal[4])/100);
 }
 
 void SomeDesign(void)
 {
-       // sfondo sotto la resistenza
+               // sfondo sotto la resistenza
                 DrawRectangle(0, 0 ,screenWidth,240 , GRID_BG_COLOR);
-                DrawRectangle(550,80,261,80,BG_COLOR);
-                DrawRectangle(550,200,261,40,BG_COLOR);
-                DrawRectangleLines(0, 0 ,screenWidth+1,240 , GRID_COLOR);
+                DrawRectangle(550,40,261,160,BG_COLOR);
+                //                   
+                DrawRectangleLines(0, 1 ,screenWidth+1,239 , LIGHTGRAY);
+                DrawRectangleLines(550,0,261,240,LIGHTGRAY);
+                DrawRectangleLines(550,40,261,160,LIGHTGRAY);
+                DrawLine(550,120,screenWidth-1,120,LIGHTGRAY);
+                //
+                DrawText("Min. tolerance value :",558,4,10,FG_COLOR);
+                DrawText("Resistor value :",558,44,10,FG_COLOR);
+                DrawText("Tolerance value :",558,124,10,FG_COLOR);
 
-                //
-                DrawRectangleLines(550,0,261,240,GRID_COLOR);
-                DrawRectangleLines(550,80,261,80,GRID_COLOR);
-                DrawRectangleLines(550,80,261,120,GRID_COLOR);
-                //
-                DrawText("Resistor value :",558,4,10,FG_COLOR);
-                DrawText("Tolerance value :",558,84,10,FG_COLOR);
-                DrawText("Min. tolerance value :",558,164,10,FG_COLOR);
-                 DrawText("Max. tolerance value :",558,204,10,FG_COLOR);
+                DrawText("Max. tolerance value :",558,204,10,FG_COLOR);
+                DrawText("Standard: IEC 60062 : 2016",208,188,10,FG_COLOR);
 
       // sezione volore
 
@@ -303,7 +321,7 @@ while (!WindowShouldClose())
 
             // show resistor PNG images
             DrawTexture(resistor_texture, coord_resistor_image.x, coord_resistor_image.y, WHITE);
-            DrawTexture(omega_texture, 728,26, FG_COLOR);
+            DrawTexture(omega_texture, 728,66, FG_COLOR);
 
             for (int y = 0; y < MAX_BANDS; ++y)
             {
@@ -315,10 +333,12 @@ while (!WindowShouldClose())
                 //calcolo della resistenza
                 calcoloResistenza();
                 // stampa il valore della resistenza (hardcoded)
-                DrawTextEx(font, TextFormat("%s",fint(resistenza)),(Vector2){coord_Values.x, coord_Values.y}, 64,0, BLACK);
-                DrawTextEx(font, TextFormat("±%g%%",bandVal[4]),(Vector2){coord_Values.x+20, coord_Values.y+80}, 64,0, BLACK);
-                // DrawText(TextFormat("%s Ohms | ±%g%%",fint(resistenza),bandVal[4]),coord_Values.x, coord_Values.y, 40,FG_COLOR);
-                
+                DrawText(TextFormat("%s Ohm",tol_int(mintolerance)),coord_Values.x+32, coord_Values.y -30,20,FG_COLOR);
+                DrawTextEx(font, TextFormat("%s",res_int(resistenza)),(Vector2){coord_Values.x, coord_Values.y}, 64,0, BLACK);
+                DrawTextEx(font, TextFormat("±%g%%",tol_int(bandVal[4])),(Vector2){coord_Values.x+20, coord_Values.y+80}, 64,0, BLACK);
+                DrawText(TextFormat("%s Ohm",tol_int(maxtolerance)),coord_Values.x+32, coord_Values.y +170,20,FG_COLOR);
+
+
                 //DrawText(TextFormat("%d %d %i", px,py,currSelBand),400,600,20,RED);
     
     EndDrawing();
