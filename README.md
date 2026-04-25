@@ -1,9 +1,9 @@
 # Learning C (using raylib) 
 C + Raylib simple projects (to learn C code)
 
-Everything started watching video from [yt channel](https://www.youtube.com/@HirschDaniel)
+Everything started from [here...](https://www.youtube.com/@HirschDaniel)
 
-Thanks Daniel... ;-)
+Thanks Daniel!
 
 #### How to use (compiling and running on ArchLinux):
 
