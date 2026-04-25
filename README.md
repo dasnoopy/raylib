@@ -13,9 +13,12 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
-**5 Band resistore calculator **
+**Digital Clock**
+![digital-clock](https://raw.github.com/dasnoopy/raylib/main/screenshot/digital-clock.png)
+
+**5 Band resistor calculator**
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
-**5 Dot Char editor **
+**Dotchar editor**
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
