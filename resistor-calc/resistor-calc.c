@@ -1,23 +1,18 @@
 /*******************************************************************************************
 *
-* 
 *   Resistor Calculator
-*   Small utility to calculate resistor values
+*   Small utility to calculate 5 band resistor value
 *   A simple app to learn C using raylib library
 * 
 *  CHANGELOG:
-* 
-*   v. 1.0: first release.
+*  v. 1.0: first release.
 * 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************
 *
-*   TODO LIST POSSIBLE IMPROVEMENTS:
+*   TODO LIST / IMPROVEMENTS:
 *
-*  pulsante reset a valori iniziali 100 Ohm +/- 5%
-*  mostrare valore tolleranza minimaa massima in base al valore selezionato come nella app web
-
 *   BUGS:
 * 
 *******************************************************************************************/
@@ -108,14 +103,6 @@ typedef struct {
 // mouse and clipoard
 bool mouseHoverCells = false;
 
-void drawRectangleRounded (int x, int y, int w, int h, Color color)  
-{
-  Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
-  float radius = 0.0f; // no radius
-  int   segs   = 12; // non segments
-  DrawRectangleRounded ( rect, radius, segs, color );
-}
-
 const char* res_int(float n) {
     static char buf[22];
 
@@ -148,11 +135,9 @@ const char* tol_int(float n) {
     return buf;
 }
 
-
 //  disegna matrice colori
 void drawColorTable(void)
 {
-
     bool colore = true; // serve per cambiare fg_color in base ai colori chiari
             // sfondo sotto la tabella per simulare la grigliaa
             DrawRectangle(bin_grid_XY.x-1,bin_grid_XY.y-1, 6+gridSpacingX*5, 14+gridSpacingY*13,FG_COLOR);
@@ -202,10 +187,10 @@ void calcoloResistenza(void)
 
 void SomeDesign(void)
 {
-               // sfondo sotto la resistenza
+               // sfondi scritte e resistenza
                 DrawRectangle(0, 0 ,screenWidth,240 , GRID_BG_COLOR);
                 DrawRectangle(550,40,261,160,BG_COLOR);
-                //                   
+                // griglia valori
                 DrawRectangleLines(0, 1 ,screenWidth+1,239 , LIGHTGRAY);
                 DrawRectangleLines(550,0,261,240,LIGHTGRAY);
                 DrawRectangleLines(550,40,261,160,LIGHTGRAY);
@@ -217,14 +202,6 @@ void SomeDesign(void)
 
                 DrawText("Max. tolerance value :",558,204,10,FG_COLOR);
                 DrawText("Standard: IEC 60062 : 2016",208,188,10,FG_COLOR);
-
-      // sezione volore
-
-    // sezione tolleraanza
-
-                // sezione min e max tolerance come web
-
-
 }
 
 int main (int argc, char *argv[])
@@ -235,18 +212,22 @@ int main (int argc, char *argv[])
     InitWindow(screenWidth, screenHeight, "5 Band resistor calculator");
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
+    // loaad TTF font with better antialiasing
     Font font = LoadFontEx("assets/Din.otf", 64, 0, 250);
-
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
  
  // NOTE: Textures MUST be loaded after Window initialization (OpenGL context is required)
     Image resistor = LoadImage("assets/resistor.png");     // Loaded in CPU memory (RAM)
     Texture2D resistor_texture = LoadTextureFromImage(resistor);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(resistor);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
-    
+    // OHM symbol as image
     Image omega = LoadImage("assets/omega.png");     // Loaded in CPU memory (RAM)
     Texture2D omega_texture = LoadTextureFromImage(omega);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(omega);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
-
+    // PERCENTAGE symbol as image
+    Image percent = LoadImage("assets/percent.png");     // Loaded in CPU memory (RAM)
+    Texture2D percent_texture = LoadTextureFromImage(percent);          // Image converted to texture, GPU memory (VRAM)
+    UnloadImage(percent);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
 
 
    // Coordinate grafiche per disegnare le 5 bande della resistenza.
@@ -302,8 +283,8 @@ while (!WindowShouldClose())
                         }
                     }
             }
-      // int px=player.cell.x;
-      // int py=player.cell.y;
+      //int px=player.cell.x;
+      //int py=player.cell.y;
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -316,12 +297,13 @@ while (!WindowShouldClose())
 
     BeginDrawing();
             ClearBackground(BG_COLOR);
-                // sfondo sotto la resistenza
-                SomeDesign();
+            // sfondo sotto la resistenza
+            SomeDesign();
 
             // show resistor PNG images
             DrawTexture(resistor_texture, coord_resistor_image.x, coord_resistor_image.y, WHITE);
-            DrawTexture(omega_texture, 728,66, FG_COLOR);
+            DrawTexture(omega_texture, 728,66, BLACK);
+            DrawTexture(percent_texture,728,146,BLACK);
 
             for (int y = 0; y < MAX_BANDS; ++y)
             {
@@ -332,14 +314,14 @@ while (!WindowShouldClose())
                 drawColorTable();
                 //calcolo della resistenza
                 calcoloResistenza();
-                // stampa il valore della resistenza (hardcoded)
-                DrawText(TextFormat("%s Ohm",tol_int(mintolerance)),coord_Values.x+32, coord_Values.y -30,20,FG_COLOR);
+                // stampa valori
+                DrawTextEx(font, TextFormat("%s Ohm",tol_int(mintolerance)),(Vector2){coord_Values.x+32, coord_Values.y -34},26,0,FG_COLOR);
                 DrawTextEx(font, TextFormat("%s",res_int(resistenza)),(Vector2){coord_Values.x, coord_Values.y}, 64,0, BLACK);
-                DrawTextEx(font, TextFormat("±%g%%",tol_int(bandVal[4])),(Vector2){coord_Values.x+20, coord_Values.y+80}, 64,0, BLACK);
-                DrawText(TextFormat("%s Ohm",tol_int(maxtolerance)),coord_Values.x+32, coord_Values.y +170,20,FG_COLOR);
+                DrawTextEx(font, TextFormat("±%g%",tol_int(bandVal[4])),(Vector2){coord_Values.x+20, coord_Values.y+80}, 64,0, BLACK);
+                DrawTextEx(font, TextFormat("%s Ohm",tol_int(maxtolerance)),(Vector2){coord_Values.x+32, coord_Values.y +164},26,0,FG_COLOR);
 
 
-                //DrawText(TextFormat("%d %d %i", px,py,currSelBand),400,600,20,RED);
+                // DrawText(TextFormat("%d %d %i", px,py,currSelBand),8,screenHeight-28,20,GRID_BG_COLOR);
     
     EndDrawing();
     }
