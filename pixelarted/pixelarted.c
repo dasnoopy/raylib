@@ -34,12 +34,12 @@
 //#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
 
-const int screenWidth = 770;
+const int screenWidth = 800;
 const int screenHeight = 760;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 sprite_grid_XY = {72, 96 }; // 
-Vector2 colors_bar = {16,8};
+Vector2 sprite_grid_XY = {128, 96 }; // 
+Vector2 colors_bar = {36,8};
 
 #define gridSpacing    20
 #define BIN_COLS       32 
@@ -143,6 +143,38 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
             dst[(M*i)+j] = src[(M*i)+j];
         }
     }
+}
+
+void show_info (void)
+{
+        // Draw top panel ( color bar)
+        DrawRectangle(0, 0, GetScreenWidth(), 50, WHITE);
+        DrawLine(0, 50, GetScreenWidth(), 50, GRID_BG_COLOR );
+
+            // intestazioni riga/colonna matrice binaria
+            for (int i = 0; i < BIN_ROWS; i++)
+            {
+                for (int j = 0; j < BIN_COLS; ++j)
+                {
+                    DrawText  (TextFormat("%01d",j+1),sprite_grid_XY.x + 4 + (j * gridSpacing),sprite_grid_XY.y -20 ,10,FG_COLOR); 
+                    DrawText  (TextFormat("%01d",i+1),sprite_grid_XY.x - 18,sprite_grid_XY.y + 4 + (i * gridSpacing),10, FG_COLOR);
+                }
+            }
+
+    DrawRectangleLines(sprite_grid_XY.x - 112, sprite_grid_XY.y , 72, 72, GRID_BG_COLOR);
+            
+            for (int i = 0; i < BIN_ROWS; i++)
+                {
+                    for (int j = 0; j < BIN_COLS; j++)
+                    {
+                          // mostra miniatura matrice per debug
+                        DrawRectangle(sprite_grid_XY.x -108+  + 2*j, 4 + sprite_grid_XY.y +  2*i ,2 ,2, colors[matrice[j][i]]);
+                    }
+                } 
+    //DrawText(TextFormat("Symbol: '%c'",curr_ascii_char),sprite_grid_XY.x + gridSpacing*10 -8, sprite_grid_XY.y + (gridSpacing*4) + 8, 10,FG_COLOR);
+    // DrawText(TextFormat("Dec: %i",curr_ascii_char),sprite_grid_XY.x + gridSpacing*10 -8, sprite_grid_XY.y + gridSpacing*5, 10,FG_COLOR);
+    // DrawText(TextFormat("Hex: %x",curr_ascii_char),sprite_grid_XY.x + gridSpacing*10 -8, sprite_grid_XY.y + gridSpacing*6-8, 10,FG_COLOR);
+    // DrawText("Size: 8 x 8",sprite_grid_XY.x + gridSpacing*10 -8, sprite_grid_XY.y + gridSpacing*7-16, 10,FG_COLOR);  
 }
 
 int main (int argc, char *argv[])
@@ -251,7 +283,6 @@ int main (int argc, char *argv[])
                     player.cell.y = (GetMouseY() - sprite_grid_XY.y) / gridSpacing;
                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
                     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = colorSelected;
-                    //if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
             }
 
         // aggiorna posizione "cursore" quando ci si sposta sulla matrice binaria con i tasto oppure il mouse
@@ -269,12 +300,10 @@ int main (int argc, char *argv[])
 
         BeginDrawing();
             ClearBackground(BG_COLOR);
-            
-        // Draw top panel ( color bar)
-        DrawRectangle(0, 0, GetScreenWidth(), 50, WHITE);
-        DrawLine(0, 50, GetScreenWidth(), 50, GRID_BG_COLOR );
+        // draw accessories information
+        show_info();
 
-        // Draw color selection rectangles
+        // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
         DrawRectangleLines(colors_bar.x, colors_bar.y, 30, 30, LIGHTGRAY);
 
@@ -283,15 +312,7 @@ int main (int argc, char *argv[])
         DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y - 2,
                              colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 2, BLACK);
 
-            // intestazioni riga/colonna matrice binaria
-            for (int z = 0; z < BIN_COLS; z++)
-            {
-                for (int z = 0; z < BIN_ROWS; ++z)
-                {
-                    DrawText  (TextFormat("%01d",z+1),sprite_grid_XY.x + 4 + (z * gridSpacing),sprite_grid_XY.y -20 ,10,FG_COLOR); // bit decimal value
-                    DrawText  (TextFormat("%01d",z+1),sprite_grid_XY.x - 18,sprite_grid_XY.y + 4 + (z * gridSpacing),10, FG_COLOR);
-                }
-            }
+
             draw_sprite_grid();
             draw_sprite(); // 1) disegna il carattere nella matrice dopo che è stato caricato in memoria al click del mouse sulla tabella ASCII
 

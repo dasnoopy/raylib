@@ -159,7 +159,7 @@ void drawColorTable(void)
                                      bin_grid_XY.y + (gridSpacingY*i) + i, 
                                     gridSpacingX, 
                                     gridSpacingY, 
-                                    matrice[j][i] ? Fade(bandColors[i], 0.4f) : bandColors[i]);
+                                    matrice[j][i] ? Fade(bandColors[i], 0.2f) : bandColors[i]);
                         // stampa i valori della colonne formattando  il testo in base al tipo di dato.
                         if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                         else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%s",res_int(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
