@@ -1,9 +1,9 @@
 # Learning C (using raylib) 
 C + Raylib simple projects (to learn C code)
 
-Everything started from [here...](https://www.youtube.com/@HirschDaniel)
+Everything started watching some yt video from [here](https://www.youtube.com/@HirschDaniel)
 
-Thanks Daniel!
+Thanks a lot, Daniel!
 
 #### How to use (compiling and running on ArchLinux):
 
@@ -17,7 +17,7 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
-**- Digital Clock [slight modified version of [this](https://www.youtube.com/watch?v=4GeYKi7IWDA)**
+**- Digital Clock (slight modified version of [Daniel Hirsch version..](https://www.youtube.com/watch?v=4GeYKi7IWDA))**
 
 ![digital-clock](https://raw.github.com/dasnoopy/raylib/main/screenshot/digital-clock.png)
 

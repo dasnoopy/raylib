@@ -1,0 +1,26 @@
+sprite size 32x32 : OK
+
+barra colori sopra da selezionare 16 colori : OK
+
+minuatra 1:1 dello sprite
+
+salvataggio in jpg oppure gif
+
+undo / redo last action
+
+tasto dx mouse selziona temporaneamente bianco per poi tornare al colore originale
+mouse down mouseup etc etc
+
+checkered grids 
+trasparenza sfondo sprite?
+
+fill area
+
+menu utilita
+
+indicazioni posizione 
+cursore  13x34 etc
+
+
+https://convicted202.github.io/PixelShape/
+https://github.com/CommanderFoo/ProBoards-Pixel-Editor
