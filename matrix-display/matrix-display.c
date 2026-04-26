@@ -140,7 +140,7 @@ int main (int argc, char *argv[])
     int opt;
     // -m message to display
     //- t transparency 0-255
-    while ( (opt = getopt(argc, argv, ":m:t:")) != -1)
+    while ( (opt = getopt(argc, argv, ":m:t")) != -1)
     {
         switch (opt)
         {
@@ -149,7 +149,7 @@ int main (int argc, char *argv[])
                 strcpy(msg,optarg);
                 break;
             case 't':
-             BG_COLOR =  CLITERAL(Color){67, 76, 94, atoi(optarg)};
+             BG_COLOR =  CLITERAL(Color){67, 76, 94,0};
              break;
             //ciao
             default:
