@@ -1,12 +1,8 @@
 /*******************************************************************************************
 *
-*   Resistor Calculator
+*   RESISTOR CALCULATOR
 *   Small utility to calculate 5 band resistor value
 *   A simple app to learn C using raylib library
-* 
-*  CHANGELOG:
-*  v. 1.0: first release.
-* 
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************
@@ -14,6 +10,7 @@
 *   TODO LIST / IMPROVEMENTS:
 *
 *   BUGS:
+*   some values are still rounding.
 * 
 *******************************************************************************************/
 
@@ -28,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <ctype.h>
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
@@ -80,6 +78,7 @@ const char *bande[5]={"1st BAND","2nd BAND","3rd BAND","MULTIPLIER","TOLERANCE"}
 double bandVal[MAX_BANDS] ={1,0,0,100,5};
 int colorBand[MAX_BANDS] = {1,0,0,2,10};
 float resistenza, mintolerance, maxtolerance;
+char buffer[32];
 
 // Colors to choose from
 const Color bandColors[MAX_COLORS_COUNT] = {BLACK, BROWN, RED, ORANGE, YELLOW, GREEN, BLUE, VIOLET, GRAY, WHITE, GOLD, LIGHTGRAY, PINK};
@@ -103,43 +102,31 @@ typedef struct {
 // mouse and clipoard
 bool mouseHoverCells = false;
 
-const char* res_int(float n) {
-    static char buf[22];
+void format_number(double value, char *out, size_t size) {
+    const char *suffixes[] = {"", "K", "M", "G", "T"};
+    int i = 0;
 
-    if (n >= 1000000000)
-        sprintf(buf, "%.1fG", n / 1000000000);
-    else if (n >= 1000000)
-        sprintf(buf, "%.1fM", n / 1000000);
-    else if (n >= 1000)
-        sprintf(buf, "%.1fK", n / 1000);
-    else if (n >= 1)
-        sprintf(buf, "%.0f", n / 1);
+    while (value >= 1000 && i < 4) {
+        value /= 1000;
+        i++;
+    }
+
+    // stampa con 2 decimali se necessario
+    if (value < 1)
+        snprintf(out, size, "%.3f%s", value, suffixes[i]);
+    else if (value < 10)
+        snprintf(out, size, "%.2f%s", value, suffixes[i]);
+    else if (value < 100)
+        snprintf(out, size, "%.1f%s", value, suffixes[i]);
     else
-        sprintf(buf, "%.3f", n);
-    return buf;
-}
-
-const char* tol_int(float n) {
-    static char buf[22];
-
-    if (n >= 1000000000)
-        sprintf(buf, "%.5fG", n / 1000000000);
-    else if (n >= 1000000)
-        sprintf(buf, "%.5fM", n / 1000000);
-    else if (n >= 1000)
-        sprintf(buf, "%.5fK", n / 1000);
-    else if (n >= 1)
-        sprintf(buf, "%.5f", n / 1);
-    else
-        sprintf(buf, "%.5f", n);
-    return buf;
+        snprintf(out, size, "%.0f%s", value, suffixes[i]);
 }
 
 //  disegna matrice colori
 void drawColorTable(void)
 {
     bool colore = true; // serve per cambiare fg_color in base ai colori chiari
-            // sfondo sotto la tabella per simulare la grigliaa
+            // sfondo sotto la tabella per simulare la griglia
             DrawRectangle(bin_grid_XY.x-1,bin_grid_XY.y-1, 6+gridSpacingX*5, 14+gridSpacingY*13,FG_COLOR);
             for (int i = 0; i < MAX_COLORS_COUNT; i++)
                 {
@@ -161,8 +148,13 @@ void drawColorTable(void)
                                     gridSpacingY, 
                                     matrice[j][i] ? Fade(bandColors[i], 0.2f) : bandColors[i]);
                         // stampa i valori della colonne formattando  il testo in base al tipo di dato.
+                        
                         if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
-                        else  if (valori[i][j]>=0 && j ==3) DrawText(TextFormat("%s",res_int(valori[i][j])), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                        else  if (valori[i][j]>=0 && j ==3) 
+                            {
+                                format_number(valori[i][j], buffer, sizeof(buffer));
+                                DrawText(TextFormat("%s",buffer), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
+                            }
                         else  if (valori[i][j]>=0 && j ==4) DrawText(TextFormat("±%g%%",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y+10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
                     }
                     colore=true;
@@ -191,7 +183,7 @@ void SomeDesign(void)
                 DrawRectangle(0, 0 ,screenWidth,240 , GRID_BG_COLOR);
                 DrawRectangle(550,40,261,160,BG_COLOR);
                 // griglia valori
-                DrawRectangleLines(0, 1 ,screenWidth+1,239 , LIGHTGRAY);
+                DrawRectangleLines(-1, 0 ,screenWidth+2,240 , LIGHTGRAY);
                 DrawRectangleLines(550,0,261,240,LIGHTGRAY);
                 DrawRectangleLines(550,40,261,160,LIGHTGRAY);
                 DrawLine(550,120,screenWidth-1,120,LIGHTGRAY);
@@ -248,6 +240,8 @@ int main (int argc, char *argv[])
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(60);
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
+
+
 
 while (!WindowShouldClose())
     {
@@ -315,10 +309,14 @@ while (!WindowShouldClose())
                 //calcolo della resistenza
                 calcoloResistenza();
                 // stampa valori
-                DrawTextEx(font, TextFormat("%s Ohm",tol_int(mintolerance)),(Vector2){coord_Values.x+32, coord_Values.y -34},26,0,FG_COLOR);
-                DrawTextEx(font, TextFormat("%s",res_int(resistenza)),(Vector2){coord_Values.x, coord_Values.y}, 64,0, BLACK);
-                DrawTextEx(font, TextFormat("±%g%",tol_int(bandVal[4])),(Vector2){coord_Values.x+20, coord_Values.y+80}, 64,0, BLACK);
-                DrawTextEx(font, TextFormat("%s Ohm",tol_int(maxtolerance)),(Vector2){coord_Values.x+32, coord_Values.y +164},26,0,FG_COLOR);
+                format_number(mintolerance, buffer, sizeof(buffer));
+                DrawTextEx(font, TextFormat("%s Ohm",buffer),(Vector2){coord_Values.x+32, coord_Values.y -34},26,0,FG_COLOR);
+                format_number(resistenza, buffer, sizeof(buffer));
+                DrawTextEx(font, TextFormat("%s",buffer),(Vector2){coord_Values.x, coord_Values.y}, 64,0, BLACK);
+                format_number(bandVal[4], buffer, sizeof(buffer));
+                DrawTextEx(font, TextFormat("±%s%",buffer),(Vector2){coord_Values.x+10, coord_Values.y+80}, 64,0, BLACK);
+                format_number(maxtolerance, buffer, sizeof(buffer));
+                DrawTextEx(font, TextFormat("%s Ohm",buffer),(Vector2){coord_Values.x+32, coord_Values.y +164},26,0,FG_COLOR);
 
 
                 // DrawText(TextFormat("%d %d %i", px,py,currSelBand),8,screenHeight-28,20,GRID_BG_COLOR);
