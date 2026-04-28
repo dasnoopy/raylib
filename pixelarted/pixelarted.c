@@ -11,13 +11,13 @@
 *
 ********************************************************************************************
 *
-*   TODO LIST POSSIBLE IMPROVEMENTS:
-
+*   BUGS:
+*   replace color broken default TEXT 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.3.0"
+#define TOOL_VERSION            "0.8.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -39,8 +39,8 @@ const int screenHeight = 756;
  // initial X,Y coordinates for variuos interface elements
 Vector2 colors_bar = {112, 8};
 Vector2 sprite_grid_XY = {212, 86};
-Vector2 miniatureXY = {28,76};
-Vector2 info_bar = {28, 220};
+Vector2 miniatureXY = {28,104};
+Vector2 info_bar = {28, 240};
 Vector2 panel_bar = {24,300};
 
 #define gridSpacing    20
@@ -74,12 +74,12 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 int matrice[BIN_COLS][BIN_ROWS];
 
 // ARDUINO Matrix tool colors (light)
-#define FG_COLOR CLITERAL(Color){ 79, 88, 92, 255}
-#define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
-#define GRID_COLOR CLITERAL(Color){ 169, 195, 196, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 226, 231,231, 255} 
+#define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
+#define BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
+#define GRID_COLOR CLITERAL(Color){ 201, 210, 210, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
-#define ON_COLOR CLITERAL(Color){ 76, 86, 106,255}
+#define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
 
 // Various
 bool showGrid = true;
@@ -142,30 +142,36 @@ void draw_sprite()
                           gridSpacing, 
                           gridSpacing, 
                           colors[matrice[j][i]]);
+                         DrawText(TextFormat("%02i",matrice[j][i]),2+sprite_grid_XY.x + gridSpacing*j,2+sprite_grid_XY.y + gridSpacing*i,10,BG_COLOR);
 
                     }
                 }   
 }
 
 // azzera matrice colore e di conseguenza anche quella esadecimale
-void reset_matrice()
+void reset_matrix()
 {
     //reset matrice colore
     for (int i = 0; i < BIN_ROWS; i++)
-        for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0; }    
+        for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
+}
+
+void replace_color(int old, int new)
+{
+            for (int i = 0; i < BIN_ROWS; i++) 
+                for (int j = 0; j < BIN_COLS; j++) {
+                    if (matrice[j][i] == old) matrice[j][i] = new;
+                }
+}
 
 void copy_matrix_2d(int * src, int * dst, int N, int M)
 {
     for(int i=0; i<N; i++)
-        for(int j=0; j<M; j++)
-            dst[(M*i)+j] = src[(M*i)+j];
+        for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
 }
 
 void show_info (void)
 {
-        // Draw top panel ( color bar)
-        DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
-
             // intestazioni riga/colonna matrice colore
             for (int i = 0; i < BIN_ROWS; i++)
             {
@@ -178,27 +184,34 @@ void show_info (void)
                 }
             }
             //disegna miniatura
-            if (showGrid) DrawRectangle(miniatureXY.x,miniatureXY.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
+            DrawRectangle(miniatureXY.x,miniatureXY.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
             DrawRectangleLines(miniatureXY.x-3, miniatureXY.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, GRID_COLOR);
 
             for (int i = 0; i < BIN_ROWS; i++)
                 for (int j = 0; j < BIN_COLS; j++) DrawRectangle(miniatureXY.x + (miniatureSCALE*j), miniatureXY.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
 }
 
-                        //DrawRectangle((bin_grid_XY.x + gridSpacing*10-8) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
-
 int main (int argc, char *argv[])
 {
-    InitWindow(screenWidth, screenHeight, TOOL_NAME);
+    InitWindow(screenWidth, screenHeight, "Pixel Art Editor");
+    
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
+    SetWindowState(FLAG_WINDOW_UNDECORATED);
+    //SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
+
 
     // loaad TTF font with better antialiasing
-    Font font = LoadFontEx("assets/JetBrains Mono SemiBold.ttf", 20, 0, 250);
+    Font font = LoadFontEx("assets/JetBrains Mono SemiBold.ttf", 20, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    // Set UI style
+    // Custom GUI font loading
+    //GuiSetFont(font);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
+    GuiSetIconScale(1);
 
-    RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
+    RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
+
     // set FPS
     SetTargetFPS(60);
 
@@ -216,7 +229,7 @@ int main (int argc, char *argv[])
     player.cell = (Point){ 0, 0 };
 
 //reset matrice colore
-    reset_matrice();
+    reset_matrix();
 
 int curW,curH;
 
@@ -287,7 +300,7 @@ int curW,curH;
         // aggiorna posizione "cursore" quando ci si sposta sulla matrice colore con i tasto oppure il mouse
         int px= player.cell.x;
         int py= player.cell.y;
-
+        int currentColor = matrice[px][py];
 
         //----------------------------------------------------------------------------------
 		// Draw
@@ -296,20 +309,21 @@ int curW,curH;
             ClearBackground(BG_COLOR);
         EndTextureMode();
 
-        BeginDrawing();
             ClearBackground(BG_COLOR);
-        // draw accessories information
-        show_info();
+
+    
+        // Draw top panel ( color bar)
+        DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
+
 
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
         DrawRectangleLines(colors_bar.x, colors_bar.y, 30, 30, LIGHTGRAY);
-
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
-
         DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y - 2,
                              colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 2, BLACK);
 
+        // draw sprite and grid matrix
         draw_sprite_grid();
         draw_sprite(); //
 
@@ -320,31 +334,22 @@ int curW,curH;
                           gridSpacing,
                           ON_COLOR);
 
+        // draw accessories information
+        show_info();
+
         //display cursor position and selected color info
-            DrawTextEx(font, TextFormat("x: %02i",px),(Vector2){info_bar.x,info_bar.y},20,0,FG_COLOR);
-            DrawTextEx(font, TextFormat("y: %02i",py),(Vector2){info_bar.x,info_bar.y + 24},20,0,FG_COLOR);
-            DrawTextEx(font, TextFormat("%s",colorNames[matrice[px][py]]),(Vector2){info_bar.x,info_bar.y + 48},20,0,FG_COLOR);
+            DrawTextEx(font, TextFormat("Pixel: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){info_bar.x,info_bar.y-164},20,0,FG_COLOR);
+            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){info_bar.x,info_bar.y},20,0,FG_COLOR);
+            DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){info_bar.x,info_bar.y + 24},20,0,FG_COLOR);
 
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
-        if (IsKeyPressed(KEY_C))
-        {
-            // Clear render texture to clear color
-            reset_matrice();
-        }
 
-        if (IsKeyPressed(KEY_R))
-        {
-            int previousColor=matrice[px][py];
-            for (int i = 0; i <= BIN_ROWS; i++) {
-                for (int j = 0; j <= BIN_COLS; j++) {
-                    //if (matrice[j][i] > 0 && matrice[j][i] == previousColor ) matrice[j][i] = colorSelected;
-                    if (matrice[j][i] == previousColor ) matrice[j][i] = colorSelected;
-                }
-            }
-        }
+        if (IsKeyPressed(KEY_Q)) break;
+        if (IsKeyPressed(KEY_C)) reset_matrix();
+        if (IsKeyPressed(KEY_R)) replace_color(currentColor, colorSelected);
         
       // Image saving logic
         // NOTE: Saving painted texture to a default named image
@@ -357,13 +362,11 @@ int curW,curH;
 
         if (IsKeyPressed(KEY_L))
         {
-
             FILE *fLoad = fopen(fNAME, "rb"); 
                 if (fLoad == NULL) {
                     printf("File [%s] non trovato!\n",fNAME);
                     return 1;
                     // gestire file not found con finestra
-
                     }
             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
             fclose(fLoad);
@@ -371,7 +374,6 @@ int curW,curH;
 
         if (IsKeyPressed(KEY_D)) // shift bin array right by 1
         {
-     
             for (int i = 0; i < BIN_ROWS; i++) // righe
                 {
                     // memorizza ultimo bit della riga
@@ -388,7 +390,6 @@ int curW,curH;
 
         if (IsKeyPressed(KEY_A))// shift bin array left by 1
         {
-     
             for (int i = 0; i < BIN_ROWS; i++) // righe
                 {
                     // memorizza primo bit della riga
@@ -403,9 +404,8 @@ int curW,curH;
                 }
         }
 
-        if (IsKeyPressed(KEY_X)) // shift bin array down by 1
+        if (IsKeyPressed(KEY_W)) // shift bin array down by 1
         {
-     
             for (int i = 0; i < BIN_COLS; i++) // colonne
                 {
                     // memorizza prima riga
@@ -420,7 +420,7 @@ int curW,curH;
                 }
         }
  
-         if (IsKeyPressed(KEY_W))// shift bin array up by 1
+         if (IsKeyPressed(KEY_X))// shift bin array up by 1
          {
                 for (int i = 0; i < BIN_COLS; i++) // colonne
                     {
@@ -435,21 +435,24 @@ int curW,curH;
                     }
         }
 
-
-        // PanelBar
-            GuiCheckBox((Rectangle){ 16, 16 , 20, 20 }, "Show Grid", &showGrid);
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y, 320, 20 }, "#25#Cursor size:");
+            // PanelBar
+            GuiCheckBox((Rectangle){ 24, 16 , 20, 20 }, "Show Grid", &showGrid);
+            
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y, 150, 20 }, "#25#Cursor size:");
             GuiSpinner((Rectangle){ panel_bar.x, panel_bar.y+24, 128, 24 }, "", &cursorSize, 1, 8, false);
             //Keybinding info
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+60, 320, 20 }, "Press 'C' to clear matrix.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+80, 320, 20 }, "Press 'R' to replace color.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+100, 320, 20 }, "Press 'S' to save matrix.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+120, 320, 20 }, "Press 'L' to load matrix.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+140, 320, 20 }, "Press 'A' to shift matrix left.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+160, 320, 20 }, "Press 'D' to shit matrix right.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+180, 320, 20 }, "Press 'W' to shift matrix up.");
-            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+200, 320, 20 }, "Press 'X' to shift matrix down.");
-        
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+60, 140, 20 }, "Press 'C' to clear matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+80, 140, 20 }, "Press 'R' to replace color.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+100, 140, 20 }, "Press 'A' to shift matrix left.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+120, 140, 20 }, "Press 'D' to shit matrix right.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+140, 140, 20 }, "Press 'W' to shift matrix up.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
+
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+360, 140, 20 }, "Press 'S' to save matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+380, 140, 20 }, "Press 'L' to load matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+400, 140, 20 }, "WinKey + mouse left to move.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+420, 140, 20 }, "Press 'Q' to quit program.");
+
         EndDrawing();
     }
     UnloadRenderTexture(target);
