@@ -20,7 +20,6 @@
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
-*           - miglior gestione load font iniziale - ripristino font completo di default / titolo con nome font
 *
 *******************************************************************************************/
 
@@ -92,7 +91,6 @@ const char fNAME[] = "data.fnt";
     bool btnPaste = false;
     bool btnClear = false;
     // toolbar
-    bool btnShowGrid = false;
     bool btnShiftRight = false;
     bool btnShiftLeft = false;
     bool btnShiftDown = false;
@@ -277,8 +275,9 @@ void BinToHex (void)
 void drawBinCells()
 {
 // sfondo e cornice miniatura carattere
-    DrawRectangle(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, RAYWHITE);
-    DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 72, 72, GRID_BG_COLOR);
+    DrawRectangle(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 71, 71, RAYWHITE);
+    DrawRectangleLines(bin_grid_XY.x + gridSpacing*10 -12, bin_grid_XY.y + gridSpacing*2 -4 , 71, 71, GRID_BG_COLOR);
+            
             for (int i = 0; i < BIN_ROWS; i++)
                 {
                     for (int j = 0; j < BIN_COLS; j++)
@@ -391,10 +390,7 @@ int main (int argc, char *argv[])
         }
         if (btnCopy) copy_matrix_2d(&matrice[0][0], &copypaste_matrix[0][0], 8, 8);
         if (btnPaste) copy_matrix_2d(&copypaste_matrix[0][0], &matrice[0][0], 8, 8);
-        if (btnShowGrid) 
-            {
-                showGrid = !showGrid;
-            }
+
         if (btnInvert)
         {
             // inverte matrice binaria
@@ -666,7 +662,7 @@ int main (int argc, char *argv[])
             
        
         //  toolbar
-        btnShowGrid   = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y , gridSpacing*3, gridSpacing }, "Show/Hide grid");
+        GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y, 20, 20 }, "Show Grid", &showGrid);
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, gridSpacing*3, gridSpacing }, "Shift right");
         btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, gridSpacing*3, gridSpacing }, "Shift left");
