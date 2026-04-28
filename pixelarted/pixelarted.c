@@ -33,14 +33,15 @@
 //#include "gui_iconset.h"        // Custom icons set provided, generated with rGuiIcons tool
 #include "raygui.h"
 
-const int screenWidth = 916;
+const int screenWidth = 896;
 const int screenHeight = 756;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 sprite_grid_XY = {246, 88};
-Vector2 colors_bar = {132, 8};
-Vector2 info_bar = {16, 72};
-Vector2 panel_bar = {16,160};
+Vector2 colors_bar = {112, 8};
+Vector2 sprite_grid_XY = {212, 86};
+Vector2 miniatureXY = {28,76};
+Vector2 info_bar = {28, 220};
+Vector2 panel_bar = {24,300};
 
 #define gridSpacing    20
 #define BIN_COLS       32
@@ -84,6 +85,7 @@ int matrice[BIN_COLS][BIN_ROWS];
 bool showGrid = true;
 bool mouseHoverCells = false;
 const char fNAME[] = "image.pix";
+int miniatureSCALE=4;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -113,8 +115,10 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
 // Draw binary matrix grid
 void draw_sprite_grid(void)
 {
-            DrawRectangle(sprite_grid_XY.x, sprite_grid_XY.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
-            DrawRectangleLines(sprite_grid_XY.x-1, sprite_grid_XY.y-1,gridSpacing*BIN_COLS+1, gridSpacing*BIN_ROWS+1, GRID_COLOR);
+            
+    DrawRectangle(sprite_grid_XY.x, sprite_grid_XY.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
+    DrawRectangleLines(sprite_grid_XY.x-1, sprite_grid_XY.y-1,gridSpacing*BIN_COLS+1, gridSpacing*BIN_ROWS+1, GRID_COLOR);
+
 
     if (showGrid)
     {
@@ -127,7 +131,7 @@ void draw_sprite_grid(void)
 
 //  disegna bit delle matrice in base al loro valore
 void draw_sprite()
-{
+{    
             for (int i = 0; i < BIN_ROWS; i++)
                 {
                     for (int j = 0; j < BIN_COLS; j++)
@@ -135,8 +139,8 @@ void draw_sprite()
                         // disegna sfondo cella  in base al valore 1/0
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
                         DrawRectangle((sprite_grid_XY.x + gridSpacing*j) , (sprite_grid_XY.y + gridSpacing*i), 
-                          gridSpacing - 1, 
-                          gridSpacing - 1, 
+                          gridSpacing, 
+                          gridSpacing, 
                           colors[matrice[j][i]]);
 
                     }
@@ -174,10 +178,14 @@ void show_info (void)
                 }
             }
             //disegna miniatura
-            DrawRectangleLines(info_bar.x, info_bar.y , 72, 72, GRID_COLOR);
+            if (showGrid) DrawRectangle(miniatureXY.x,miniatureXY.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
+            DrawRectangleLines(miniatureXY.x-3, miniatureXY.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, GRID_COLOR);
+
             for (int i = 0; i < BIN_ROWS; i++)
-                for (int j = 0; j < BIN_COLS; j++) DrawRectangle(4 + info_bar.x + 2*j, 4 + info_bar.y +  2*i ,2 ,2, colors[matrice[j][i]]);
+                for (int j = 0; j < BIN_COLS; j++) DrawRectangle(miniatureXY.x + (miniatureSCALE*j), miniatureXY.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
 }
+
+                        //DrawRectangle((bin_grid_XY.x + gridSpacing*10-8) + 8*j, (bin_grid_XY.y + gridSpacing*2) + 8*i,7,7, matrice[j][i] ? FG_COLOR : GRID_BG_COLOR);
 
 int main (int argc, char *argv[])
 {
@@ -305,18 +313,22 @@ int curW,curH;
         draw_sprite_grid();
         draw_sprite(); //
 
-            // 5) aggiorna in tempo reale la posizione della cella attuale ("cursore") quando mouse o tastiera si spostano sulle celle...
-            DrawRectangle(sprite_grid_XY.x + px*gridSpacing, 
+        // aggiorna in tempo reale la posizione della cella attuale ("cursore") quando mouse o tastiera si spostano sulle celle...
+        DrawRectangle(sprite_grid_XY.x + px*gridSpacing, 
                           sprite_grid_XY.y + py*gridSpacing, 
-                          gridSpacing -1, 
-                          gridSpacing -1,
+                          gridSpacing, 
+                          gridSpacing,
                           ON_COLOR);
 
-                //display cursor position and selected color info
-                DrawTextEx(font, TextFormat("x: %02i y: %02i",px,py),(Vector2){info_bar.x + 84,info_bar.y},20,0,FG_COLOR);
-                DrawTextEx(font, TextFormat("%s",colorNames[matrice[px][py]]),(Vector2){info_bar.x + 84,info_bar.y + 24},20,0,FG_COLOR);
+        //display cursor position and selected color info
+            DrawTextEx(font, TextFormat("x: %02i",px),(Vector2){info_bar.x,info_bar.y},20,0,FG_COLOR);
+            DrawTextEx(font, TextFormat("y: %02i",py),(Vector2){info_bar.x,info_bar.y + 24},20,0,FG_COLOR);
+            DrawTextEx(font, TextFormat("%s",colorNames[matrice[px][py]]),(Vector2){info_bar.x,info_bar.y + 48},20,0,FG_COLOR);
 
+
+        // ---------------------------------------------------------------------
         // some keybinding action to test functionality
+        //----------------------------------------------------------------------
         if (IsKeyPressed(KEY_C))
         {
             // Clear render texture to clear color
@@ -334,13 +346,110 @@ int curW,curH;
             }
         }
         
-        // PabelBar
+      // Image saving logic
+        // NOTE: Saving painted texture to a default named image
+        if (IsKeyPressed(KEY_S))
+        {
+                FILE *fSave = fopen(fNAME, "wb");
+                fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
+                fclose(fSave);
+        }
 
+        if (IsKeyPressed(KEY_L))
+        {
+
+            FILE *fLoad = fopen(fNAME, "rb"); 
+                if (fLoad == NULL) {
+                    printf("File [%s] non trovato!\n",fNAME);
+                    return 1;
+                    // gestire file not found con finestra
+
+                    }
+            fread(matrice, sizeof(char), sizeof(matrice), fLoad);
+            fclose(fLoad);
+        }
+
+        if (IsKeyPressed(KEY_D)) // shift bin array right by 1
+        {
+     
+            for (int i = 0; i < BIN_ROWS; i++) // righe
+                {
+                    // memorizza ultimo bit della riga
+                    const int tmp = matrice[BIN_COLS - 1][i];
+                    for (int j = BIN_COLS-1; j>0; j--) // colonne
+                    {                        
+                        // sposta verso destra bit righe
+                        matrice[j][i] = matrice[j-1][i];
+                    }
+                    // alla fine il "primo" bit prende il valore dell'ultimo
+                    matrice[0][i] = tmp;
+                }
+        }
+
+        if (IsKeyPressed(KEY_A))// shift bin array left by 1
+        {
+     
+            for (int i = 0; i < BIN_ROWS; i++) // righe
+                {
+                    // memorizza primo bit della riga
+                    const int tmp = matrice[0][i];
+                    for (int j = 0; j< BIN_COLS-1; j++) // colonne
+                    {                        
+                        // sposta verso destra bit righe
+                        matrice[j][i] = matrice[j+1][i];
+                    }
+                    // alla fine ultimo bit prende il valore del prim
+                    matrice[BIN_COLS-1][i] = tmp;
+                }
+        }
+
+        if (IsKeyPressed(KEY_X)) // shift bin array down by 1
+        {
+     
+            for (int i = 0; i < BIN_COLS; i++) // colonne
+                {
+                    // memorizza prima riga
+                    const int tmp = matrice[i][0];
+                        for (int j=0; j < BIN_ROWS-1; ++j) // righe
+                        {
+                            matrice[i][j] = matrice[i][j+1];
+                        }
+                    //
+                    // ultima riga prende valori della prima
+                    matrice[i][BIN_ROWS- 1] = tmp;
+                }
+        }
+ 
+         if (IsKeyPressed(KEY_W))// shift bin array up by 1
+         {
+                for (int i = 0; i < BIN_COLS; i++) // colonne
+                    {
+                        // memorizza stato ultima riga
+                        const int tmp = matrice[i][BIN_ROWS - 1];
+                        for (int j = BIN_ROWS -1; j>0; --j) // righe
+                        {
+                            matrice[i][j] = matrice[i][j-1];
+                        }
+                        // prima riga prende valore ultima riga
+                        matrice[i][0] = tmp;
+                    }
+        }
+
+
+        // PanelBar
             GuiCheckBox((Rectangle){ 16, 16 , 20, 20 }, "Show Grid", &showGrid);
             GuiLabel((Rectangle){ panel_bar.x, panel_bar.y, 320, 20 }, "#25#Cursor size:");
-            GuiSpinner((Rectangle){ panel_bar.x, panel_bar.y+24, 125, 25 }, "", &cursorSize, 1, 8, false);
-
-
+            GuiSpinner((Rectangle){ panel_bar.x, panel_bar.y+24, 128, 24 }, "", &cursorSize, 1, 8, false);
+            //Keybinding info
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+60, 320, 20 }, "Press 'C' to clear matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+80, 320, 20 }, "Press 'R' to replace color.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+100, 320, 20 }, "Press 'S' to save matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+120, 320, 20 }, "Press 'L' to load matrix.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+140, 320, 20 }, "Press 'A' to shift matrix left.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+160, 320, 20 }, "Press 'D' to shit matrix right.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+180, 320, 20 }, "Press 'W' to shift matrix up.");
+            GuiLabel((Rectangle){ panel_bar.x, panel_bar.y+200, 320, 20 }, "Press 'X' to shift matrix down.");
+        
         EndDrawing();
     }
     UnloadRenderTexture(target);
