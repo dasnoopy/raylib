@@ -17,7 +17,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.8.5"
+#define TOOL_VERSION            "0.8.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,7 +35,7 @@ const int screenWidth = 900;
 const int screenHeight = 756;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 colorsBarPos = {120, 10};
+Vector2 colorsBarPos = {124, 10};
 Vector2 spriteGridPos = {212, 86};
 Vector2 miniaturePos = {32,104};
 Vector2 infoBarPos = {28, 240};
@@ -47,19 +47,17 @@ Vector2 panelBarPos = {24,300};
 #define MAX_COLORS_COUNT    24          // Number of colors available
 #define MAX_CUR_SIZES  4       // cursor size : 1, 2, 4, 8.
 //
-int colorSelected = 0;
+int colorSelected = 24;
 int colorMouseHover = 0;
 int colorSelectedPrev = 0;
 int cursorSize = 1;
+int miniatureSCALE=4;
 bool mouseWasPressed = false;
-// Various
 bool showGrid = true;
 bool mouseHoverCells = false;
 char fNAME[256] = "default.pix";
 bool fnameEditMode = false;
 bool keyBinding = true;
-
-int miniatureSCALE=4;
 
     // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
@@ -77,6 +75,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 
 // definizione matrici
 int matrice[BIN_COLS][BIN_ROWS];
+int matriceUndo[BIN_ROWS][BIN_COLS];
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
@@ -117,8 +116,9 @@ void draw_sprite_grid(void)
 {
             
     DrawRectangle(spriteGridPos.x, spriteGridPos.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
-    DrawText(TextFormat("%s", TOOL_NAME), 16, 24, 10, FG_COLOR); 
-    //DrawRectangleLines(spriteGridPos.x-1, spriteGridPos.y-1,gridSpacing*BIN_COLS+1, gridSpacing*BIN_ROWS+1, RED);
+    DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, 12, 20, FG_COLOR); 
+    DrawText(TextFormat("version %s", TOOL_VERSION), 24, 36, 10, GRAY); 
+
     if (showGrid)
     {
                 for (int y = 0; y <= BIN_ROWS; y++) 
@@ -227,8 +227,9 @@ int main (int argc, char *argv[])
     PlayerState player = { 0 };
     player.cell = (Point){ 0, 0 };
 
-//reset matrice colore
+//reset matrice sprite e copia di backup
     reset_matrix();
+
 
 int curW,curH;
 curW=cursorSize;
@@ -238,7 +239,6 @@ int curSW,curSH=0;
 
     while (!WindowShouldClose())
     {
-        GuiEnable();
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
@@ -258,13 +258,7 @@ int curSW,curSH=0;
             else colorMouseHover = -1;
         }
 
-        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-        {
-            colorSelected = colorMouseHover;
-           // colorSelectedPrev = colorSelected;
-        }
-
-
+        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) colorSelected = colorMouseHover;
 
                     if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
                     else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
@@ -283,36 +277,34 @@ int curSW,curSH=0;
 
         if (mouseHoverCells)
             {
-
-                // if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-                // {
-                //     if (!mouseWasPressed)
-                //     {
-                //         colorSelectedPrev = colorSelected;
-                //         colorSelected = 0;
-                //     }
-                //     mouseWasPressed = true;
-                // }
-                // else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && mouseWasPressed)
-                // {
-                //     colorSelected = colorSelectedPrev;
-                //     mouseWasPressed = false;
-                // }
-
                  // Icon painting mouse logic
                 player.cell.x = (GetMouseX() - spriteGridPos.x) / gridSpacing ;
                 player.cell.y = (GetMouseY() - spriteGridPos.y) / gridSpacing;
-               
+
                 curW=cursorSize;
                 curH=cursorSize;
                 
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
+                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
                 {
+
+                    
+
                     if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
                     if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
 
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = colorSelected;
+                }
+                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) 
+                {
+
+                    if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
+                    if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
+
+                    for (int i = 0; i < curH; i++)
+                        for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = 0;
                 }
             }
 
@@ -332,11 +324,12 @@ int curSW,curSH=0;
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
 
-        if (!fnameEditMode) // se sto digitando il nome file nel riquadro di inpunt, disabilita i keybindings
+        if (!fnameEditMode) // se stò digitando il nome file nel riquadro di inpunt, disabilita i keybindings
         {
             if (IsKeyPressed(KEY_Q)) break;
             if (IsKeyPressed(KEY_C)) reset_matrix();
             if (IsKeyPressed(KEY_R)) replace_color(currentColor, colorSelected);
+            if (IsKeyPressed(KEY_U)) copy_matrix_2d(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
             if (IsKeyPressed(KEY_S)) ShowSaving=true;
             if (IsKeyPressed(KEY_L)) ShowLoading=true;
 
@@ -421,10 +414,13 @@ int curSW,curSH=0;
 
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
-        DrawRectangleLines(colorsBarPos.x, colorsBarPos.y, 30, 30, LIGHTGRAY);
-        if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
+        //  riquadro attorno al primo colore: BLANK (trasparente)
+        DrawRectangleLinesEx((Rectangle){colorsBarPos.x, colorsBarPos.y, 30, 30},1, GRID_COLOR);
+        // passando sopra il colore rendilo piu chiaro
+        if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.4f));
+        // cliccando sul colore disegna riguadro per evidenziare selezione
         DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y - 2,
-                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 2, ON_COLOR);
+                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 3, ON_COLOR);
 
         // draw sprite and grid matrix
         draw_sprite_grid();
@@ -505,9 +501,9 @@ int curSW,curSH=0;
 
 
             // panelBarPos
-            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +184 , 20, 20 }, "Show Grid", &showGrid);
             
-            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,210}, "Sprite options:");
+            
+            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,230}, "Sprite options:");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
             GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+30, 132, 24 }, "", &cursorSize, 1, 8, false);
             //Keybinding label
@@ -517,14 +513,16 @@ int curSW,curSH=0;
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'D' to shit matrix right.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'W' to shift matrix up.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'U' to undo last action.");
+            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +204 , 20, 20 }, "Show Grid", &showGrid);
 
-            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 310,156,90}, "filename for save/load:");
-            if(GuiTextBox((Rectangle){ panelBarPos.x, panelBarPos.y +320, 140, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-                        GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+356, 140, 20 }, "Press 'S' to save matrix.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+376, 140, 20 }, "Press 'L' to load matrix.");
+            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 300,156,90}, "filename for save/load:");
+            if(GuiTextBox((Rectangle){ panelBarPos.x, panelBarPos.y +310, 140, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+                        GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+346, 140, 20 }, "Press 'S' to save matrix.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+366, 140, 20 }, "Press 'L' to load matrix.");
             
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+400, 140, 20 }, "WinKey + mouse left to move.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+420, 140, 20 }, "Press 'Q' to quit program.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+390, 140, 20 }, "WinKey + mouse left to move.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+410, 140, 20 }, "Press 'Q' to quit program.");
 
 
         EndDrawing();
