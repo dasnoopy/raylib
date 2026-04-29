@@ -88,6 +88,8 @@ void HexToBin(char hex_number, char* bit_char) {
 
 void drawLetter(int col,int row,int ASCII_CODE)
 { 
+    float dt = GetFrameTime();
+
     int pos = ASCII_CODE ;
     char byte[8]={0,0,0,0,0,0,0,0};
     //int posX = row * dotSize;
@@ -95,10 +97,10 @@ void drawLetter(int col,int row,int ASCII_CODE)
             for (int y=0; y<ASCII_HEIGHT; y++) // scansiona le 7 linee HEX che formano altezza carattere
             {
             HexToBin(TableFont[pos][y],byte);
-            int posX = col * dotSize;
+            int posX = (col * dotSize) * (dt * 10);
             for(int i=ASCII_WIDTH - 1; i>-1 ; i--)
                 {
-                drawRectangleRounded(posX,posY,dotSize -1 ,dotSize -1 , byte[i] ? FG_COLOR : BLANK);
+                DrawRectangle(posX,posY,dotSize -1 ,dotSize -1 , byte[i] ? FG_COLOR : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -145,7 +147,7 @@ int main (int argc, char *argv[])
         switch (opt)
         {
             case 'm':
-                printf("%s\n",msg );
+                //printf("%s\n",msg );
                 strcpy(msg,optarg);
                 break;
             case 't':

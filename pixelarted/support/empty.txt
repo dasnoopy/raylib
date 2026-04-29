@@ -1,0 +1,36 @@
+https://convicted202.github.io/PixelShape/
+https://apps.lospec.com/pixel-editor
+
+[ok] salvataggio intanto in binario poi vedo se export Texture target in png/jpg 
+[OK] funzioni sposta su giu destra sinistra
+[ok] cursore con dimensione effettiva cursorSize e solo bordo
+
+editign spostamento sia con mouse che con cursori e barra spazio
+salvataggio con nome e caricamento con nome OK (ma vorrei usare finestra di dialogo invece del campo fisso)
+
+riguadro colore corrente a parte invece di disegnare cornice intorno al colore
+
+undo / redo last action usando loadtexture .. in pratica ci dovreeb essere un copia nascosta di quello che vedi
+per tornare indietro
+
+
+ funzione mirror / ruota
+
+checkered grids 
+trasparenza sfondo sprite?
+
+fill area
+
+zoom??? ctrl + rotella mouse examples: 2d camera mouse zoom oppure
+
+
+
+line
+rectangle/square
+circle / elipse
+
+come gestire tutte le utilità?
+
+tooltip su eventuali bottoni
+
+
