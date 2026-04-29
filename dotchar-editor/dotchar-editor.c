@@ -25,7 +25,7 @@
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.6.4"
+#define TOOL_VERSION            "2.7.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -561,16 +561,8 @@ int main (int argc, char *argv[])
         
         //----------------------------------------------------------------------------------
         // Player movement logic using arrow keys
-        if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
-        else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
-        else if (IsKeyPressed(KEY_UP)) player.cell.y--;
-        else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
 
-        // Make sure player does not go out of bounds
-        if (player.cell.x < 0) player.cell.x = 0;
-        else if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS-1;
-        else if (player.cell.y < 0) player.cell.y = 0 ;
-        else if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS-1;
+
 
         mousePosition = GetMousePosition();
         
@@ -580,12 +572,25 @@ int main (int argc, char *argv[])
             
             if (mouseHoverCells)
             {
-                 // Icon painting mouse logic
-                    player.cell.x = (GetMouseX() - bin_grid_XY.x) / gridSpacing ;
-                    player.cell.y = (GetMouseY() - bin_grid_XY.y) / gridSpacing;
+                    if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
+                    else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
+                    else if (IsKeyPressed(KEY_UP)) player.cell.y--;
+                    else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
+
+
+                    // Make sure player does not go out of bounds
+                    if (player.cell.x < 0) player.cell.x = 0;
+                    else if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS-1;
+                    else if (player.cell.y < 0) player.cell.y = 0 ;
+                    else if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS-1;
                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
-                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] =!matrice[player.cell.x][player.cell.y];
-                    //  if  (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+                 // Icon painting mouse logic
+                    {
+                    player.cell.x = (GetMouseX() - bin_grid_XY.x) / gridSpacing;
+                    player.cell.y = (GetMouseY() - bin_grid_XY.y) / gridSpacing;
+                    matrice[player.cell.x][player.cell.y] =!matrice[player.cell.x][player.cell.y];
+                    }
             }
                     
             // rileva se la posizione mouse e' dentro la tabella ASCIIa...
@@ -610,7 +615,7 @@ int main (int argc, char *argv[])
         int i= player.cell.y;
 
         // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
-        if ( (IsKeyPressed(KEY_SPACE)) ) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
+        if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
 
         //----------------------------------------------------------------------------------
 		// Draw
