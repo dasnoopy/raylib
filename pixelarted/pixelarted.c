@@ -17,7 +17,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.8.4"
+#define TOOL_VERSION            "0.8.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,9 +35,9 @@ const int screenWidth = 900;
 const int screenHeight = 756;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 colorsBarPos = {112, 8};
+Vector2 colorsBarPos = {120, 10};
 Vector2 spriteGridPos = {212, 86};
-Vector2 miniaturePos = {28,104};
+Vector2 miniaturePos = {32,104};
 Vector2 infoBarPos = {28, 240};
 Vector2 panelBarPos = {24,300};
 
@@ -55,7 +55,7 @@ bool mouseWasPressed = false;
 // Various
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fNAME[256] = "image.pix";
+char fNAME[256] = "default.pix";
 bool fnameEditMode = false;
 bool keyBinding = true;
 
@@ -117,9 +117,8 @@ void draw_sprite_grid(void)
 {
             
     DrawRectangle(spriteGridPos.x, spriteGridPos.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
-    DrawRectangleLines(spriteGridPos.x-1, spriteGridPos.y-1,gridSpacing*BIN_COLS+1, gridSpacing*BIN_ROWS+1, GRID_COLOR);
-
-
+    DrawText(TextFormat("%s", TOOL_NAME), 16, 24, 10, FG_COLOR); 
+    //DrawRectangleLines(spriteGridPos.x-1, spriteGridPos.y-1,gridSpacing*BIN_COLS+1, gridSpacing*BIN_ROWS+1, RED);
     if (showGrid)
     {
                 for (int y = 0; y <= BIN_ROWS; y++) 
@@ -138,11 +137,11 @@ void draw_sprite()
                     {
                         // disegna sfondo cella  in base al valore 1/0
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
-                        DrawRectangle((spriteGridPos.x + gridSpacing*j) , (spriteGridPos.y + gridSpacing*i), 
-                          gridSpacing, 
-                          gridSpacing, 
+                        DrawRectangle(((spriteGridPos.x-1) + gridSpacing*j) , ((spriteGridPos.y-1) + gridSpacing*i), 
+                          gridSpacing+1, 
+                          gridSpacing+1, 
                           colors[matrice[j][i]]);
-                         //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,BG_COLOR);
+                         //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,WHITE);
 
                     }
                 }   
@@ -193,7 +192,7 @@ void show_info (void)
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
+    //SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
     InitWindow(screenWidth, screenHeight, "Pixel Art Editor");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -202,7 +201,7 @@ int main (int argc, char *argv[])
 
 
     // loaad TTF font with better antialiasing
-    Font font = LoadFontEx("assets/JetBrains Mono SemiBold.ttf", 20, 0, 0);
+    Font font = LoadFontEx("assets/SF-Mono.ttf", 18, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     // Set UI style
     // Custom GUI font ShowLoading
@@ -213,7 +212,7 @@ int main (int argc, char *argv[])
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
 
     // set FPS
-    SetTargetFPS(60);
+    SetTargetFPS(120);
 
 // Define colorsRecs data (for every rectangle)
     for (int i = 0; i < MAX_COLORS_COUNT; i++)
@@ -235,7 +234,7 @@ int curW,curH;
 curW=cursorSize;
 curH=cursorSize;
 
-int a,b=0;
+int curSW,curSH=0;
 
     while (!WindowShouldClose())
     {
@@ -265,21 +264,7 @@ int a,b=0;
            // colorSelectedPrev = colorSelected;
         }
 
-        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-        {
-            if (!mouseWasPressed)
-            {
-                colorSelectedPrev = colorSelected;
-                colorSelected = 0;
-            }
-            mouseWasPressed = true;
-            matrice[player.cell.x][player.cell.y] = 0;
-        }
-        else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && mouseWasPressed)
-        {
-            colorSelected = colorSelectedPrev;
-            mouseWasPressed = false;
-        }
+
 
                     if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
                     else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
@@ -299,6 +284,20 @@ int a,b=0;
         if (mouseHoverCells)
             {
 
+                // if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+                // {
+                //     if (!mouseWasPressed)
+                //     {
+                //         colorSelectedPrev = colorSelected;
+                //         colorSelected = 0;
+                //     }
+                //     mouseWasPressed = true;
+                // }
+                // else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && mouseWasPressed)
+                // {
+                //     colorSelected = colorSelectedPrev;
+                //     mouseWasPressed = false;
+                // }
 
                  // Icon painting mouse logic
                 player.cell.x = (GetMouseX() - spriteGridPos.x) / gridSpacing ;
@@ -309,8 +308,8 @@ int a,b=0;
                 
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
                 {
-                if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
-                if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
+                    if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
+                    if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
 
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = colorSelected;
@@ -425,7 +424,7 @@ int a,b=0;
         DrawRectangleLines(colorsBarPos.x, colorsBarPos.y, 30, 30, LIGHTGRAY);
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y - 2,
-                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 2, BLACK);
+                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 2, ON_COLOR);
 
         // draw sprite and grid matrix
         draw_sprite_grid();
@@ -433,27 +432,35 @@ int a,b=0;
 
         // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
         // adattando anche la stessa  in prossimità del bordo destro e in basso.
+       
+
+        // destra
         if ((px + curW) >= BIN_COLS)
-        { a = BIN_COLS - px;}
-        else {a=cursorSize;}
-        
+        { curSW = BIN_COLS - px;}
+        else { curSW = cursorSize;}
+        // basso
         if ((py + curH) >= BIN_ROWS)
-        { b = BIN_ROWS - py;}
-        else {b=cursorSize;}
+        { curSH = BIN_ROWS - py;}
+        else { curSH = cursorSize;}
         
-        DrawRectangleLines(spriteGridPos.x + px*gridSpacing, 
-                          spriteGridPos.y + py*gridSpacing, 
-                          gridSpacing * a, 
-                          gridSpacing * b,
-                          ON_COLOR);
+        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x -1) + px*gridSpacing, 
+                          (spriteGridPos.y-1) + py*gridSpacing, 
+                          gridSpacing * curSW+1, 
+                          gridSpacing * curSH+1},
+                          2,ON_COLOR);
 
         // draw accessories information
         show_info();
 
-        //display cursor position and selected color info
-            DrawTextEx(font, TextFormat("Pixel: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){infoBarPos.x,infoBarPos.y-164},20,0,FG_COLOR);
-            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){infoBarPos.x,infoBarPos.y},20,0,FG_COLOR);
-            DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){infoBarPos.x,infoBarPos.y + 24},20,0,FG_COLOR);
+        //display cursor position and selected color info 
+            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){infoBarPos.x+8,infoBarPos.y-164},18,0,BLACK);
+
+            DrawRectangleLines(infoBarPos.x + 2  ,infoBarPos.y-2 , 24,24,GRID_COLOR);
+            DrawRectangle(infoBarPos.x + 4 ,infoBarPos.y , 20,20,colors[matrice[px][py]]);
+            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){infoBarPos.x + 40,infoBarPos.y},18,0,BLACK);
+            
+            
+            //DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){infoBarPos.x,infoBarPos.y + 24},20,0,FG_COLOR);
 
         if (ShowSaving)
             {
@@ -498,24 +505,22 @@ int a,b=0;
 
 
             // panelBarPos
-            GuiCheckBox((Rectangle){ 24, 16 , 20, 20 }, "Show Grid", &showGrid);
+            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +184 , 20, 20 }, "Show Grid", &showGrid);
             
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y, 150, 20 }, "#25#Cursor size:");
-            GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+24, 128, 24 }, "", &cursorSize, 1, 8, false);
-            //Keybinding info
-            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 72,150,140}, "Sprite options:");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'C' to clear matrix.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'R' to replace color.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'A' to shift matrix left.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'D' to shit matrix right.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'W' to shift matrix up.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'X' to shift matrix down.");
-            
+            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,210}, "Sprite options:");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
+            GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+30, 132, 24 }, "", &cursorSize, 1, 8, false);
+            //Keybinding label
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'C' to clear matrix.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'R' to replace color.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'A' to shift matrix left.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'D' to shit matrix right.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'W' to shift matrix up.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
+
             GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 310,156,90}, "filename for save/load:");
-            
             if(GuiTextBox((Rectangle){ panelBarPos.x, panelBarPos.y +320, 140, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-            
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+356, 140, 20 }, "Press 'S' to save matrix.");
+                        GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+356, 140, 20 }, "Press 'S' to save matrix.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+376, 140, 20 }, "Press 'L' to load matrix.");
             
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+400, 140, 20 }, "WinKey + mouse left to move.");
