@@ -17,7 +17,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.8.0"
+#define TOOL_VERSION            "0.8.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -52,7 +52,14 @@ int colorMouseHover = 0;
 int colorSelectedPrev = 0;
 int cursorSize = 1;
 bool mouseWasPressed = false;
+// Various
+bool showGrid = true;
+bool mouseHoverCells = false;
+char fNAME[256] = "image.pix";
+bool fnameEditMode = false;
+bool keyBinding = true;
 
+int miniatureSCALE=4;
 
     // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
@@ -79,14 +86,6 @@ int matrice[BIN_COLS][BIN_ROWS];
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
 
-// Various
-bool showGrid = true;
-bool mouseHoverCells = false;
-char fNAME[256] = "image.pix";
-bool fnameEditMode = false;
-
-
-int miniatureSCALE=4;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -233,6 +232,10 @@ int main (int argc, char *argv[])
     reset_matrix();
 
 int curW,curH;
+curW=cursorSize;
+curH=cursorSize;
+
+int a,b=0;
 
     while (!WindowShouldClose())
     {
@@ -278,28 +281,40 @@ int curW,curH;
             mouseWasPressed = false;
         }
 
-
+                    if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
+                    else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
+                    else if (IsKeyPressed(KEY_UP)) player.cell.y--;
+                    else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
+                                        // Make sure player does not go out of bounds
+                    if (player.cell.x < 0) player.cell.x = 0;
+                    else if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS-1;
+                    else if (player.cell.y < 0) player.cell.y = 0 ;
+                    else if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS-1;
 
 
         // rileva se la posizione mouse e' dentro la matrice colore...
-        mouseHoverCells = CheckCollisionPointRec(GetMousePosition(),(Rectangle){spriteGridPos.x, spriteGridPos.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
-            
-            if (mouseHoverCells)
+        mouseHoverCells = CheckCollisionPointRec(mousePos,(Rectangle){spriteGridPos.x, spriteGridPos.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
+        
+
+        if (mouseHoverCells)
             {
 
+
                  // Icon painting mouse logic
-                    player.cell.x = (GetMouseX() - spriteGridPos.x) / gridSpacing ;
-                    player.cell.y = (GetMouseY() - spriteGridPos.y) / gridSpacing;
-                   
+                player.cell.x = (GetMouseX() - spriteGridPos.x) / gridSpacing ;
+                player.cell.y = (GetMouseY() - spriteGridPos.y) / gridSpacing;
+               
                 curW=cursorSize;
                 curH=cursorSize;
-
+                
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
+                {
                 if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
                 if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
 
-                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || (IsKeyPressed(KEY_SPACE))) 
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = colorSelected;
+                }
             }
 
 
@@ -311,11 +326,14 @@ int curW,curH;
         bool ShowLoading=false;
         bool ShowSaving=false;
 
+        // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
+        //if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
+
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
 
-        if (!ShowLoading && !ShowSaving)
+        if (!fnameEditMode) // se sto digitando il nome file nel riquadro di inpunt, disabilita i keybindings
         {
             if (IsKeyPressed(KEY_Q)) break;
             if (IsKeyPressed(KEY_C)) reset_matrix();
@@ -413,11 +431,20 @@ int curW,curH;
         draw_sprite_grid();
         draw_sprite(); //
 
-        // aggiorna in tempo reale la posizione della cella attuale ("cursore") quando mouse o tastiera si spostano sulle celle...
+        // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
+        // adattando anche la stessa  in prossimità del bordo destro e in basso.
+        if ((px + curW) >= BIN_COLS)
+        { a = BIN_COLS - px;}
+        else {a=cursorSize;}
+        
+        if ((py + curH) >= BIN_ROWS)
+        { b = BIN_ROWS - py;}
+        else {b=cursorSize;}
+        
         DrawRectangleLines(spriteGridPos.x + px*gridSpacing, 
                           spriteGridPos.y + py*gridSpacing, 
-                          gridSpacing * cursorSize, 
-                          gridSpacing * cursorSize,
+                          gridSpacing * a, 
+                          gridSpacing * b,
                           ON_COLOR);
 
         // draw accessories information
@@ -440,10 +467,14 @@ int curW,curH;
             //         if (ret!= -1){
             //             if (ret == 1) {
                             FILE *fSave = fopen(fNAME, "wb");
+                                if (fSave == NULL) {
+                                    printf("File [%s] not found!\n",fNAME);
+                                    return 1;
+                                }
                             fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
                             fclose(fSave);
                     //         }
-                    //  ShowSaving=false;
+                    ShowSaving=false;
                     // }
             }
 
@@ -461,7 +492,7 @@ int curW,curH;
                             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
                             fclose(fLoad);
                     //     }
-                    //     ShowLoading=false;
+                    ShowLoading=false;
                     // }
             }
 
@@ -481,7 +512,9 @@ int curW,curH;
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'X' to shift matrix down.");
             
             GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 310,156,90}, "filename for save/load:");
+            
             if(GuiTextBox((Rectangle){ panelBarPos.x, panelBarPos.y +320, 140, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+            
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+356, 140, 20 }, "Press 'S' to save matrix.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+376, 140, 20 }, "Press 'L' to load matrix.");
             
