@@ -17,7 +17,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.8.8"
+#define TOOL_VERSION            "0.8.9"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,9 +35,9 @@ const int screenWidth = 900;
 const int screenHeight = 756;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 colorsBarPos = {124, 10};
-Vector2 spriteGridPos = {212, 86};
-Vector2 miniaturePos = {32,104};
+Vector2 colorsBarPos = {188, 12};
+Vector2 spriteGridPos = {220, 86};
+Vector2 miniaturePos = {28,104};
 Vector2 infoBarPos = {28, 240};
 Vector2 panelBarPos = {24,300};
 
@@ -79,9 +79,9 @@ int matriceUndo[BIN_ROWS][BIN_COLS];
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
-#define BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
 #define GRID_COLOR CLITERAL(Color){ 181, 190, 190, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
+#define BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
 
@@ -115,9 +115,7 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
 void draw_sprite_grid(void)
 {
             
-    DrawRectangle(spriteGridPos.x, spriteGridPos.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
-    DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, 12, 20, FG_COLOR); 
-    DrawText(TextFormat("version %s", TOOL_VERSION), 24, 36, 10, GRAY); 
+
 
     if (showGrid)
     {
@@ -137,9 +135,9 @@ void draw_sprite()
                     {
                         // disegna sfondo cella  in base al valore 1/0
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
-                        DrawRectangle(((spriteGridPos.x-1) + gridSpacing*j) , ((spriteGridPos.y-1) + gridSpacing*i), 
-                          gridSpacing+1, 
-                          gridSpacing+1, 
+                        DrawRectangle(((spriteGridPos.x) + gridSpacing*j) , ((spriteGridPos.y) + gridSpacing*i), 
+                          gridSpacing, 
+                          gridSpacing, 
                           colors[matrice[j][i]]);
                          //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,WHITE);
 
@@ -171,6 +169,11 @@ void copy_matrix_2d(int * src, int * dst, int N, int M)
 
 void show_info (void)
 {
+
+    //DrawRectangle(spriteGridPos.x, spriteGridPos.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
+    DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
+    DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
+
             // intestazioni riga/colonna matrice colore
             for (int i = 0; i < BIN_ROWS; i++)
             {
@@ -183,7 +186,7 @@ void show_info (void)
                 }
             }
             //disegna miniatura
-            DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
+            DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
             DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, GRID_COLOR);
 
             for (int i = 0; i < BIN_ROWS; i++)
@@ -217,10 +220,10 @@ int main (int argc, char *argv[])
 // Define colorsRecs data (for every rectangle)
     for (int i = 0; i < MAX_COLORS_COUNT; i++)
     {
-        colorsRecs[i].x = colorsBarPos.x + 30.0f*i + 2*i;
+        colorsRecs[i].x = colorsBarPos.x + 27.0f*i + 2*i;
         colorsRecs[i].y = colorsBarPos.y;
-        colorsRecs[i].width = 30;
-        colorsRecs[i].height = 30;
+        colorsRecs[i].width = 26;
+        colorsRecs[i].height = 26;
     }
 
 // Init player 0 (cursor for bin matrix)
@@ -408,28 +411,28 @@ int curSW,curSH=0;
         ClearBackground(BG_COLOR);
 
     
-        // Draw top panel ( color bar)
-        DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
-
+        // Draw fake top & leftpanel ( color bar)
+        //DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
+        //DrawRectangle(0, 0, 186,GetScreenHeight(), GRID_BG_COLOR);
+        DrawRectangle(186,50, screenWidth,screenHeight, GRID_BG_COLOR);
+        DrawRectangleLines(186,50, screenWidth,screenHeight, GRID_COLOR);
 
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
         //  riquadro attorno al primo colore: BLANK (trasparente)
-        DrawRectangleLinesEx((Rectangle){colorsBarPos.x, colorsBarPos.y, 30, 30},1, GRID_COLOR);
+        DrawRectangleLinesEx((Rectangle){colorsBarPos.x, colorsBarPos.y, 26, 26},1, GRID_COLOR);
         // passando sopra il colore rendilo piu chiaro
-        if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.4f));
-        // cliccando sul colore disegna riguadro per evidenziare selezione
-        DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y - 2,
-                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height + 4 }, 3, ON_COLOR);
+        if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
+        // cliccando sul colore disegna riguadro attorno per evidenziare selezione
+        DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y + 28,
+                             colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height - 22 }, 2, ON_COLOR);
 
         // draw sprite and grid matrix
-        draw_sprite_grid();
         draw_sprite(); //
 
         // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
         // adattando anche la stessa  in prossimità del bordo destro e in basso.
        
-
         // destra
         if ((px + curW) >= BIN_COLS)
         { curSW = BIN_COLS - px;}
@@ -439,21 +442,21 @@ int curSW,curSH=0;
         { curSH = BIN_ROWS - py;}
         else { curSH = cursorSize;}
         
-        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x -1) + px*gridSpacing, 
-                          (spriteGridPos.y-1) + py*gridSpacing, 
-                          gridSpacing * curSW+1, 
-                          gridSpacing * curSH+1},
-                          2,ON_COLOR);
+        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
+                          (spriteGridPos.y) + py*gridSpacing, 
+                          gridSpacing * curSW-1, 
+                          gridSpacing * curSH-1},
+                          1,ON_COLOR);
 
         // draw accessories information
         show_info();
 
         //display cursor position and selected color info 
-            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){infoBarPos.x+8,infoBarPos.y-164},18,0,BLACK);
+            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){miniaturePos.x +4 ,miniaturePos.y-24},18,0,BLACK);
 
-            DrawRectangleLines(infoBarPos.x + 2  ,infoBarPos.y-2 , 24,24,GRID_COLOR);
-            DrawRectangle(infoBarPos.x + 4 ,infoBarPos.y , 20,20,colors[matrice[px][py]]);
-            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){infoBarPos.x + 40,infoBarPos.y},18,0,BLACK);
+            DrawRectangleLines(miniaturePos.x -3 ,miniaturePos.y+136 , 24,24,GRID_COLOR);
+            DrawRectangle(miniaturePos.x-1,miniaturePos.y+138 , 20 , 20,colors[matrice[px][py]]);
+            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){miniaturePos.x + 35,miniaturePos.y+140},18,0,BLACK);
             
             
             //DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){infoBarPos.x,infoBarPos.y + 24},20,0,FG_COLOR);
@@ -525,6 +528,7 @@ int curSW,curSH=0;
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+410, 140, 20 }, "Press 'Q' to quit program.");
 
 
+        draw_sprite_grid();
         EndDrawing();
     }
     UnloadRenderTexture(target);

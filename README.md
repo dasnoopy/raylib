@@ -21,9 +21,12 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 ![digital-clock](https://raw.github.com/dasnoopy/raylib/main/screenshot/digital-clock.png)
 
-**- 5 Band resistor calculator**
-![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
+**- PixelArt Editor**
+![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
 **- Dotchar editor**
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
+
+**- 5 Band resistor calculator**
+![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
