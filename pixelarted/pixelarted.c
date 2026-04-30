@@ -73,7 +73,6 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // some funs
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
-
 #define BORDER_COLOR CLITERAL(Color){ 181, 190, 190, 255} 
 
 //----------------------------------------------------------------------------------
@@ -271,7 +270,7 @@ while (!WindowShouldClose())
         if (selectedColor >= MAX_COLORS_COUNT) selectedColor = MAX_COLORS_COUNT - 1;
         else if (selectedColor < 0) selectedColor = 0;
         //------------------------------------------------------------------------------
-        // Choose color with mouse
+        // Choose color with mouse from top color bar
         //------------------------------------------------------------------------------
         for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
@@ -286,7 +285,7 @@ while (!WindowShouldClose())
 
 
         //------------------------------------------------------------------------------
-        // rileva se la posizione mouse e' dentro la matrice colore...
+        // rileva se la posizione mouse e' dentro la matrice sprite...
         //------------------------------------------------------------------------------
         mouseHoverCells = CheckCollisionPointRec(mousePos,(Rectangle){spriteGridPos.x, spriteGridPos.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
         if (mouseHoverCells)
@@ -298,8 +297,9 @@ while (!WindowShouldClose())
                 curW=cursorSize;
                 curH=cursorSize;
                 
+                // IMPROVE HERE make a better undo action
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                  copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
 
                 if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
                 if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
@@ -330,8 +330,16 @@ while (!WindowShouldClose())
         bool ShowLoading=false;
         bool ShowSaving=false;
 
-            
-
+    // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
+    // adattando anche la stessa  in prossimità del bordo destro e in basso.
+    // destra
+        if ((px + curW) >= BIN_COLS)
+        { curSW = BIN_COLS - px;}
+        else { curSW = cursorSize;}
+        // basso
+        if ((py + curH) >= BIN_ROWS)
+        { curSH = BIN_ROWS - py;}
+        else { curSH = cursorSize;}
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -453,24 +461,12 @@ while (!WindowShouldClose())
         // draw sprite and grid matrix
         drawCheckerboard();
         drawSprite(); //
-
-        // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
-        // adattando anche la stessa  in prossimità del bordo destro e in basso.
-       
-        // destra
-        if ((px + curW) >= BIN_COLS)
-        { curSW = BIN_COLS - px;}
-        else { curSW = cursorSize;}
-        // basso
-        if ((py + curH) >= BIN_ROWS)
-        { curSH = BIN_ROWS - py;}
-        else { curSH = cursorSize;}
         
-        DrawRectangleRec((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
+        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
                           (spriteGridPos.y) + py*gridSpacing, 
                           gridSpacing * curSW, 
                           gridSpacing * curSH},
-                          OFF_COLOR);
+                          2,ON_COLOR);
 
         // draw accessories information
         showInfo();
@@ -516,7 +512,6 @@ while (!WindowShouldClose())
             }
 
             // panelBarPos
-            
             //GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,290}, "Sprite options:");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
             GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
@@ -551,6 +546,7 @@ while (!WindowShouldClose())
         EndDrawing();
     }
     UnloadRenderTexture(target);
+    UnloadFont(font);
     CloseWindow();
     return 0;
 }

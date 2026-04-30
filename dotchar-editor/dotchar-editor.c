@@ -25,7 +25,7 @@
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.7.1"
+#define TOOL_VERSION            "2.7.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -42,14 +42,14 @@
 #include "raygui.h"
 
 const int screenWidth = 768;
-const int screenHeight = 690;
+const int screenHeight = 720;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {188, 48 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {668, 48 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 24, 24 }; // posizione toolbar
+Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
+Vector2 toolbar_XY = { 22, 54 }; // posizione toolbar
 // ASCII TABLE
-Vector2 ascii_grid_XY  = { 168, 384 };
+Vector2 ascii_grid_XY  = { 168, 408 };
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
 
 #define gridSpacing       36
@@ -330,7 +330,7 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
 int main (int argc, char *argv[])
 {
 
-    SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
+    //SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "DotChar Editor");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -349,11 +349,11 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font font = LoadFontEx("assets/VictorMono-Bold.ttf", 16, 0, 0);
-    GuiLoadStyle("assets/dce.rgs");
-    GuiSetFont(font);
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
-    GuiSetIconScale(1);
+    //Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    //GuiLoadStyle("assets/dce.rgs");
+    //GuiSetFont(font);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
+    //GuiSetIconScale(1);
 
     // Init player 0 (cursor for bin matrix)
     PlayerState player = { 0 };
@@ -624,21 +624,21 @@ int main (int argc, char *argv[])
 		// Draw
         //----------------------------------------------------------------------------------
         BeginTextureMode(target);
-            ClearBackground(BLANK);
+            ClearBackground(BG_COLOR);
         EndTextureMode();
 
         BeginDrawing();
-            ClearBackground(BLANK);
+            ClearBackground(BG_COLOR);
 
             // draw round rectangle as "fake" background with some opacity
-            drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
-
+            DrawRectangle(0,0,150, screenHeight,GRID_BG_COLOR);
+            DrawLine(150,0,150,screenHeight,LIGHTGRAY);
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
             // some windows info e tricks
-            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 512, 16, 20, FG_COLOR); 
-            DrawText(TextFormat("version %s", TOOL_VERSION), 534, 40, 10, GRAY); 
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 20, 16, 20, FG_COLOR); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 36, 40, 10, GRAY); 
 
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
@@ -674,7 +674,7 @@ int main (int argc, char *argv[])
        
         //  toolbar
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-        GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y, 20, 20 }, "Show Grid", &showGrid);
+        GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Grid on/off", &showGrid);
         //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &showGrid); 
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, gridSpacing*3, gridSpacing }, "Shift right");
@@ -695,7 +695,7 @@ int main (int argc, char *argv[])
         EndDrawing();
     }
     UnloadRenderTexture(target);
-    UnloadFont(font);
+    // UnloadFont(font);
     CloseWindow();
     return 0;
 }
