@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.9.2"
+#define TOOL_VERSION            "0.9.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -65,11 +65,15 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
-#define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
-#define GRID_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
 #define BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
+// grid and checkerboard
+#define GRID_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
+#define CHECKB_COLOR CLITERAL(Color){ 246, 251, 251, 255} 
+// some funs
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
+
 #define BORDER_COLOR CLITERAL(Color){ 181, 190, 190, 255} 
 
 //----------------------------------------------------------------------------------
@@ -97,8 +101,8 @@ void drawCheckerboard(void)
         for (int y = 0; y < BIN_ROWS-1; y+=2)
             for (int x = 0; x < BIN_COLS-1; x+=2)
                 {
-                DrawRectangleRec((Rectangle){spriteGridPos.x + (x*gridSpacing), spriteGridPos.y + (y*gridSpacing), gridSpacing, gridSpacing},BG_COLOR);
-                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (x*gridSpacing), spriteGridPos.y + gridSpacing + (y*gridSpacing), gridSpacing, gridSpacing},BG_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + (x*gridSpacing), spriteGridPos.y + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (x*gridSpacing), spriteGridPos.y + gridSpacing + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
                 }
         DrawRectangleLinesEx((Rectangle){spriteGridPos.x-2, spriteGridPos.y-2, 4+(BIN_COLS*gridSpacing),4+(BIN_ROWS*gridSpacing)},2,BG_COLOR);
     }
@@ -140,7 +144,7 @@ void showInfo (void)
     DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
     // cornice e sfondo miniatura
-        DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
+        DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
         DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, BORDER_COLOR);
     // intestazioni riga/colonna matrice colore e miniatura
         for (int i = 0; i < BIN_ROWS; i++)
@@ -333,7 +337,7 @@ while (!WindowShouldClose())
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
 
-        if (!fnameEditMode) // se stò digitando il nome file nel riquadro di inpunt, disabilita i keybindings
+        if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
             
             if (IsKeyPressed(KEY_Q)) break;
@@ -341,7 +345,6 @@ while (!WindowShouldClose())
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
                     copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-
                     strcpy(fNAME,"default.pix");
                     resetSprite();
                 }
@@ -428,17 +431,13 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------------------
 		// Draw
         //----------------------------------------------------------------------------------
-        BeginTextureMode(target);
-            ClearBackground(BG_COLOR);
-        EndTextureMode();
+    BeginTextureMode(target);
+        ClearBackground(GRID_BG_COLOR);
+    EndTextureMode();
 
-        BeginDrawing();
-    
-        ClearBackground(BG_COLOR);
-        // Draw fake top & leftpanel ( color bar)
-        //DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
-        //DrawRectangle(0, 0, 186,GetScreenHeight(), GRID_BG_COLOR);
-        DrawRectangle(186,50, screenWidth,screenHeight, GRID_BG_COLOR);
+    BeginDrawing();
+        ClearBackground(GRID_BG_COLOR);
+        DrawRectangle(186,50, screenWidth,screenHeight, BG_COLOR);
         DrawRectangleLines(186,50, screenWidth,screenHeight, BORDER_COLOR);
 
         // Draw color selection bar
