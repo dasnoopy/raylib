@@ -23,8 +23,8 @@
 *
 *******************************************************************************************/
 
-#define TOOL_NAME               "DotChar Editor"
-#define TOOL_SHORT_NAME         "DotEdit"
+#define TOOL_NAME               "Dot Character Editor"
+#define TOOL_SHORT_NAME         "DotCharEd"
 #define TOOL_VERSION            "2.7.1"
 
 #include <stdio.h>
@@ -42,7 +42,7 @@
 #include "raygui.h"
 
 const int screenWidth = 768;
-const int screenHeight = 696;
+const int screenHeight = 690;
 
  // initial X,Y coordinates for variuos interface elements
 Vector2 bin_grid_XY = {188, 48 }; // x, y devono essere uguale o multiplo di gridSpacing ....
@@ -122,7 +122,7 @@ typedef struct {
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
   Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
-  float radius = 0.04; // no radius
+  float radius = 0.03f; // no radius
   int   segs   = 12; // non segments
   DrawRectangleRounded ( rect, radius, segs, color );
 }
@@ -329,15 +329,17 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
 
 int main (int argc, char *argv[])
 {
+
+    SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "DotChar Editor");
+        // center window on the screen
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
+    SetWindowState(FLAG_WINDOW_UNDECORATED);
+
+    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     
     // General variables
     Vector2 mousePosition = { 0 };
-    Vector2 windowPosition = {GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2 };
-
-    // center window on the screen
-    SetWindowPosition(windowPosition.x, windowPosition.y);
-
 
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
@@ -347,7 +349,7 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    Font font = LoadFontEx("assets/VictorMono-Bold.ttf", 16, 0, 0);
     GuiLoadStyle("assets/dce.rgs");
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
@@ -616,24 +618,28 @@ int main (int argc, char *argv[])
 
         // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
         if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
+        if (IsKeyPressed(KEY_Q)) break;
 
         //----------------------------------------------------------------------------------
 		// Draw
         //----------------------------------------------------------------------------------
         BeginTextureMode(target);
-            ClearBackground(BG_COLOR);
+            ClearBackground(BLANK);
         EndTextureMode();
 
         BeginDrawing();
-            ClearBackground(BG_COLOR);
+            ClearBackground(BLANK);
+
+            // draw round rectangle as "fake" background with some opacity
+            drawRectangleRounded(0,0,screenWidth, screenHeight,BG_COLOR);
 
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
             // some windows info e tricks
-            DrawText(TextFormat("vers. %s",TOOL_VERSION), screenWidth - 64, 8, 10, FG_COLOR);
-            DrawLine(0,1,screenWidth,1,GRID_BG_COLOR);
-            DrawLine(0,2,screenWidth,2,WHITE);
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 512, 16, 20, FG_COLOR); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 534, 40, 10, GRAY); 
+
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
             {
