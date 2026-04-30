@@ -1,23 +1,15 @@
 /*******************************************************************************************
 *
 *   PIXEL ART EDITOR
-*   A simple pixel art editor app to learn C using raylib/raygui library
-* 
-*  CHANGELOG:
-* 
-*  v. 1.0   : first release: draw a 8x8 dot matrix and show/copy HEX value
-
+*   A simple pixel perfect editor  to learn C using raylib/raygui library
+*
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
-********************************************************************************************
-*
-*   BUGS:
-*   replace color broken default TEXT 
-*******************************************************************************************/
+********************************************************************************************/
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.9.0"
+#define TOOL_VERSION            "0.9.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -37,11 +29,10 @@ const int screenHeight = 756;
  // initial X,Y coordinates for variuos interface elements
 Vector2 colorsBarPos = {188, 12};
 Vector2 spriteGridPos = {220, 86};
-Vector2 miniaturePos = {28,104};
-Vector2 infoBarPos = {28, 240};
-Vector2 panelBarPos = {24,300};
+Vector2 miniaturePos = {28,120};
+Vector2 panelBarPos = {24,340};
 
-#define gridSpacing    20
+int gridSpacing = 20;
 #define BIN_COLS       32
 #define BIN_ROWS       32
 #define MAX_COLORS_COUNT    24          // Number of colors available
@@ -54,11 +45,10 @@ int matriceUndo[BIN_ROWS][BIN_COLS];
 int selectedColor = 24;
 int currentColor = 0;
 int colorMouseHover = 0;
-int selectedColorPrev = 0;
 int cursorSize = 1;
-int miniatureSCALE=4;
-bool mouseWasPressed = false;
-bool showGrid = true;
+int miniatureSCALE= 4;
+bool showGrid = false;
+bool showChessboard = true;
 bool mouseHoverCells = false;
 char fNAME[256] = "default.pix";
 bool fnameEditMode = false;
@@ -70,10 +60,6 @@ const Color colors[MAX_COLORS_COUNT] = {
         SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
         LIGHTGRAY, GRAY, DARKGRAY, BLACK };
 
-const char *colorNames[MAX_COLORS_COUNT] = { 
-        "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
-        "SkyBlue", "Blue", "DarkBlue", "Purple", "Violet", "DarkPurple", "Beige", "Brown", "DarkBrown",
-        "LightGray", "Gray", "DarkGray", "Black" };
 // Define colorsRecs data
 Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 
@@ -110,12 +96,23 @@ void draw_sprite_grid(void)
 {
     if (showGrid)
     {
-                for (int y = 0; y <= BIN_ROWS; y++) 
-                    DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
-                for (int x = 0; x <= BIN_COLS; x++)
-                    DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
-    }
+        for (int y = 0; y <= BIN_ROWS; y+=1) 
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
+        for (int x = 0; x <= BIN_COLS; x+=1)
+            DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
+
     DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
+
+    }
+    else {
+        for (int y = 0; y < BIN_ROWS-1; y+=2)
+            for (int x = 0; x < BIN_COLS-1; x+=2)
+                {
+                DrawRectangleRec((Rectangle){spriteGridPos.x + (x*gridSpacing), spriteGridPos.y + (y*gridSpacing), gridSpacing, gridSpacing},BG_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (x*gridSpacing), spriteGridPos.y + gridSpacing + (y*gridSpacing), gridSpacing, gridSpacing},BG_COLOR);
+                }
+        DrawRectangleLinesEx((Rectangle){spriteGridPos.x-2, spriteGridPos.y-2, 4+(BIN_COLS*gridSpacing),4+(BIN_ROWS*gridSpacing)},2,BG_COLOR);
+    }
 }
 
 //  disegna bit delle matrice in base al loro valore
@@ -149,10 +146,10 @@ void show_info (void)
         {
             for (int j = 0; j < BIN_COLS; ++j)
             {
-                DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
-                DrawText(TextFormat("%01d",i),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
-                DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
-                DrawText(TextFormat("%01d",i),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
+                DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
+                DrawText(TextFormat("%01d",i+1),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
+                DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
+                DrawText(TextFormat("%01d",i+1),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
                 //miniatura
                 DrawRectangle(miniaturePos.x + (miniatureSCALE*j), miniaturePos.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
             }
@@ -312,11 +309,8 @@ while (!WindowShouldClose())
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = 0;
                 }
-                    // if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
-                    // else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
-                    // else if (IsKeyPressed(KEY_UP)) player.cell.y--;
-                    // else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
         }
+
                 if (IsKeyPressed(KEY_SPACE))
                 {
                     for (int i = 0; i < curH; i++)
@@ -330,6 +324,9 @@ while (!WindowShouldClose())
         // gestione stato load & save file
         bool ShowLoading=false;
         bool ShowSaving=false;
+
+            
+
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -433,10 +430,8 @@ while (!WindowShouldClose())
         EndTextureMode();
 
         BeginDrawing();
-        
-        ClearBackground(BG_COLOR);
-
     
+        ClearBackground(BG_COLOR);
         // Draw fake top & leftpanel ( color bar)
         //DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
         //DrawRectangle(0, 0, 186,GetScreenHeight(), GRID_BG_COLOR);
@@ -454,6 +449,7 @@ while (!WindowShouldClose())
                              colorsRecs[selectedColor].width + 4, colorsRecs[selectedColor].height - 22 }, 2, ON_COLOR);
 
         // draw sprite and grid matrix
+        draw_sprite_grid();
         draw_sprite(); //
 
         // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
@@ -478,30 +474,18 @@ while (!WindowShouldClose())
         show_info();
 
         //display cursor position and selected color info 
-            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){miniaturePos.x +4 ,miniaturePos.y-24},18,0,FG_COLOR);
             // draw current color frame
             DrawRectangleLines(miniaturePos.x -3 ,miniaturePos.y+136 , 24,24,BORDER_COLOR);
             DrawRectangle(miniaturePos.x-1,miniaturePos.y+138 , 20 , 20, colors[matrice[px][py]]);
             // Draw selected color frame
             DrawRectangleLines(miniaturePos.x +24 ,miniaturePos.y+136 , 24,24,BORDER_COLOR);
             DrawRectangle(miniaturePos.x+26,miniaturePos.y+138 , 20 , 20, colors[selectedColor]);
+            // Draw x,y info
+            DrawTextEx(font, TextFormat("x:%02i y:%02i",px+1,py+1),(Vector2){miniaturePos.x + 56,miniaturePos.y+140},18,0,FG_COLOR);
 
-            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){miniaturePos.x + 56,miniaturePos.y+140},18,0,FG_COLOR);
-            
-            
-            //DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){infoBarPos.x,infoBarPos.y + 24},20,0,FG_COLOR);
 
         if (ShowSaving)
-            {
-
-            // int ret = GuiTextInputBox ((Rectangle){ (float) GetScreenWidth() / 2 -
-            //               120, (float)GetScreenHeight() / 2 - 60, 240,
-            //               140 }, GuiIconText ( ICON_FILE_SAVE, "Save file as..." ),
-            //               "Type output file name:", "Ok;Cancel", fNAME,
-            //               255, NULL );
-
-            //         if (ret!= -1){
-            //             if (ret == 1) {
+        { // manage overwriting file
                             FILE *fSave = fopen(fNAME, "wb");
                                 if (fSave == NULL) {
                                     printf("File [%s] not found!\n",fNAME);
@@ -514,12 +498,9 @@ while (!WindowShouldClose())
                     // }
             }
 
-            if (ShowLoading)
+            if (ShowLoading &&  FileExists(fNAME))
             {
-                // int ret = GuiTextInputBox((Rectangle){ 1000,300, 340, 20 },"Load file","Choose a file to load...","Ok;Cancel",fNAME,255,NULL);
-                //     if (ret!= -1){
-                //         if (ret ==1) {
-                            FILE *fLoad = fopen(fNAME, "rb"); 
+                    FILE *fLoad = fopen(fNAME, "rb"); 
                                 if (fLoad == NULL) {
                                     printf("File [%s] not found!\n",fNAME);
                                     return 1;
@@ -532,12 +513,11 @@ while (!WindowShouldClose())
                     // }
             }
 
-
             // panelBarPos
             
-            
-            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,250}, "Sprite options:");
+            //GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,290}, "Sprite options:");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
+            GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
             GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+30, 132, 24 }, "", &cursorSize, 1, 8, false);
             //Keybinding label
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'C' to clear matrix.");
@@ -548,18 +528,24 @@ while (!WindowShouldClose())
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'U' to undo last action.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
-            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +224 , 20, 20 }, "Show Grid", &showGrid);
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'S' to save matrix.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+240, 140, 20 }, "Press 'L' to load matrix.");
+            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 20, 20 }, "Show Grid lines", &showGrid);
+            //GuiToggle((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 140, 20 }, "Grid / Checkerboaard", &showGrid); 
+            GuiLabel((Rectangle){ miniaturePos.x, miniaturePos.y - 60, 140, 20 }, "Filename [ Load / Save ]");
+            if(GuiTextBox((Rectangle){ miniaturePos.x-3, miniaturePos.y -40, 134, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
-            GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y + 300,156,90}, "filename for save/load:");
-            if(GuiTextBox((Rectangle){ panelBarPos.x, panelBarPos.y +310, 140, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-                        GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+346, 140, 20 }, "Press 'S' to save matrix.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+366, 140, 20 }, "Press 'L' to load matrix.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+340, 140, 20 }, "WinKey + mouse left to move.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+360, 140, 20 }, "Press 'Q' to quit program.");
             
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+390, 140, 20 }, "WinKey + mouse left to move.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+410, 140, 20 }, "Press 'Q' to quit program.");
+            //zoom
+            // float gridSpacingF = (float) gridSpacing;
+            // GuiSliderBar((Rectangle){ panelBarPos.x + 30, panelBarPos.y + 260, 90, 16 }, "ZOOM:", TextFormat("x%i", gridSpacing), &gridSpacingF, 10.0f, 20.0f);
+            // gridSpacing = (int) gridSpacingF;
+            // if (gridSpacing < 10) gridSpacing = 10;
+            // else if (gridSpacing > 20) gridSpacing = 20;
 
 
-        draw_sprite_grid();
         EndDrawing();
     }
     UnloadRenderTexture(target);

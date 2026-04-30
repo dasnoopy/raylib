@@ -25,7 +25,7 @@
 
 #define TOOL_NAME               "DotChar Editor"
 #define TOOL_SHORT_NAME         "DotEdit"
-#define TOOL_VERSION            "2.7.0"
+#define TOOL_VERSION            "2.7.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -667,7 +667,9 @@ int main (int argc, char *argv[])
             
        
         //  toolbar
+        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
         GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y, 20, 20 }, "Show Grid", &showGrid);
+        //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &showGrid); 
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, gridSpacing*3, gridSpacing }, "Shift right");
         btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, gridSpacing*3, gridSpacing }, "Shift left");
