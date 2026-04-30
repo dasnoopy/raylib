@@ -46,8 +46,13 @@ Vector2 panelBarPos = {24,300};
 #define BIN_ROWS       32
 #define MAX_COLORS_COUNT    24          // Number of colors available
 #define MAX_CUR_SIZES  4       // cursor size : 1, 2, 4, 8.
-//
+
+// definizione matrici
+int matrice[BIN_COLS][BIN_ROWS];
+int matriceUndo[BIN_ROWS][BIN_COLS];
+// Definizione variabili
 int colorSelected = 24;
+int currentColor = 0;
 int colorMouseHover = 0;
 int colorSelectedPrev = 0;
 int cursorSize = 1;
@@ -59,7 +64,7 @@ char fNAME[256] = "default.pix";
 bool fnameEditMode = false;
 bool keyBinding = true;
 
-    // Colors to choose from
+// Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
         BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
         SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
@@ -69,22 +74,17 @@ const char *colorNames[MAX_COLORS_COUNT] = {
         "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
         "SkyBlue", "Blue", "DarkBlue", "Purple", "Violet", "DarkPurple", "Beige", "Brown", "DarkBrown",
         "LightGray", "Gray", "DarkGray", "Black" };
-
-    // Define colorsRecs data (for every rectangle)
+// Define colorsRecs data
 Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
-
-// definizione matrici
-int matrice[BIN_COLS][BIN_ROWS];
-int matriceUndo[BIN_ROWS][BIN_COLS];
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
 #define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
-#define GRID_COLOR CLITERAL(Color){ 181, 190, 190, 255} 
+#define GRID_COLOR CLITERAL(Color){ 76, 86, 106, 255} 
 #define BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
 #define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
-
+#define BORDER_COLOR CLITERAL(Color){ 181, 190, 190, 255} 
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -101,29 +101,21 @@ typedef struct {
     Color color;
 } PlayerState;
 
-// 'fake' background
-void drawRectangleRounded (int x, int y, int w, int h, Color color)  
-{
-  Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
-  float radius = 0.03f; // no radius
-  int   segs   = 12; // non segments
-  DrawRectangleRounded ( rect, radius, segs, color );
-}
-
+//----------------------------------------------------------------------------------
+// Functions
+//----------------------------------------------------------------------------------
 
 // Draw binary matrix grid
 void draw_sprite_grid(void)
 {
-            
-
-
     if (showGrid)
     {
                 for (int y = 0; y <= BIN_ROWS; y++) 
-                    DrawLine(spriteGridPos.x, spriteGridPos.y + (y * gridSpacing),spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing, GRID_COLOR);
+                    DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
                 for (int x = 0; x <= BIN_COLS; x++)
-                  DrawLine(spriteGridPos.x + (x * gridSpacing), spriteGridPos.y, spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing), GRID_COLOR);
+                    DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
     }
+    //DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
 }
 
 //  disegna bit delle matrice in base al loro valore
@@ -140,15 +132,13 @@ void draw_sprite()
                           gridSpacing, 
                           colors[matrice[j][i]]);
                          //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,WHITE);
-
                     }
                 }   
 }
 
-// azzera matrice colore e di conseguenza anche quella esadecimale
+// azzera matrice colore
 void reset_matrix()
 {
-    //reset matrice colore
     for (int i = 0; i < BIN_ROWS; i++)
         for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
 }
@@ -156,7 +146,8 @@ void reset_matrix()
 void replace_color(int old, int new)
 {
             for (int i = 0; i < BIN_ROWS; i++) 
-                for (int j = 0; j < BIN_COLS; j++) {
+                for (int j = 0; j < BIN_COLS; j++) 
+                {
                     if (matrice[j][i] == old) matrice[j][i] = new;
                 }
 }
@@ -169,28 +160,25 @@ void copy_matrix_2d(int * src, int * dst, int N, int M)
 
 void show_info (void)
 {
-
-    //DrawRectangle(spriteGridPos.x, spriteGridPos.y,gridSpacing*BIN_COLS, gridSpacing*BIN_ROWS, GRID_BG_COLOR);
     DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
     DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
-            // intestazioni riga/colonna matrice colore
-            for (int i = 0; i < BIN_ROWS; i++)
+    // cornice e sfondo miniatura
+        DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, GRID_BG_COLOR);
+        DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, BORDER_COLOR);
+    // intestazioni riga/colonna matrice colore e miniatura
+        for (int i = 0; i < BIN_ROWS; i++)
+        {
+            for (int j = 0; j < BIN_COLS; ++j)
             {
-                for (int j = 0; j < BIN_COLS; ++j)
-                {
-                    DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
-                    DrawText(TextFormat("%01d",i),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
-                    DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
-                    DrawText(TextFormat("%01d",i),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
-                }
+                DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
+                DrawText(TextFormat("%01d",i),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
+                DrawText(TextFormat("%01d",j),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
+                DrawText(TextFormat("%01d",i),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
+                //miniatura
+                DrawRectangle(miniaturePos.x + (miniatureSCALE*j), miniaturePos.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
             }
-            //disegna miniatura
-            DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
-            DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, GRID_COLOR);
-
-            for (int i = 0; i < BIN_ROWS; i++)
-                for (int j = 0; j < BIN_COLS; j++) DrawRectangle(miniaturePos.x + (miniatureSCALE*j), miniaturePos.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
+        }
 }
 
 int main (int argc, char *argv[])
@@ -202,9 +190,8 @@ int main (int argc, char *argv[])
     SetWindowState(FLAG_WINDOW_UNDECORATED);
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
-
     // loaad TTF font with better antialiasing
-    Font font = LoadFontEx("assets/SF-Mono.ttf", 18, 0, 0);
+    Font font = LoadFontEx("assets/VictorMono-Bold.ttf", 18, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     // Set UI style
     // Custom GUI font ShowLoading
@@ -215,7 +202,7 @@ int main (int argc, char *argv[])
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
 
     // set FPS
-    SetTargetFPS(120);
+    SetTargetFPS(60);
 
 // Define colorsRecs data (for every rectangle)
     for (int i = 0; i < MAX_COLORS_COUNT; i++)
@@ -233,14 +220,14 @@ int main (int argc, char *argv[])
 //reset matrice sprite e copia di backup
     reset_matrix();
 
+// variabile usata per adattamento cursore in prossimità lato destro e in basso
+// della matrice colore
+int curW=cursorSize;
+int curH=cursorSize;
+int curSW=0;
+int curSH=0;
 
-int curW,curH;
-curW=cursorSize;
-curH=cursorSize;
-
-int curSW,curSH=0;
-
-    while (!WindowShouldClose())
+while (!WindowShouldClose())
     {
         //----------------------------------------------------------------------------------
         // Update
@@ -249,8 +236,9 @@ int curSW,curSH=0;
 
         if (colorSelected >= MAX_COLORS_COUNT) colorSelected = MAX_COLORS_COUNT - 1;
         else if (colorSelected < 0) colorSelected = 0;
-
+        //------------------------------------------------------------------------------
         // Choose color with mouse
+        //------------------------------------------------------------------------------
         for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
             if (CheckCollisionPointRec(mousePos, colorsRecs[i]))
@@ -260,24 +248,13 @@ int curSW,curSH=0;
             }
             else colorMouseHover = -1;
         }
-
         if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) colorSelected = colorMouseHover;
 
-                    if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
-                    else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
-                    else if (IsKeyPressed(KEY_UP)) player.cell.y--;
-                    else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
-                                        // Make sure player does not go out of bounds
-                    if (player.cell.x < 0) player.cell.x = 0;
-                    else if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS-1;
-                    else if (player.cell.y < 0) player.cell.y = 0 ;
-                    else if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS-1;
 
-
+        //------------------------------------------------------------------------------
         // rileva se la posizione mouse e' dentro la matrice colore...
+        //------------------------------------------------------------------------------
         mouseHoverCells = CheckCollisionPointRec(mousePos,(Rectangle){spriteGridPos.x, spriteGridPos.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
-        
-
         if (mouseHoverCells)
             {
                  // Icon painting mouse logic
@@ -289,39 +266,39 @@ int curSW,curSH=0;
                 
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
                     copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
+
+                if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
+                if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
+
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-
-                    
-
-                    if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
-                    if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
-
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = colorSelected;
                 }
-                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) 
+                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
                 {
-
-                    if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
-                    if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
-
                     for (int i = 0; i < curH; i++)
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = 0;
                 }
-            }
-
+                    // if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
+                    // else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
+                    // else if (IsKeyPressed(KEY_UP)) player.cell.y--;
+                    // else if (IsKeyPressed(KEY_DOWN)) player.cell.y++;
+        }
+                if (IsKeyPressed(KEY_SPACE))
+                {
+                    printf("barraspazio prmuta\n");
+                    for (int i = 0; i < curH; i++)
+                        for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = colorSelected;
+                }
 
         // aggiorna posizione "cursore" quando ci si sposta sulla matrice colore con i tasto oppure il mouse
         int px= player.cell.x;
         int py= player.cell.y;
         int currentColor = matrice[px][py];
-
+        // gestione stato load & save file
         bool ShowLoading=false;
         bool ShowSaving=false;
-
-        // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
-        //if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -329,9 +306,20 @@ int curSW,curSH=0;
 
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di inpunt, disabilita i keybindings
         {
+            
             if (IsKeyPressed(KEY_Q)) break;
-            if (IsKeyPressed(KEY_C)) reset_matrix();
-            if (IsKeyPressed(KEY_R)) replace_color(currentColor, colorSelected);
+            if (IsKeyPressed(KEY_C)) 
+                {
+                    // fai sempre una copia di backup dello stato attuale della matrice            
+                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    reset_matrix();
+                }
+            if (IsKeyPressed(KEY_R)) 
+                {
+                    // fai sempre una copia di backup dello stato attuale della matrice            
+                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    replace_color(currentColor, colorSelected);
+                }
             if (IsKeyPressed(KEY_U)) copy_matrix_2d(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
             if (IsKeyPressed(KEY_S)) ShowSaving=true;
             if (IsKeyPressed(KEY_L)) ShowLoading=true;
@@ -415,16 +403,16 @@ int curSW,curSH=0;
         //DrawRectangle(0, 0, GetScreenWidth(), 50, GRID_BG_COLOR);
         //DrawRectangle(0, 0, 186,GetScreenHeight(), GRID_BG_COLOR);
         DrawRectangle(186,50, screenWidth,screenHeight, GRID_BG_COLOR);
-        DrawRectangleLines(186,50, screenWidth,screenHeight, GRID_COLOR);
+        DrawRectangleLines(186,50, screenWidth,screenHeight, BORDER_COLOR);
 
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
         //  riquadro attorno al primo colore: BLANK (trasparente)
-        DrawRectangleLinesEx((Rectangle){colorsBarPos.x, colorsBarPos.y, 26, 26},1, GRID_COLOR);
+        DrawRectangleLinesEx((Rectangle){colorsBarPos.x, colorsBarPos.y, 26, 26},1, BORDER_COLOR);
         // passando sopra il colore rendilo piu chiaro
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         // cliccando sul colore disegna riguadro attorno per evidenziare selezione
-        DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y + 28,
+        DrawRectangleLinesEx((Rectangle){ colorsRecs[colorSelected].x - 2, colorsRecs[colorSelected].y + 29,
                              colorsRecs[colorSelected].width + 4, colorsRecs[colorSelected].height - 22 }, 2, ON_COLOR);
 
         // draw sprite and grid matrix
@@ -446,17 +434,17 @@ int curSW,curSH=0;
                           (spriteGridPos.y) + py*gridSpacing, 
                           gridSpacing * curSW-1, 
                           gridSpacing * curSH-1},
-                          1,ON_COLOR);
+                          2,ON_COLOR);
 
         // draw accessories information
         show_info();
 
         //display cursor position and selected color info 
-            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){miniaturePos.x +4 ,miniaturePos.y-24},18,0,BLACK);
+            DrawTextEx(font, TextFormat("Size: %i x %i",BIN_COLS,BIN_ROWS),(Vector2){miniaturePos.x +4 ,miniaturePos.y-24},18,0,FG_COLOR);
 
-            DrawRectangleLines(miniaturePos.x -3 ,miniaturePos.y+136 , 24,24,GRID_COLOR);
+            DrawRectangleLines(miniaturePos.x -3 ,miniaturePos.y+136 , 24,24,BORDER_COLOR);
             DrawRectangle(miniaturePos.x-1,miniaturePos.y+138 , 20 , 20,colors[matrice[px][py]]);
-            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){miniaturePos.x + 35,miniaturePos.y+140},18,0,BLACK);
+            DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){miniaturePos.x + 35,miniaturePos.y+140},18,0,FG_COLOR);
             
             
             //DrawTextEx(font, TextFormat("Color: %s",colorNames[currentColor]),(Vector2){infoBarPos.x,infoBarPos.y + 24},20,0,FG_COLOR);
