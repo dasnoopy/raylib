@@ -91,20 +91,9 @@ typedef struct {
 // Functions
 //----------------------------------------------------------------------------------
 
-// Draw binary matrix grid
-void draw_sprite_grid(void)
+// Draw checkerboard (default)
+void drawCheckerboard(void)
 {
-    if (showGrid)
-    {
-        for (int y = 0; y <= BIN_ROWS; y+=1) 
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
-        for (int x = 0; x <= BIN_COLS; x+=1)
-            DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
-
-    DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
-
-    }
-    else {
         for (int y = 0; y < BIN_ROWS-1; y+=2)
             for (int x = 0; x < BIN_COLS-1; x+=2)
                 {
@@ -113,10 +102,22 @@ void draw_sprite_grid(void)
                 }
         DrawRectangleLinesEx((Rectangle){spriteGridPos.x-2, spriteGridPos.y-2, 4+(BIN_COLS*gridSpacing),4+(BIN_ROWS*gridSpacing)},2,BG_COLOR);
     }
-}
 
+// Draw grid lines 
+void drawGridLines(void)
+{
+    if (showGrid)
+    {
+        for (int y = 0; y <= BIN_ROWS; y+=1) 
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
+        for (int x = 0; x <= BIN_COLS; x+=1)
+            DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
+
+        DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
+    }
+}
 //  disegna bit delle matrice in base al loro valore
-void draw_sprite()
+void drawSprite()
 {    
             for (int i = 0; i < BIN_ROWS; i++)
                 {
@@ -133,7 +134,7 @@ void draw_sprite()
                 }   
 }
 
-void show_info (void)
+void showInfo (void)
 {
     DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
     DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
@@ -157,13 +158,13 @@ void show_info (void)
 }
 
 // azzera matrice colore
-void reset_matrix()
+void resetSprite()
 {
     for (int i = 0; i < BIN_ROWS; i++)
         for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
 }
 
-void replace_color(int old, int new)
+void replaceColor(int old, int new)
 {
             for (int i = 0; i < BIN_ROWS; i++) 
                 for (int j = 0; j < BIN_COLS; j++) 
@@ -172,7 +173,7 @@ void replace_color(int old, int new)
                 }
 }
 
-void copy_matrix_2d(int * src, int * dst, int N, int M)
+void copyMatrix(int * src, int * dst, int N, int M)
 {
     for(int i=0; i<N; i++)
         for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
@@ -247,7 +248,7 @@ int main (int argc, char *argv[])
     player.cell = (Point){ 0, 0 };
 
 //reset matrice sprite e copia di backup
-    reset_matrix();
+    resetSprite();
 
 // variabile usata per adattamento cursore in prossimità lato destro e in basso
 // della matrice colore
@@ -294,7 +295,7 @@ while (!WindowShouldClose())
                 curH=cursorSize;
                 
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
 
                 if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
                 if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
@@ -336,26 +337,28 @@ while (!WindowShouldClose())
         {
             
             if (IsKeyPressed(KEY_Q)) break;
-            if (IsKeyPressed(KEY_C)) 
+            if (IsKeyPressed(KEY_N)) 
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
-                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-                    reset_matrix();
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+
+                    strcpy(fNAME,"default.pix");
+                    resetSprite();
                 }
             if (IsKeyPressed(KEY_R)) 
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
-                    copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-                    replace_color(currentColor, selectedColor);
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    replaceColor(currentColor, selectedColor);
                 }
-            if (IsKeyPressed(KEY_U)) copy_matrix_2d(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
+            if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
             if (IsKeyPressed(KEY_S)) ShowSaving=true;
             if (IsKeyPressed(KEY_L)) ShowLoading=true;
 
             if (IsKeyPressed(KEY_F))
             {
                 // fai sempre una copia di backup dello stato attuale della matrice
-                copy_matrix_2d(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
                 floodFill(px,py,currentColor,selectedColor);
             }
 
@@ -449,8 +452,8 @@ while (!WindowShouldClose())
                              colorsRecs[selectedColor].width + 4, colorsRecs[selectedColor].height - 22 }, 2, ON_COLOR);
 
         // draw sprite and grid matrix
-        draw_sprite_grid();
-        draw_sprite(); //
+        drawCheckerboard();
+        drawSprite(); //
 
         // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
         // adattando anche la stessa  in prossimità del bordo destro e in basso.
@@ -464,14 +467,14 @@ while (!WindowShouldClose())
         { curSH = BIN_ROWS - py;}
         else { curSH = cursorSize;}
         
-        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
+        DrawRectangleRec((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
                           (spriteGridPos.y) + py*gridSpacing, 
-                          gridSpacing * curSW-1, 
-                          gridSpacing * curSH-1},
-                          2,ON_COLOR);
+                          gridSpacing * curSW, 
+                          gridSpacing * curSH},
+                          OFF_COLOR);
 
         // draw accessories information
-        show_info();
+        showInfo();
 
         //display cursor position and selected color info 
             // draw current color frame
@@ -520,13 +523,13 @@ while (!WindowShouldClose())
             GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
             GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+30, 132, 24 }, "", &cursorSize, 1, 8, false);
             //Keybinding label
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'C' to clear matrix.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'N' to new default.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'R' to replace color.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'A' to shift matrix left.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'D' to shit matrix right.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'W' to shift matrix up.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'U' to undo last action.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'Z' to undo last action.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'S' to save matrix.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+240, 140, 20 }, "Press 'L' to load matrix.");
@@ -544,7 +547,7 @@ while (!WindowShouldClose())
             // gridSpacing = (int) gridSpacingF;
             // if (gridSpacing < 10) gridSpacing = 10;
             // else if (gridSpacing > 20) gridSpacing = 20;
-
+        drawGridLines();
 
         EndDrawing();
     }
