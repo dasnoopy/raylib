@@ -32,11 +32,11 @@ Vector2 spriteGridPos = {220, 86};
 Vector2 miniaturePos = {28,120};
 Vector2 panelBarPos = {24,340};
 
-int gridSpacing = 20;
 #define BIN_COLS       32
 #define BIN_ROWS       32
 #define MAX_COLORS_COUNT    24          // Number of colors available
 #define MAX_CUR_SIZES  4       // cursor size : 1, 2, 4, 8.
+int gridSpacing = 20;
 
 // definizione matrici
 int matrice[BIN_COLS][BIN_ROWS];
@@ -111,15 +111,14 @@ void drawGridLines(void)
 {
     if (showGrid)
     {
-        for (int y = 0; y <= BIN_ROWS; y+=1) 
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (y * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + y*gridSpacing},1, GRID_COLOR);
-        for (int x = 0; x <= BIN_COLS; x+=1)
-            DrawLineEx((Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (x * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
-
+        for (int i = 0; i <= BIN_ROWS; i+=1)
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (i * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + i*gridSpacing},1, GRID_COLOR);
+        for (int j = 0; j <= BIN_COLS; j+=1)
+            DrawLineEx((Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
         DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
     }
 }
-//  disegna bit delle matrice in base al loro valore
+
 void drawSprite()
 {    
             for (int i = 0; i < BIN_ROWS; i++)
@@ -137,11 +136,8 @@ void drawSprite()
                 }   
 }
 
-void showInfo (void)
+void drawThumbnail (void)
 {
-    DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
-    DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
-
     // cornice e sfondo miniatura
         DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
         DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, BORDER_COLOR);
@@ -150,14 +146,24 @@ void showInfo (void)
         {
             for (int j = 0; j < BIN_COLS; ++j)
             {
-                DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
-                DrawText(TextFormat("%01d",i+1),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
-                DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
-                DrawText(TextFormat("%01d",i+1),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
-                //miniatura
                 DrawRectangle(miniaturePos.x + (miniatureSCALE*j), miniaturePos.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
             }
         }
+}
+
+void drawMatrixHeaders(void)
+{
+        for (int i = 0; i < BIN_ROWS; i+=1)
+        {
+            DrawText(TextFormat("%01d",i+1),spriteGridPos.x - 18,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // sinistra
+            DrawText(TextFormat("%01d",i+1),spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing),10, FG_COLOR); // destra
+        }
+        for (int j = 0; j < BIN_COLS; j+=1)
+        {
+            DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20 ,10,FG_COLOR);  //sopra
+            DrawText(TextFormat("%01d",j+1),spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8 ,10,FG_COLOR);  //sotto
+        }
+
 }
 
 // azzera matrice colore
@@ -447,7 +453,9 @@ while (!WindowShouldClose())
         ClearBackground(GRID_BG_COLOR);
         DrawRectangle(186,50, screenWidth,screenHeight, BG_COLOR);
         DrawRectangleLines(186,50, screenWidth,screenHeight, BORDER_COLOR);
-
+        DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
+        DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
+        
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) DrawRectangleRec(colorsRecs[i], colors[i]);
         //  riquadro attorno al primo colore: BLANK (trasparente)
@@ -462,14 +470,15 @@ while (!WindowShouldClose())
         drawCheckerboard();
         drawSprite(); //
         
-        DrawRectangleLinesEx((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
+        DrawRectangleRec((Rectangle){(spriteGridPos.x) + px*gridSpacing, 
                           (spriteGridPos.y) + py*gridSpacing, 
                           gridSpacing * curSW, 
                           gridSpacing * curSH},
-                          2,ON_COLOR);
+                          Fade(BLACK, 0.5f));
 
         // draw accessories information
-        showInfo();
+        drawThumbnail();
+        drawMatrixHeaders();
 
         //display cursor position and selected color info 
             // draw current color frame
@@ -511,7 +520,7 @@ while (!WindowShouldClose())
                     // }
             }
 
-            // panelBarPos
+            // draw panel bar
             //GuiGroupBox((Rectangle){ panelBarPos.x-8, panelBarPos.y,150,290}, "Sprite options:");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
             GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
