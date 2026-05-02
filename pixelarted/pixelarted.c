@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "0.9.5"
+#define TOOL_VERSION            "0.9.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -31,7 +31,6 @@ Vector2 colorsBarPos = {188, 12};
 Vector2 spriteGridPos = {220, 86};
 Vector2 miniaturePos = {28,120};
 Vector2 panelBarPos = {24,340};
-
 Rectangle scissorArea = { 187,51, screenWidth,screenHeight };
 
 #define BIN_COLS       32
@@ -39,8 +38,6 @@ Rectangle scissorArea = { 187,51, screenWidth,screenHeight };
 #define MAX_COLORS_COUNT    24          // Number of colors available
 #define MAX_CUR_SIZES  4       // cursor size : 1, 2, 4, 8.
 int gridSpacing = 20;
-
-
 
 // definizione matrici
 int matrice[BIN_COLS][BIN_ROWS];
@@ -315,9 +312,9 @@ while (!WindowShouldClose())
                         camera.offset = mousePos;
                         camera.target = mousePos;
                   // Apply zoom change
-                    camera.zoom = expf(logf(camera.zoom) + ((float)GetMouseWheelMove()*0.25f));
+                    camera.zoom = expf(logf(camera.zoom) + ((float)GetMouseWheelMove()*0.2f));
                     if (camera.zoom < 1.0f) camera.zoom = 1.0f; // Prevent negative/zero zoom
-                    if (camera.zoom > 5.0f) camera.zoom = 5.0f;
+                    if (camera.zoom > 4.0f) camera.zoom = 4.0f;
                 }
 
 
@@ -491,13 +488,23 @@ while (!WindowShouldClose())
         drawCheckerboard();
         drawMatrixHeaders();
         drawSprite(); //
-        
+        //Draw cursor moving when inside the sprite grid        
         DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
                           gridSpacing * curSW, 
                           gridSpacing * curSH},
                           Fade(BLACK, 0.5f));
+        // Draw crosshair (if grid is enabled , hide crosshair)
+        if (!showGrid) {
+        //vertical
+        DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing*curSW/2), spriteGridPos.y }, 
+                   (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing*curSW/2), spriteGridPos.y + (BIN_COLS*gridSpacing)  },
+                   1, Fade(ON_COLOR, 0.4f));
+        // horizontal
+        DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + (gridSpacing*curSH/2) }, 
+                   (Vector2){ spriteGridPos.x + (BIN_ROWS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing*curSH/2) },
+                   1, Fade(ON_COLOR, 0.4f));
+        }
         drawGridLines();
-
         EndMode2D();
     EndScissorMode();
         // draw accessories information
@@ -560,11 +567,11 @@ while (!WindowShouldClose())
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'S' to save matrix.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+240, 140, 20 }, "Press 'L' to load matrix.");
-            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 20, 20 }, "Show Grid lines", &showGrid);
+            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 20, 20 }, "Show grid.", &showGrid);
             //GuiToggle((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 140, 20 }, "Grid / Checkerboaard", &showGrid); 
             GuiLabel((Rectangle){ miniaturePos.x, miniaturePos.y - 60, 140, 20 }, "Filename [ Load / Save ]");
             if(GuiTextBox((Rectangle){ miniaturePos.x-3, miniaturePos.y -40, 134, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+320, 140, 20 }, "Mousewheel to zoom in/out.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+340, 140, 20 }, "WinKey + mouse left to move.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+360, 140, 20 }, "Press 'Q' to quit program.");
             
