@@ -25,7 +25,7 @@
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.7.2"
+#define TOOL_VERSION            "2.7.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,7 +47,7 @@ const int screenHeight = 720;
  // initial X,Y coordinates for variuos interface elements
 Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
 Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 22, 54 }; // posizione toolbar
+Vector2 toolbar_XY = { 22, 40 }; // posizione toolbar
 // ASCII TABLE
 Vector2 ascii_grid_XY  = { 168, 408 };
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
@@ -673,25 +673,27 @@ int main (int argc, char *argv[])
             
        
         //  toolbar
+        int btnWidth = 104;
+        int btnHeight = 28;
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-        GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Grid on/off", &showGrid);
+        //GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Grid on/off", &showGrid);
         //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &showGrid); 
-        btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, gridSpacing*3, gridSpacing }, "Shift up");
-        btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, gridSpacing*3, gridSpacing }, "Shift right");
-        btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, gridSpacing*3, gridSpacing }, "Shift left");
-        btnShiftDown  = GuiButton((Rectangle){ toolbar_XY.x, 8 + toolbar_XY.y + gridSpacing*4, gridSpacing*3, gridSpacing }, "Shift down");
-        btnRotateLeft = GuiButton((Rectangle){ toolbar_XY.x,10 + toolbar_XY.y + gridSpacing*5, gridSpacing*3, gridSpacing }, "Rotate left");
-        btnRotateRight= GuiButton((Rectangle){ toolbar_XY.x,12 + toolbar_XY.y + gridSpacing*6, gridSpacing*3, gridSpacing }, "Rotate right");
-        btnMirrorH    = GuiButton((Rectangle){ toolbar_XY.x,14 + toolbar_XY.y + gridSpacing*7, gridSpacing*3, gridSpacing }, "Horiz. mirror");
-        btnMirrorV    = GuiButton((Rectangle){ toolbar_XY.x,16 + toolbar_XY.y + gridSpacing*8, gridSpacing*3, gridSpacing }, "Vert. mirror");
-        btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,18 + toolbar_XY.y + gridSpacing*9, gridSpacing*3, gridSpacing }, "Invert dots");
-        btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, gridSpacing*3, gridSpacing }, "Copy char");
-        btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, gridSpacing*3, gridSpacing }, "Paste char");
-        btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, gridSpacing*3, gridSpacing }, "Revert char");
-        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, gridSpacing*3, gridSpacing }, "Delete char");
-        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, gridSpacing*3, gridSpacing }, "Load data.fnt");
-        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, gridSpacing*3, gridSpacing }, "Save data.fnt");
-        btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, gridSpacing*3, gridSpacing }, "Default font");
+        btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, btnWidth, btnHeight}, "Shift up");
+        btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, btnWidth, btnHeight }, "Shift right");
+        btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, btnWidth, btnHeight }, "Shift left");
+        btnShiftDown  = GuiButton((Rectangle){ toolbar_XY.x, 8 + toolbar_XY.y + gridSpacing*4, btnWidth, btnHeight }, "Shift down");
+        btnRotateLeft = GuiButton((Rectangle){ toolbar_XY.x,10 + toolbar_XY.y + gridSpacing*5, btnWidth, btnHeight }, "Rotate left");
+        btnRotateRight= GuiButton((Rectangle){ toolbar_XY.x,12 + toolbar_XY.y + gridSpacing*6, btnWidth, btnHeight }, "Rotate right");
+        btnMirrorH    = GuiButton((Rectangle){ toolbar_XY.x,14 + toolbar_XY.y + gridSpacing*7, btnWidth, btnHeight }, "Horiz. mirror");
+        btnMirrorV    = GuiButton((Rectangle){ toolbar_XY.x,16 + toolbar_XY.y + gridSpacing*8, btnWidth, btnHeight }, "Vert. mirror");
+        btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,18 + toolbar_XY.y + gridSpacing*9, btnWidth, btnHeight }, "Invert dots");
+        btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, btnWidth, btnHeight }, "Copy char");
+        btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, btnWidth, btnHeight }, "Paste char");
+        btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, btnWidth, btnHeight }, "Revert char");
+        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, btnWidth, btnHeight }, "Delete char");
+        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, btnWidth, btnHeight }, "Load data.fnt");
+        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, btnWidth, btnHeight }, "Save data.fnt");
+        btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, btnWidth, btnHeight }, "Default font");
         EndDrawing();
     }
     UnloadRenderTexture(target);

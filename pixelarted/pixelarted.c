@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.0.0"
+#define TOOL_VERSION            "1.0.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -66,7 +66,8 @@ int cursorSize = 1;
 int miniatureSCALE= 4;
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fNAME[512] = "library/default.pix";
+char fNAME[] = "library/default.pix";
+char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool keyBinding = true;
 
@@ -168,7 +169,7 @@ void drawThumbnail (void)
 }
 
 // azzera matrice colore
-void resetSprite()
+void resetSprite(void)
 {
     for (int i = 0; i < BIN_ROWS; i++)
         for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
@@ -240,7 +241,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         struct stat st;
         if (stat(fullpath, &st) == -1) continue;
 
-        // se directory → ricorsione
+        // se directory procedi con ricorsione
         if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
         // se è file → controlla estensione
         else if (S_ISREG(st.st_mode)) {
@@ -292,7 +293,7 @@ int main (int argc, char *argv[])
     int scrollOffset = 0;
 
     const int itemHeight = 24;
-    const int listHeight = screenHeight/2; //altezza in pixel lista
+    const int listHeight = itemHeight*12; //altezza in pixel lista
     int visibleItems = listHeight / itemHeight;
 
     // gestione stato load & save file
@@ -369,7 +370,6 @@ while (!WindowShouldClose())
                     if (camera.zoom > 4.0f) camera.zoom = 4.0f;
                 }
 
-
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
                 player.cell.x = (mouseWorldPos.x - spriteGridPos.x) / gridSpacing ;
@@ -382,12 +382,12 @@ while (!WindowShouldClose())
                 else if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
                 
                 // IMPROVE HERE make a better undo action
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                  copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
+                  //copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
 
-                else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE))
                 {
-                    for (int i = 0; i < curH; i++)
+                    for (int i = 0; i < curH; i++) // i cicli for sono per la dimensione del cursore da 1 a 8
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = selectedColor;
                 }
                 else if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
@@ -396,21 +396,15 @@ while (!WindowShouldClose())
                         for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = 0;
                 }
         }
-                if (IsKeyPressed(KEY_SPACE))
-                {
-                    for (int i = 0; i < curH; i++)
-                        for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = selectedColor;
-                }
 
-        // aggiorna posizione "cursore" quando ci si sposta sulla matrice colore con i tasto oppure il mouse
+        // aggiorna posizione "cursore" e relativo colore...
         int px= player.cell.x;
         int py= player.cell.y;
         int currentColor = matrice[px][py];
 
 
-    // aggiorna in tempo reale la dimensione del "cursore"  quando mouse o tastiera si spostano sulle celle...
-    // adattando anche la stessa  in prossimità del bordo destro e in basso.
-    // destra
+    // aggiorna in tempo reale la dimensione del "cursore"  quando 
+    // il mmouse è in prossimità del bordo destro e/o in basso.
         if ((px + curW) >= BIN_COLS)
         { curSW = BIN_COLS - px;}
         else { curSW = cursorSize;}
@@ -426,6 +420,13 @@ while (!WindowShouldClose())
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
             if (IsKeyPressed(KEY_Q)) break;
+            else if (IsKeyPressed(KEY_N))
+            {
+                     // fai sempre una copia di backup dello stato attuale della matrice
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    resetSprite();
+                    strcpy(fNAME,"library/default.pix");
+            }
             else if (IsKeyPressed(KEY_C)) 
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
@@ -440,7 +441,6 @@ while (!WindowShouldClose())
                 }
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
             else if (IsKeyPressed(KEY_S)) isSaving=true;
-            //else if (IsKeyPressed(KEY_L)) isLoading=true;
             else if (IsKeyPressed(KEY_F))
             {
                 // fai sempre una copia di backup dello stato attuale della matrice
@@ -511,13 +511,12 @@ while (!WindowShouldClose())
                 //  file LIbrary management
                 //----------------------------------------------------------------------
 
-                // Scroll con tastiera
+                // Scroll con tastiera per sopstarsi tra i files
                 if (IsKeyPressed(KEY_DOWN)) selected++;
                 if (IsKeyPressed(KEY_UP)) selected--;
                 if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
                     strcpy(fNAME,files[selected]);
                     isLoading=true;
-                    //printf("Apro file: %s\n", files[selected]);
                 }
                 // Clamp selezione
                 if (selected < 0) selected = 0;
@@ -611,32 +610,24 @@ while (!WindowShouldClose())
             DrawTextEx(font, TextFormat("zoom: x%.02f",camera.zoom),(Vector2){miniaturePos.x +40,miniaturePos.y+168},18,0,FG_COLOR);
 
         if (isSaving)
-        { // manage overwriting file
+        {
                             FILE *fSave = fopen(fNAME, "wb");
                                 if (fSave == NULL) {
-                                    printf("File [%s] not found!\n",fNAME);
-                                    return 1;
-                                }
+                                    printf("Impossibile scrivere il file [%s]!\n",fNAME);
+                                    return 1; }
                             fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
                             fclose(fSave);
-                    //         }
+                    // aggiorna files list
+                    fileCount = load_files_recursive(".", files,0);
                     isSaving=false;
-                    // }
             }
 
-            if (isLoading &&  FileExists(fNAME))
+            if (isLoading)
             {
                     FILE *fLoad = fopen(fNAME, "rb"); 
-                                if (fLoad == NULL) {
-                                    printf("File [%s] not found!\n",fNAME);
-                                    return 1;
-                                    // gestire file not found con finestra
-                                    }
-                            fread(matrice, sizeof(char), sizeof(matrice), fLoad);
-                            fclose(fLoad);
-                    //     }
+                    fread(matrice, sizeof(char), sizeof(matrice), fLoad);
+                   fclose(fLoad);
                     isLoading=false;
-                    // }
             }
 
             // -----------------------------------------------------------------
@@ -644,6 +635,7 @@ while (!WindowShouldClose())
             //------------------------------------------------------------------
 
             DrawText("Art Library",libraryPos.x+16, libraryPos.y, 20, FG_COLOR);
+            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,BG_COLOR);
             for (int i = 0; i < visibleItems; i++) {
                 int index = i + scrollOffset;
                 if (index >= fileCount) break;
@@ -653,14 +645,12 @@ while (!WindowShouldClose())
                     // Evidenzia file selezionato
                 if (index == selected) {
                     DrawRectangleRec(rect, OFF_COLOR);
-
                 }   
                 DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
             }
-                DrawLine(libraryPos.x,listHeight,libraryPos.x+160,listHeight,BLACK);
-                GuiLabel((Rectangle){ libraryPos.x, listHeight +10, 140, 20 }, "Current file:");
-                if(GuiTextBox((Rectangle){ libraryPos.x-3, listHeight + 30, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-                GuiLabel((Rectangle){ libraryPos.x, listHeight+60, 160, 20 }, "Press 'S' to save matrix.");
+                GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 100, 140, 20 }, "Current file:");
+                if(GuiTextBox((Rectangle){ libraryPos.x, listHeight + 120, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+                GuiLabel((Rectangle){ libraryPos.x+2, listHeight+150, 160, 20 }, "Press 'S' to save matrix.");
             //------------------------------------------------------------------
             // draw panel bar
             GuiCheckBox((Rectangle){ miniaturePos.x-2, miniaturePos.y + 194 , 23, 23 }, "Show checkerboard.", &showGrid);
@@ -678,7 +668,7 @@ while (!WindowShouldClose())
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'Z' to undo last action.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
-
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'N' to create new default file.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+260, 140, 20 }, "Mousewheel to zoom in/out.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+280, 140, 20 }, "WinKey + mouse left to move.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+300, 140, 20 }, "Press 'Q' to quit program.");
