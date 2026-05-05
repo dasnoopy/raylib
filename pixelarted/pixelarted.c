@@ -340,10 +340,10 @@ int main (int argc, char *argv[])
 
  // camera2d settings only effect objects between BeginMode2D and EndMode2D
    Camera2D camera = { 0 };
-   camera.offset = (Vector2) { spriteGridPos.x, spriteGridPos.y};   // coordinate x origin zoom area
-   camera.target = (Vector2) { spriteGridPos.x, spriteGridPos.y};  // centro della zoom area
-   camera.rotation = 0;        // rotation in deg
-   camera.zoom     = 1.0f;      // magnification, i.e fov or zoom
+    camera.target = (Vector2) { spriteGridPos.x, spriteGridPos.y};  // centro della zoom area
+    camera.offset = (Vector2) { spriteGridPos.x, spriteGridPos.y};   // coordinate x origin zoom area
+    camera.rotation = 0;        // rotation in deg
+    camera.zoom     = 1.0f;      // magnification, i.e fov or zoom
 
 // file open/save variables
     char files[MAX_FILES][MAX_NAME];
@@ -415,26 +415,20 @@ while (!WindowShouldClose())
             //---------------------------------------------------------------------
             // ZOOM sprite con rotella mouse
             //----------------------------------------------------------------------
-            float wheel = GetMouseWheelMove();
-            if (wheel != 0)
-            {
-                // Get the world point that is under the mouse
-                Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
 
-                // Set the offset to where the mouse is
-                camera.offset = GetMousePosition();
-
-                // Set the target to match, so that the camera maps the world space point
-                // under the cursor to the screen space point under the cursor at any zoom
-                camera.target = mouseWorldPos;
-                  // Apply zoom change
-                    camera.zoom = expf(logf(camera.zoom) + (wheel*0.2f));
+                float wheel = GetMouseWheelMove();
+                if (wheel != 0) {
+                    Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
+                    camera.offset = GetMousePosition();
+                    camera.target = mouseWorld;
+                    camera.zoom  += wheel * 0.2f * camera.zoom;   // proportional zoom
                     if (camera.zoom < 1.0f)
-                    { camera.zoom = 1.0f; // min. zoom x1
-                      camera.target = mousePos;
-                    } 
+                        { 
+                        camera.target = mousePos;
+                        camera.zoom = 1.0f; // min. zoom x1
+                        } 
                     if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
-                }
+            }
 
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
