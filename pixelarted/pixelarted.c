@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.0.4"
+#define TOOL_VERSION            "1.2.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -39,7 +39,6 @@ const int screenHeight = 768;
 #define BIN_COLS       32
 #define BIN_ROWS       32
 #define MAX_COLORS_COUNT    24          // Number of colors available
-#define MAX_CUR_SIZES  4       // cursor size : 1, 2, 4, 8.
 const int gridSpacing = 20;
 
 //file management
@@ -51,9 +50,10 @@ const int gridSpacing = 20;
 Vector2 colorsBarPos = {192, 12};
 Vector2 spriteGridPos = {220, 86};
 Vector2 miniaturePos = {28,64};
-Vector2 panelBarPos = {24,400};
+Vector2 panelBarPos = {24,300};
+Vector2 panel2BarPos = {24,690};
 Vector2 libraryPos = {906,20};
-Rectangle scissorArea = { 219,85, BIN_COLS*gridSpacing +2,BIN_ROWS*gridSpacing +2 };
+Rectangle scissorArea = { 220,86, BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing };
 
 // definizione matrici
 int matrice[BIN_COLS][BIN_ROWS];
@@ -62,7 +62,6 @@ int matriceUndo[BIN_ROWS][BIN_COLS];
 int selectedColor = 24;
 int currentColor = 0;
 int colorMouseHover = 0;
-int cursorSize = 1;
 int miniatureSCALE= 4;
 bool showGrid = true;
 bool mouseHoverCells = false;
@@ -70,6 +69,7 @@ char fNAME[] = "library/default.pix";
 char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool keyBinding = true;
+bool isEditing = false;
 
 // // Custom color Palette
 // // Some Basic Colors
@@ -104,29 +104,29 @@ bool keyBinding = true;
 
 
 #define MYWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define MYBLACK      CLITERAL(Color){ 36, 42, 54, 255 }         // Black
+#define MYBLACK      CLITERAL(Color){ 36, 31, 49, 255 }         // Black
 #define MYBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-#define MYYELLOW     CLITERAL(Color){ 249, 222, 133, 255 }     // Yellow
-#define MYGOLD       CLITERAL(Color){ 241,198,74, 255 }     // Gold
-#define MYORANGE     CLITERAL(Color){ 234, 162, 34, 255 }     //  Orange
+#define MYYELLOW     CLITERAL(Color){ 249, 240, 107, 255 }     // Yellow
+#define MYGOLD       CLITERAL(Color){ 245, 194, 17, 255 }     // Gold
+#define MYORANGE     CLITERAL(Color){ 255, 120, 0, 255 }     //  Orange
 #define MYPINK       CLITERAL(Color){ 255, 127, 157, 255 }     //  Pink
-#define MYRED        CLITERAL(Color){ 218,27, 53, 255 }     //  Red
-#define MYMAROON     CLITERAL(Color){ 180, 23, 45, 255 }     //  Maroon
-#define MYGREEN      CLITERAL(Color){ 76, 187, 22, 255 }      // Green
-#define MYLIME       CLITERAL(Color){ 1, 169, 60, 255 }      // Lime
-#define MYDARKGREEN  CLITERAL(Color){ 12, 102, 35, 255 }      // Dark Green
-#define MYSKYBLUE    CLITERAL(Color){ 1, 182, 235, 255 }   // Sky Blue
-#define MYBLUE       CLITERAL(Color){ 20, 96, 189, 255 }     // Blue
-#define MYDARKBLUE   CLITERAL(Color){ 16, 52, 168, 255 }      // Dark Blue
-#define MYPURPLE     CLITERAL(Color){ 153, 102, 206, 255 }   // Purple
-#define MYVIOLET     CLITERAL(Color){ 96, 75, 139, 255 }    // Violet
-#define MYDARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
-#define MYBEIGE      CLITERAL(Color){ 200, 187, 166, 255 }   // Beige
-#define MYBROWN      CLITERAL(Color){ 134, 95, 69, 255 }    // Brown
-#define MYDARKBROWN  CLITERAL(Color){ 63, 51, 43, 255 }      // Dark Brown
-#define MYLIGHTGRAY  CLITERAL(Color){ 200, 200, 200, 255 }   // Light Gray
-#define MYGRAY       CLITERAL(Color){ 130, 130, 130, 255 }   // Gray
-#define MYDARKGRAY   CLITERAL(Color){ 80, 80, 80, 255 }      // Dark Gray
+#define MYRED        CLITERAL(Color){ 237, 51, 59, 255 }     //  Red
+#define MYMAROON     CLITERAL(Color){ 165, 29, 45, 255 }     //  Maroon
+#define MYGREEN      CLITERAL(Color){ 143, 240, 164, 255 }      // Green
+#define MYLIME       CLITERAL(Color){ 51, 209, 122, 255 }      // Lime
+#define MYDARKGREEN  CLITERAL(Color){ 0, 162, 105, 255 }      // Dark Green
+#define MYSKYBLUE    CLITERAL(Color){ 153, 193, 241, 255 }   // Sky Blue
+#define MYBLUE       CLITERAL(Color){ 53, 132, 228, 255 }     // Blue
+#define MYDARKBLUE   CLITERAL(Color){ 26, 95, 180, 255 }      // Dark Blue
+#define MYPURPLE     CLITERAL(Color){ 220, 138, 221, 255 }   // Purple
+#define MYVIOLET     CLITERAL(Color){ 145, 65, 172, 255 }    // Violet
+#define MYDARKPURPLE CLITERAL(Color){ 97, 53, 131, 255 }    // Dark Purple
+#define MYBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
+#define MYBROWN      CLITERAL(Color){ 152, 106, 68, 255 }    // Brown
+#define MYDARKBROWN  CLITERAL(Color){ 99, 69, 44, 255 }      // Dark Brown
+#define MYLIGHTGRAY  CLITERAL(Color){ 222, 221, 218, 255 }   // Light Gray
+#define MYGRAY       CLITERAL(Color){ 154, 153, 150, 255 }   // Gray
+#define MYDARKGRAY   CLITERAL(Color){ 94, 92, 100, 255 }      // Dark Gray
 
 // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
@@ -182,18 +182,17 @@ void drawCheckerboard(void)
                 DrawRectangleRec((Rectangle){spriteGridPos.x + (x*gridSpacing), spriteGridPos.y + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
                 DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (x*gridSpacing), spriteGridPos.y + gridSpacing + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
                 }
-        DrawRectangleLinesEx((Rectangle){spriteGridPos.x-2, spriteGridPos.y-2, 4+(BIN_COLS*gridSpacing),4+(BIN_ROWS*gridSpacing)},2,BG_COLOR);
+        DrawRectangleLinesEx(scissorArea,1,CHECKB_COLOR);
     }
 
 // Draw grid lines 
 void drawGridLines(void)
 {
-
         for (int i = 0; i <= BIN_ROWS; i+=1)
             DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (i * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + i*gridSpacing},1, GRID_COLOR);
         for (int j = 0; j <= BIN_COLS; j+=1)
             DrawLineEx((Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
-        DrawRectangleLinesEx((Rectangle){spriteGridPos.x-1, spriteGridPos.y-1, 1+(BIN_COLS*gridSpacing),1+(BIN_ROWS*gridSpacing)},1,GRID_COLOR);
+        DrawRectangleLinesEx(scissorArea,1,GRID_COLOR);
 }
 
 void drawSprite()
@@ -217,7 +216,7 @@ void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
         DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
-        DrawRectangleLines(miniaturePos.x-3, miniaturePos.y-3 , (BIN_COLS*miniatureSCALE)+6, (BIN_ROWS*miniatureSCALE)+6, BORDER_COLOR);
+        DrawRectangleLines(miniaturePos.x, miniaturePos.y , (BIN_COLS*miniatureSCALE), (BIN_ROWS*miniatureSCALE), BORDER_COLOR);
     // intestazioni riga/colonna matrice colore e miniatura
         for (int i = 0; i < BIN_ROWS; i++)
         {
@@ -376,13 +375,6 @@ for (int i = 0; i < MAX_COLORS_COUNT; i++)
 //reset matrice sprite e copia di backup
     resetSprite();
 
-// variabile usata per adattamento cursore in prossimità lato destro e in basso
-// della matrice colore
-int curW=cursorSize;
-int curH=cursorSize;
-int curSW=0;
-int curSH=0;
-
 // set FPS
 SetTargetFPS(60);
 
@@ -392,7 +384,8 @@ while (!WindowShouldClose())
         // Update
         //----------------------------------------------------------------------------------
         Vector2 mousePos = GetMousePosition();
-
+        float speed = 150 * GetFrameTime();
+        
         //------------------------------------------------------------------------------
         // Choose color with mouse from top color bar
         //------------------------------------------------------------------------------
@@ -410,54 +403,88 @@ while (!WindowShouldClose())
         }
         if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) selectedColor = colorMouseHover;
 
-
         //------------------------------------------------------------------------------
         // rileva se la posizione mouse e' dentro la matrice sprite...
         //------------------------------------------------------------------------------
-        mouseHoverCells = CheckCollisionPointRec(mousePos,(Rectangle){spriteGridPos.x, spriteGridPos.y,BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing });
+        mouseHoverCells = CheckCollisionPointRec(mousePos,scissorArea);
         if (mouseHoverCells)
             {
                 HideCursor(); //hide os cursor inside matrix
+                isEditing = true;
+
                 //---------------------------------------------------------------------
                 // ZOOM sprite con rotella mouse
                 //----------------------------------------------------------------------
-                float deltaZoom = GetMouseWheelMove();
-                if (deltaZoom != 0.0f) {
-                        camera.offset = mousePos;
-                        camera.target = mousePos;
+            // Zoom based on mouse wheel
+            float wheel = GetMouseWheelMove();
+            if (wheel != 0)
+            {
+                // Get the world point that is under the mouse
+                Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
+
+                // Set the offset to where the mouse is
+                camera.offset = GetMousePosition();
+
+                // Set the target to match, so that the camera maps the world space point
+                // under the cursor to the screen space point under the cursor at any zoom
+                camera.target = mouseWorldPos;
                   // Apply zoom change
-                    camera.zoom = expf(logf(camera.zoom) + ((float)GetMouseWheelMove()*0.2f));
-                    if (camera.zoom < 1.0f) camera.zoom = 1.0f; // min. zoom x1
-                    if (camera.zoom > 4.0f) camera.zoom = 4.0f; // max. zoom 5x
+                    camera.zoom = expf(logf(camera.zoom) + (wheel*0.2f));
+                    if (camera.zoom < 1.0f)
+                    { camera.zoom = 1.0f; // min. zoom x1
+                      camera.target = mousePos;
+                    } 
+                    if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
                 }
 
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
+
                 player.cell.x = (mouseWorldPos.x - spriteGridPos.x) / gridSpacing ;
                 player.cell.y = (mouseWorldPos.y - spriteGridPos.y) / gridSpacing;
 
-                curW=cursorSize;
-                curH=cursorSize;
-                
-                if ((player.cell.x + curW) >= BIN_COLS) curW = BIN_COLS - player.cell.x;
-                else if ((player.cell.y + curH) >= BIN_ROWS) curH = BIN_ROWS - player.cell.y;
-                
-                // IMPROVE HERE make a better undo action
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                  copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
 
-                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE))
+                // Make sure player does not go out of bounds
+                if (player.cell.x < 0) player.cell.x = 0;
+                if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS - 1;
+                if (player.cell.y < 0) player.cell.y = 0;
+                if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS - 1;
+
+                // IMPROVE HERE make a better undo action
+                //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
+                  //copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
+                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
+
+            // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
+                if (camera.zoom > 1.0f)
                 {
-                    for (int i = 0; i < curH; i++) // i cicli for sono per la dimensione del cursore da 1 a 8
-                        for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = selectedColor;
-                }
-                else if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON))
-                {
-                    for (int i = 0; i < curH; i++)
-                        for (int j = 0; j < curW; j++) matrice[player.cell.x + j][player.cell.y + i] = 0;
+                    if (IsKeyDown(KEY_UP))
+                    {
+                        camera.target.y -= speed;
+                         if (camera.target.y < spriteGridPos.y) camera.target.y = spriteGridPos.y;
+                    }
+                    if (IsKeyDown(KEY_DOWN))
+                    {
+                        camera.target.y += speed;
+                         if (camera.target.y > spriteGridPos.y + (BIN_ROWS*gridSpacing)) camera.target.y = spriteGridPos.y + (BIN_ROWS*gridSpacing);
+                    }
+                    if (IsKeyDown(KEY_LEFT))
+                    {
+                        camera.target.x -= speed;
+                         if (camera.target.x < spriteGridPos.x) camera.target.x = spriteGridPos.x;
+                    }
+                    if (IsKeyDown(KEY_RIGHT))
+                    {
+                        camera.target.x += speed;
+                         if (camera.target.x > spriteGridPos.x + (BIN_COLS*gridSpacing)) camera.target.x = spriteGridPos.x + (BIN_COLS*gridSpacing);
+                    }
                 }
         }
-        else ShowCursor(); //restore os cursor visibility outside matrix
+        else { 
+        ShowCursor(); //restore os cursor visibility outside matrix
+        isEditing = false; } // fuori dalla matrice faccio quello che voglio!
 
         // aggiorna posizione "cursore" e relativo colore...
         int px= player.cell.x;
@@ -465,22 +492,12 @@ while (!WindowShouldClose())
         int currentColor = matrice[px][py];
 
 
-    // aggiorna in tempo reale la dimensione del "cursore"  quando 
-    // il mmouse è in prossimità del bordo destro e/o in basso.
-        if ((px + curW) >= BIN_COLS)
-        { curSW = BIN_COLS - px;}
-        else { curSW = cursorSize;}
-        // basso
-        if ((py + curH) >= BIN_ROWS)
-        { curSH = BIN_ROWS - py;}
-        else { curSH = cursorSize;}
-
-
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
+            if (IsKeyPressed(KEY_G)) showGrid = !showGrid;
             if (IsKeyPressed(KEY_Q)) break;
             else if (IsKeyPressed(KEY_N))
             {
@@ -572,20 +589,22 @@ while (!WindowShouldClose())
                 //---------------------------------------------------------------------
                 //  file LIbrary management
                 //----------------------------------------------------------------------
-
-                // Scroll con tastiera per sopstarsi tra i files
-                if (IsKeyPressed(KEY_DOWN)) selected++;
-                if (IsKeyPressed(KEY_UP)) selected--;
-                if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
-                    strcpy(fNAME,files[selected]);
-                    isLoading=true;
-                }
-                // Clamp selezione
-                if (selected < 0) selected = 0;
-                if (selected >= fileCount) selected = fileCount - 1;
-                // Mantieni selezione visibile
-                if (selected < scrollOffset) scrollOffset = selected;
-                if (selected >= scrollOffset + visibleItems) scrollOffset = selected - visibleItems + 1;
+                // Scroll con tastiera per sopstarsi tra i files (solo se si e' fuori dalla zona di editing)
+                 if (!isEditing)
+                    {
+                        if (IsKeyPressed(KEY_DOWN)) selected++;
+                        if (IsKeyPressed(KEY_UP)) selected--;
+                        if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
+                            strcpy(fNAME,files[selected]);
+                            isLoading=true;
+                        }
+                        // Clamp selezione
+                        if (selected < 0) selected = 0;
+                        if (selected >= fileCount) selected = fileCount - 1;
+                        // Mantieni selezione visibile
+                        if (selected < scrollOffset) scrollOffset = selected;
+                        if (selected >= scrollOffset + visibleItems) scrollOffset = selected - visibleItems + 1;
+                    }
         }       
 //----------------------------------------------------------------------------------
 // Draw
@@ -600,7 +619,7 @@ while (!WindowShouldClose())
         //DrawRectangleLines(186,50, BIN_ROWS*gridSpacing +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
-        
+
         // Draw color selection bar
         for (int i = 0; i < MAX_COLORS_COUNT; i++) {
             DrawRectangleRec(colorsRecs[i], colors[i]);
@@ -617,27 +636,27 @@ while (!WindowShouldClose())
     BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
         BeginMode2D(camera);
         drawCheckerboard(); // to emultare transparent background
-        
+ 
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
         if (showGrid) drawGridLines();
 
         drawSprite(); // disegna immagine
         //Draw cursor moving when inside the sprite grid        
         DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
-                          gridSpacing * curSW, 
-                          gridSpacing * curSH},
+                          gridSpacing, 
+                          gridSpacing},
                           Fade(BLACK, 0.4f));
         //----------------------------------------------------------------------
         // Draw crosshair (if grid is enabled , hide crosshair)
         // ---------------------------------------------------------------------
         if (!showGrid) {
         //vertical
-        DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing*curSW/2), spriteGridPos.y }, 
-                   (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing*curSW/2), spriteGridPos.y + (BIN_ROWS*gridSpacing)  },
+        DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y }, 
+                   (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (BIN_ROWS*gridSpacing)  },
                    1, Fade(ON_COLOR, 0.5f));
         // horizontal
-        DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + (gridSpacing*curSH/2) }, 
-                   (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing*curSH/2) },
+        DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + gridSpacing/2 }, 
+                   (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
                    1, Fade(ON_COLOR, 0.5f));
         }
 
@@ -665,13 +684,15 @@ while (!WindowShouldClose())
         // Draw x,y info
         DrawTextEx(font, TextFormat("x:%02i y:%02i [x%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x-4,miniaturePos.y+136},18,0,FG_COLOR);
         // draw current color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+200 , 24,24,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x + 2 ,miniaturePos.y+202 , 20 , 20, colors[matrice[px][py]]);
-        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 30, miniaturePos.y + 204},18,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+168 , 36,36,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x + 2 ,miniaturePos.y+170 , 32 , 32, colors[currentColor]);
+        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 170},18,0, BLACK);
+        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 190},12,0,FG_COLOR);
         // Draw selected color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+168 , 24,24,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x + 2,miniaturePos.y+170 , 20 , 20, colors[selectedColor]);
-        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 30, miniaturePos.y + 172},18,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 210 , 36,36,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x +2,miniaturePos.y + 212 , 32 , 32, colors[selectedColor]);
+        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 212},18,0,BLACK);
+        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 232},12,0,FG_COLOR);
 
         if (isSaving)
         {
@@ -718,13 +739,9 @@ while (!WindowShouldClose())
                 GuiLabel((Rectangle){ libraryPos.x+2, listHeight+106, 160, 20 }, "Press 'S' to save matrix.");
             //------------------------------------------------------------------
             // draw panel bar
-            GuiCheckBox((Rectangle){ panelBarPos.x, panelBarPos.y +240 , 20, 20 }, "Show grid.", &showGrid);
-            //GuiToggle((Rectangle){ panelBarPos.x, panelBarPos.y +264 , 140, 20 }, "Grid / Checkerboaard", &showGrid); 
-
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y +10, 150, 24 }, "Cursor size:");
             GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-            GuiSpinner((Rectangle){ panelBarPos.x, panelBarPos.y+30, 132, 24 }, "", &cursorSize, 1, 8, false);
             //Keybinding label
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+40, 140, 20 }, "Press 'G' to show/hide grid.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'C' to clear all.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'R' to replace color.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'A' to shift matrix left.");
@@ -734,9 +751,10 @@ while (!WindowShouldClose())
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'Z' to undo last action.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'N' to create new default file.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+280, 140, 20 }, "Mousewheel to zoom in/out.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+300, 140, 20 }, "WinKey + mouse left to move.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+320, 140, 20 }, "Press 'Q' to quit program.");
+
+            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y, 140, 20 }, "Mousewheel to zoom in/out.");
+            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y+20, 140, 20 }, "WinKey + mouse left to move.");
+            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y+40, 140, 20 }, "Press 'Q' to quit program.");
             
         EndDrawing();
     }
