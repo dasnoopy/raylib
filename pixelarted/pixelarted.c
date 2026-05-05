@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.2.0"
+#define TOOL_VERSION            "1.2.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -71,68 +71,68 @@ bool fnameEditMode = false;
 bool keyBinding = true;
 bool isEditing = false;
 
-// // Custom color Palette
-// // Some Basic Colors
-// // NOTE: Custom raylib color palette for amazing visuals on WHITE background
-// #define LIGHTGRAY  CLITERAL(Color){ 200, 200, 200, 255 }   // Light Gray
-// #define GRAY       CLITERAL(Color){ 130, 130, 130, 255 }   // Gray
-// #define DARKGRAY   CLITERAL(Color){ 80, 80, 80, 255 }      // Dark Gray
+// Some Basic Colors
+// NOTE: Custom raylib color palette for amazing visuals on WHITE background
+#define LIGHTGRAY  CLITERAL(Color){ 200, 200, 200, 255 }   // Light Gray
+#define GRAY       CLITERAL(Color){ 130, 130, 130, 255 }   // Gray
+#define DARKGRAY   CLITERAL(Color){ 80, 80, 80, 255 }      // Dark Gray
 
-// #define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
-// #define ORANGE     CLITERAL(Color){ 255, 161, 0, 255 }     // Orange
-// #define PINK       CLITERAL(Color){ 255, 109, 194, 255 }   // Pink
-// #define RED        CLITERAL(Color){ 230, 41, 55, 255 }     // Red
-// #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
-// #define GREEN      CLITERAL(Color){ 0, 228, 48, 255 }      // Green
-// #define LIME       CLITERAL(Color){ 0, 158, 47, 255 }      // Lime
-// #define DARKGREEN  CLITERAL(Color){ 0, 117, 44, 255 }      // Dark Green
-// #define SKYBLUE    CLITERAL(Color){ 102, 191, 255, 255 }   // Sky Blue
-// #define BLUE       CLITERAL(Color){ 0, 121, 241, 255 }     // Blue
-// #define DARKBLUE   CLITERAL(Color){ 0, 82, 172, 255 }      // Dark Blue
-// #define PURPLE     CLITERAL(Color){ 200, 122, 255, 255 }   // Purple
-// #define VIOLET     CLITERAL(Color){ 135, 60, 190, 255 }    // Violet
-// #define DARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
-// #define BEIGE      CLITERAL(Color){ 211, 176, 131, 255 }   // Beige
-// #define BROWN      CLITERAL(Color){ 127, 106, 79, 255 }    // Brown
-// #define DARKBROWN  CLITERAL(Color){ 76, 63, 47, 255 }      // Dark Brown
-
-// // Colors to choose from
-// const Color colors[MAX_COLORS_COUNT] = {
-//         BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
-//         SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
-//         LIGHTGRAY, GRAY, DARKGRAY, BLACK };
-
-
-#define MYWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define MYBLACK      CLITERAL(Color){ 36, 31, 49, 255 }         // Black
-#define MYBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-#define MYYELLOW     CLITERAL(Color){ 249, 240, 107, 255 }     // Yellow
-#define MYGOLD       CLITERAL(Color){ 245, 194, 17, 255 }     // Gold
-#define MYORANGE     CLITERAL(Color){ 255, 120, 0, 255 }     //  Orange
-#define MYPINK       CLITERAL(Color){ 255, 127, 157, 255 }     //  Pink
-#define MYRED        CLITERAL(Color){ 237, 51, 59, 255 }     //  Red
-#define MYMAROON     CLITERAL(Color){ 165, 29, 45, 255 }     //  Maroon
-#define MYGREEN      CLITERAL(Color){ 143, 240, 164, 255 }      // Green
-#define MYLIME       CLITERAL(Color){ 51, 209, 122, 255 }      // Lime
-#define MYDARKGREEN  CLITERAL(Color){ 0, 162, 105, 255 }      // Dark Green
-#define MYSKYBLUE    CLITERAL(Color){ 153, 193, 241, 255 }   // Sky Blue
-#define MYBLUE       CLITERAL(Color){ 53, 132, 228, 255 }     // Blue
-#define MYDARKBLUE   CLITERAL(Color){ 26, 95, 180, 255 }      // Dark Blue
-#define MYPURPLE     CLITERAL(Color){ 220, 138, 221, 255 }   // Purple
-#define MYVIOLET     CLITERAL(Color){ 145, 65, 172, 255 }    // Violet
-#define MYDARKPURPLE CLITERAL(Color){ 97, 53, 131, 255 }    // Dark Purple
-#define MYBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
-#define MYBROWN      CLITERAL(Color){ 152, 106, 68, 255 }    // Brown
-#define MYDARKBROWN  CLITERAL(Color){ 99, 69, 44, 255 }      // Dark Brown
-#define MYLIGHTGRAY  CLITERAL(Color){ 222, 221, 218, 255 }   // Light Gray
-#define MYGRAY       CLITERAL(Color){ 154, 153, 150, 255 }   // Gray
-#define MYDARKGRAY   CLITERAL(Color){ 94, 92, 100, 255 }      // Dark Gray
+#define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
+#define ORANGE     CLITERAL(Color){ 255, 161, 0, 255 }     // Orange
+#define PINK       CLITERAL(Color){ 255, 109, 194, 255 }   // Pink
+#define RED        CLITERAL(Color){ 230, 41, 55, 255 }     // Red
+#define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
+#define GREEN      CLITERAL(Color){ 0, 228, 48, 255 }      // Green
+#define LIME       CLITERAL(Color){ 0, 158, 47, 255 }      // Lime
+#define DARKGREEN  CLITERAL(Color){ 0, 117, 44, 255 }      // Dark Green
+#define SKYBLUE    CLITERAL(Color){ 102, 191, 255, 255 }   // Sky Blue
+#define BLUE       CLITERAL(Color){ 0, 121, 241, 255 }     // Blue
+#define DARKBLUE   CLITERAL(Color){ 0, 82, 172, 255 }      // Dark Blue
+#define PURPLE     CLITERAL(Color){ 200, 122, 255, 255 }   // Purple
+#define VIOLET     CLITERAL(Color){ 135, 60, 190, 255 }    // Violet
+#define DARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
+#define BEIGE      CLITERAL(Color){ 211, 176, 131, 255 }   // Beige
+#define BROWN      CLITERAL(Color){ 127, 106, 79, 255 }    // Brown
+#define DARKBROWN  CLITERAL(Color){ 76, 63, 47, 255 }      // Dark Brown
 
 // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
-        MYBLANK, MYWHITE,MYYELLOW, MYGOLD, MYORANGE, MYPINK, MYRED, MYMAROON, MYGREEN, MYLIME, MYDARKGREEN,
-        MYSKYBLUE, MYBLUE, MYDARKBLUE, MYPURPLE, MYVIOLET, MYDARKPURPLE, MYBEIGE, MYBROWN, MYDARKBROWN,
-        MYLIGHTGRAY, MYGRAY, MYDARKGRAY, MYBLACK };
+        BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
+        SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
+        LIGHTGRAY, GRAY, DARKGRAY, BLACK };
+
+
+// Custom color Palette
+// #define MYWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
+// #define MYBLACK      CLITERAL(Color){ 26, 21, 39, 255 }         // Black
+// #define MYBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
+// #define MYYELLOW     CLITERAL(Color){ 249, 240, 107, 255 }     // Yellow
+// #define MYGOLD       CLITERAL(Color){ 245, 194, 17, 255 }     // Gold
+// #define MYORANGE     CLITERAL(Color){ 255, 120, 0, 255 }     //  Orange
+// #define MYPINK       CLITERAL(Color){ 255, 127, 157, 255 }     //  Pink
+// #define MYRED        CLITERAL(Color){ 237, 51, 59, 255 }     //  Red
+// #define MYMAROON     CLITERAL(Color){ 165, 29, 45, 255 }     //  Maroon
+// #define MYGREEN      CLITERAL(Color){ 143, 240, 164, 255 }      // Green
+// #define MYLIME       CLITERAL(Color){ 51, 209, 122, 255 }      // Lime
+// #define MYDARKGREEN  CLITERAL(Color){ 0, 162, 105, 255 }      // Dark Green
+// #define MYSKYBLUE    CLITERAL(Color){ 153, 193, 241, 255 }   // Sky Blue
+// #define MYBLUE       CLITERAL(Color){ 53, 132, 228, 255 }     // Blue
+// #define MYDARKBLUE   CLITERAL(Color){ 26, 95, 180, 255 }      // Dark Blue
+// #define MYPURPLE     CLITERAL(Color){ 200, 122, 255, 255 }   // Purple
+// #define MYVIOLET     CLITERAL(Color){ 135, 60, 190, 255 }    // Violet
+// #define MYDARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
+// #define MYBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
+// #define MYBROWN      CLITERAL(Color){ 152, 106, 68, 255 }    // Brown
+// #define MYDARKBROWN  CLITERAL(Color){ 99, 69, 44, 255 }      // Dark Brown
+// #define MYLIGHTGRAY  CLITERAL(Color){ 192, 191, 188,255}   // Light Gray
+// #define MYGRAY       CLITERAL(Color){ 154, 153, 150, 255 }   // Gray
+// #define MYDARKGRAY   CLITERAL(Color){ 94, 92, 100, 255 }      // Dark Gray
+
+// // Colors to choose from
+// const Color colors[MAX_COLORS_COUNT] = {
+//         MYBLANK, MYWHITE,MYYELLOW, MYGOLD, MYORANGE, MYPINK, MYRED, MYMAROON, MYGREEN, MYLIME, MYDARKGREEN,
+//         MYSKYBLUE, MYBLUE, MYDARKBLUE, MYPURPLE, MYVIOLET, MYDARKPURPLE, MYBEIGE, MYBROWN, MYDARKBROWN,
+//         MYLIGHTGRAY, MYGRAY, MYDARKGRAY, MYBLACK };
 
 const char *colorNames[MAX_COLORS_COUNT] = { 
         "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
@@ -150,8 +150,8 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
 #define CHECKB_COLOR CLITERAL(Color){ 249, 254, 254, 255} 
 // some funs
-#define OFF_COLOR CLITERAL(Color){ 12, 161, 166, 255}
-#define ON_COLOR CLITERAL(Color){ 242, 103, 39,255}
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
+#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 131, 131, 131, 255} 
 
 //----------------------------------------------------------------------------------
@@ -409,13 +409,12 @@ while (!WindowShouldClose())
         mouseHoverCells = CheckCollisionPointRec(mousePos,scissorArea);
         if (mouseHoverCells)
             {
-                HideCursor(); //hide os cursor inside matrix
+                //HideCursor(); //hide os cursor inside matrix
                 isEditing = true;
 
-                //---------------------------------------------------------------------
-                // ZOOM sprite con rotella mouse
-                //----------------------------------------------------------------------
-            // Zoom based on mouse wheel
+            //---------------------------------------------------------------------
+            // ZOOM sprite con rotella mouse
+            //----------------------------------------------------------------------
             float wheel = GetMouseWheelMove();
             if (wheel != 0)
             {
@@ -457,7 +456,9 @@ while (!WindowShouldClose())
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
                 if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
 
+            //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
+            //-------------------------------------------------------------------
                 if (camera.zoom > 1.0f)
                 {
                     if (IsKeyDown(KEY_UP))
@@ -620,7 +621,9 @@ while (!WindowShouldClose())
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
+        //----------------------------------------------------------------------
         // Draw color selection bar
+        //-----------------------------------------------------------------------
         for (int i = 0; i < MAX_COLORS_COUNT; i++) {
             DrawRectangleRec(colorsRecs[i], colors[i]);
         //  riquadro attorno al primo colore: BLANK (trasparente)
@@ -628,43 +631,48 @@ while (!WindowShouldClose())
         }
         // passando sopra il colore rendilo piu chiaro
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
-        // cliccando sul colore disegna riguadro attorno per evidenziare selezione
-        DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x - 2, colorsRecs[selectedColor].y + 29,
-                             colorsRecs[selectedColor].width + 4, colorsRecs[selectedColor].height - 22 }, 2, ON_COLOR);
+        // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
+        DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
+                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height +2},1, FG_COLOR);
 
+        //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
+        //----------------------------------------------------------------------
     BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
         BeginMode2D(camera);
-        drawCheckerboard(); // to emultare transparent background
- 
-        // grid below sprite (if want grid above sprite move line just before EndMode2D)
-        if (showGrid) drawGridLines();
+        drawCheckerboard(); // just to emulate a transparent background
 
+        // Draw SPRITE AREA
         drawSprite(); // disegna immagine
-        //Draw cursor moving when inside the sprite grid        
-        DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
-                          gridSpacing, 
-                          gridSpacing},
-                          Fade(BLACK, 0.4f));
+
+        // //Draw cursor moving when inside the sprite grid        
+        // DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
+        //                   gridSpacing, 
+        //                   gridSpacing},
+        //                   Fade(ON_COLOR, 0.5f));
+
         //----------------------------------------------------------------------
-        // Draw crosshair (if grid is enabled , hide crosshair)
+        // Draw crosshair (and hide grid)
         // ---------------------------------------------------------------------
         if (!showGrid) {
-        //vertical
-        DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y }, 
-                   (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (BIN_ROWS*gridSpacing)  },
-                   1, Fade(ON_COLOR, 0.5f));
-        // horizontal
-        DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + gridSpacing/2 }, 
-                   (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
-                   1, Fade(ON_COLOR, 0.5f));
-        }
+            //vertical
+            DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y }, 
+                       (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (BIN_ROWS*gridSpacing)  },
+                       1, Fade(ON_COLOR, 0.5f));
+            // horizontal
+            DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + gridSpacing/2 }, 
+                       (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
+                       1, Fade(ON_COLOR, 0.5f));
+            }
 
+        // grid below sprite (if want grid above sprite move line just before EndMode2D)
+        if (showGrid) drawGridLines();
+        
         EndMode2D();
     EndScissorMode();
 
         //----------------------------------------------------------------------
-        // drawMatrixHeaders();
+        // draw rows and columns headers.
         //----------------------------------------------------------------------
         for (int i = 0; i < BIN_ROWS; i+=1)
         {
@@ -676,10 +684,10 @@ while (!WindowShouldClose())
         DrawTextEx(font,TextFormat("%01d",j),(Vector2){spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
         DrawTextEx(font,TextFormat("%01d",j),(Vector2){spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8} ,12,0,FG_COLOR);//sotto
         }
-
-        // draw accessories information
+        //----------------------------------------------------------------------
+        // draw sprite miniature and colors info
+        //----------------------------------------------------------------------
         drawThumbnail();
-
         //display cursor position and selected color info 
         // Draw x,y info
         DrawTextEx(font, TextFormat("x:%02i y:%02i [x%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x-4,miniaturePos.y+136},18,0,FG_COLOR);
@@ -693,6 +701,11 @@ while (!WindowShouldClose())
         DrawRectangle(miniaturePos.x +2,miniaturePos.y + 212 , 32 , 32, colors[selectedColor]);
         DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 212},18,0,BLACK);
         DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 232},12,0,FG_COLOR);
+
+
+        //----------------------------------------------------------------------
+        // SAVE and LOAD in binary mode : to improve!
+        //----------------------------------------------------------------------
 
         if (isSaving)
         {
@@ -718,7 +731,6 @@ while (!WindowShouldClose())
             // -----------------------------------------------------------------
             //  draw file list / Work library 
             //------------------------------------------------------------------
-
             DrawText("Art Library",libraryPos.x+16, libraryPos.y-4, 20, FG_COLOR);
             DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,BG_COLOR);
             DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,BORDER_COLOR);
@@ -730,7 +742,7 @@ while (!WindowShouldClose())
                 Rectangle rect = {libraryPos.x, y, 160, itemHeight};
                     // Evidenzia file selezionato
                 if (index == selected) {
-                    DrawRectangleRec(rect, OFF_COLOR);
+                    DrawRectangleRec(rect, ON_COLOR);
                 }   
                 DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
             }

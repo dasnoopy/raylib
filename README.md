@@ -7,26 +7,24 @@ Thanks a lot, Daniel!
 
 #### How to use (compiling and running on ArchLinux):
 
-1) install raylib (from extra repo):  
+1) install raylib (from extra repo): 
 $ `pacman -S raylib`
 
-2) install raygui from [AUR](https://aur.archlinux.org/packages/raygui);  
+2) install raygui from [AUR](https://aur.archlinux.org/packages/raygui);
 
-3) to compile source code and get the executable:  
+3) to compile source code and get the executable:
 $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
-**- Digital Clock (slight modified version of [Daniel Hirsch version..](https://www.youtube.com/watch?v=4GeYKi7IWDA))**
+** Some screenshot**
 
-![digital-clock](https://raw.github.com/dasnoopy/raylib/main/screenshot/digital-clock.png)
-
-**- PixelArt Editor**
+** PixelArt Editor**
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
-**- Dotchar editor**
+** Dotchar editor**
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
-**- 5 Band resistor calculator**
+** 5 Band resistor calculator**
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
