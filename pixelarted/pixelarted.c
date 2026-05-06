@@ -233,6 +233,11 @@ void resetSprite(void)
     for (int i = 0; i < BIN_ROWS; i++)
         for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
 }
+void showArrayVal(void)
+{
+    for (int i = 0; i < BIN_ROWS; i++)
+        for (int j = 0; j < BIN_COLS; j++) DrawText(TextFormat("%2d",matrice[j][i]), 4+(spriteGridPos.x + gridSpacing*j) ,4+(spriteGridPos.y + gridSpacing*i),10, ON_COLOR);
+}
 
 void replaceColor(int old, int new)
 {
@@ -281,6 +286,12 @@ void floodFill(int row, int col, int oldColor, int newColor)
     }
 }
 
+int compare_files(const void *a, const void *b) {
+    const char *fa = (const char *)a;
+    const char *fb = (const char *)b;
+    return strcmp(fa, fb);
+}
+
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
     DIR *dir = opendir(path);
@@ -315,6 +326,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         }
     }
     closedir(dir);
+    qsort(files, count, MAX_NAME, compare_files);  // ordinaamento file
     return count;
 }
 
@@ -638,8 +650,9 @@ while (!WindowShouldClose())
 
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
+        //showArrayVal();  // enable just to debug content of matrix
 
-        // //Draw cursor moving when inside the sprite grid        
+        // Draw cursor moving when inside the sprite grid        
         // DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
         //                   gridSpacing, 
         //                   gridSpacing},
@@ -658,7 +671,6 @@ while (!WindowShouldClose())
                        (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
                        1, Fade(ON_COLOR, 0.5f));
             }
-
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
         if (showGrid) drawGridLines();
         
@@ -686,15 +698,15 @@ while (!WindowShouldClose())
         // Draw x,y info
         DrawTextEx(font, TextFormat("x:%02i y:%02i [x%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x-4,miniaturePos.y+136},18,0,FG_COLOR);
         // draw current color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+168 , 36,36,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x + 2 ,miniaturePos.y+170 , 32 , 32, colors[currentColor]);
-        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 170},18,0, BLACK);
-        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 190},12,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+168 , 28,28,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x + 2 ,miniaturePos.y+170 , 24 , 24, colors[currentColor]);
+        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 166},18,0, BLACK);
+        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 186},12,0,FG_COLOR);
         // Draw selected color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 210 , 36,36,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x +2,miniaturePos.y + 212 , 32 , 32, colors[selectedColor]);
-        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 212},18,0,BLACK);
-        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 232},12,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 210 , 28,28,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x +2,miniaturePos.y + 212 , 24 , 24, colors[selectedColor]);
+        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 208},18,0,BLACK);
+        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 228},12,0,FG_COLOR);
 
 
         //----------------------------------------------------------------------
