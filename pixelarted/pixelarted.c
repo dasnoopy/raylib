@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.4.2"
+#define TOOL_VERSION            "1.4.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -42,20 +42,18 @@ const int cellSize = 20;
 
 #define MAX_COLORS_COUNT    24          // Number of colors available
 
-
 //file management
 #define MAX_FILES 512
 #define MAX_NAME 256
 
-
  // initial X,Y coordinates for variuos interface elements
-Vector2 colorsBarPos = {192, 12};
-Vector2 spriteGridPos = {220, 86};
-Vector2 miniaturePos = {28,64};
-Vector2 toolbarPos = {40,240};
-Vector2 keyinfoPos = {24,654};
-Vector2 libraryPos = {906,20};
-Rectangle scissorArea = { 220,86, numCols*cellSize,numRows*cellSize };
+const Vector2 colorsBarPos = {192, 730};
+const Vector2 spriteGridPos = {220, 48};
+const Vector2 miniaturePos = {28,64};
+const Vector2 toolbarPos = {40,240};
+const Vector2 keyinfoPos = {24,650};
+const Vector2 libraryPos = {906,20};
+Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // definizione matrici
 int matrice[numRows][numCols];
@@ -67,7 +65,7 @@ int selectedColor = 24;
 int currentColor = 0;
 int colorMouseHover = 0;
 int miniatureSCALE= 4;
-bool showGrid = false;
+bool showGrid = true;
 bool mouseHoverCells = false;
 char fNAME[] = "library/default.pix";
 char extfile[] = { "pix" };
@@ -318,7 +316,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         }
     }
     closedir(dir);
-    qsort(files, count, MAX_NAME, compare_files);  // ordinaamento file
+    qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
     return count;
 }
 
@@ -331,7 +329,7 @@ int main (int argc, char *argv[])
     SetWindowState(FLAG_WINDOW_UNDECORATED);
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
-    // loaad TTF font with better antialiasing
+    // load TTF font with better antialiasing
     Font font = LoadFontEx("assets/VictorMono-Bold.ttf", 18, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     // Set UI style
@@ -625,6 +623,7 @@ while (!WindowShouldClose())
                         if (IsKeyPressed(KEY_UP)) selected--;
                         if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
                             strcpy(fNAME,files[selected]);
+                            camera.zoom=1.0f;
                             isLoading=true;
                         }
                         // Clamp selezione
@@ -644,8 +643,8 @@ while (!WindowShouldClose())
 
     BeginDrawing();
         ClearBackground(GRID_BG_COLOR);
-        DrawRectangle(186,50, numCols*cellSize + 68,screenHeight, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonnaa
-        DrawRectangleLines(186,50, numCols*cellSize +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
+        DrawRectangle(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize + 68,numRows*cellSize + 68, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonna
+        DrawRectangleLines(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize +68,numRows*cellSize + 68, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
