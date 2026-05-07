@@ -80,15 +80,15 @@ int px,py;
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
 #define myBLACK      CLITERAL(Color){ 14, 35, 46, 255 }         // Black
 #define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-#define myYELLOW     CLITERAL(Color){ 255, 255, 62, 255 }     // Yellow
-#define myGOLD       CLITERAL(Color){ 255, 192, 34, 255 }     // Gold
-#define myORANGE     CLITERAL(Color){ 255, 112, 17, 255 }     //  Orange
+#define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
+#define myGOLD       CLITERAL(Color){ 251, 192, 2, 255 }     // Gold
+#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange
 #define myPINK       CLITERAL(Color){ 241, 202, 255, 255 }     //  Pink
-#define myRED        CLITERAL(Color){ 220, 0, 0, 255 }     //  Red
-#define myMAROON     CLITERAL(Color){ 181, 0, 0, 255 }     //  Maroon
+#define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
+#define myMAROON     CLITERAL(Color){ 138, 30, 3, 255 }     //  Maroon / Granata
 #define myGREEN      CLITERAL(Color){ 204, 255, 66, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 154, 222, 0, 255 }      // Lime
-#define myDARKGREEN  CLITERAL(Color){ 0, 145, 0, 255 }      // Dark Green
+#define myDARKGREEN  CLITERAL(Color){ 0, 140, 69, 255 }      // Dark Green /verde bandiera
 #define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
@@ -660,7 +660,7 @@ while (!WindowShouldClose())
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
         DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
-                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height +2},1, FG_COLOR);
+                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height +2},2, FG_COLOR);
 
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
@@ -724,11 +724,6 @@ while (!WindowShouldClose())
         // draw current color frame
         DrawRectangleLines(colorsBarPos.x -175  ,colorsBarPos.y , 26,26,BORDER_COLOR);
         DrawRectangle(colorsBarPos.x-174 ,colorsBarPos.y + 1, 24 , 24, colors[currentColor]);
-        // Draw selected color frame
-        //DrawRectangleLines(toolbarPos.x + 72 ,toolbarPos.y + 108 , 32,32,BORDER_COLOR);
-        //DrawRectangle(toolbarPos.x + 73 ,toolbarPos.y + 109 , 30 , 30, colors[selectedColor]);
-
-
 
         //----------------------------------------------------------------------
         // SAVE and LOAD in binary mode : to improve!
