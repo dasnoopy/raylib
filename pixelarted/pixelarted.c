@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.3.5"
+#define TOOL_VERSION            "1.4.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -51,9 +51,9 @@ const int cellSize = 20;
  // initial X,Y coordinates for variuos interface elements
 Vector2 colorsBarPos = {192, 12};
 Vector2 spriteGridPos = {220, 86};
-Vector2 miniaturePos = {28,64};
-Vector2 panelBarPos = {24,300};
-Vector2 panel2BarPos = {24,690};
+Vector2 miniaturePos = {28,87};
+Vector2 toolbarPos = {40,380};
+Vector2 keyinfoPos = {24,654};
 Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { 220,86, numCols*cellSize,numRows*cellSize };
 
@@ -74,6 +74,9 @@ char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool keyBinding = true;
 bool isEditing = false;
+
+int px,py;
+
 
 // custom Colors
 
@@ -127,6 +130,20 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 131, 131, 131, 255} 
+
+// bottoni toolbar
+    // UI required variables
+bool btnGrid = false;
+bool btnNew = false;
+bool btnClear = false;
+bool btnHmirr = false;
+bool btnVmirr = false;
+bool btnShtUp = false;
+bool btnShtDn = false;
+bool btnShtSx = false;
+bool btnShtDx = false;
+bool btnRotate = false;
+
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -389,6 +406,7 @@ while (!WindowShouldClose())
             }
             else colorMouseHover = -1;
         }
+        //LEFT MOUSE :select color
         if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) selectedColor = colorMouseHover;
 
         //------------------------------------------------------------------------------
@@ -438,6 +456,7 @@ while (!WindowShouldClose())
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
                 if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
 
+
             //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
             //-------------------------------------------------------------------
@@ -472,6 +491,7 @@ while (!WindowShouldClose())
         // aggiorna posizione "cursore" e relativo colore...
         int px= player.cell.x;
         int py= player.cell.y;
+
         int currentColor = matrice[px][py];
 
 
@@ -480,36 +500,36 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
-            if (IsKeyPressed(KEY_G)) showGrid = !showGrid;
             if (IsKeyPressed(KEY_Q)) break;
-            else if (IsKeyPressed(KEY_N))
-            {
-                     // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-                    initGrid();
-                    strcpy(fNAME,"library/default.pix");
-            }
-            else if (IsKeyPressed(KEY_C)) 
-                {
-                    // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-                    initGrid();
-                }
-            else if (IsKeyPressed(KEY_R)) 
+            else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
+            else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
+            else if (IsKeyPressed(KEY_R)) //replace current color with selectec color
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
                     copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                     replaceColor(currentColor, selectedColor);
                 }
-            else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
-            else if (IsKeyPressed(KEY_S)) isSaving=true;
-            else if (IsKeyPressed(KEY_F))
+            else if (IsKeyPressed(KEY_F)) // flood fill
             {
                 // fai sempre una copia di backup dello stato attuale della matrice
                 copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                 floodFill(px,py,currentColor,selectedColor);
             }
-            else if (IsKeyPressed(KEY_D)) // shift bin array right by 1
+            else if (btnGrid) showGrid = !showGrid;
+
+            else if (btnNew)
+            {
+                    initGrid();
+                    strcpy(fNAME,"library/default.pix");
+            }
+            else if (btnClear)  //clear matrix 
+                {
+                    // fai sempre una copia di backup dello stato attuale della matrice
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
+                    initGrid();
+                }
+
+            else if (btnShtDx) // shift bin array right by 1
             {
                 for (int row = 0; row < numRows; row++) // righe
                     {
@@ -521,7 +541,7 @@ while (!WindowShouldClose())
                         matrice[row][0] = temp;
                     }
             }
-            else if (IsKeyPressed(KEY_A))// shift bin array left by 1
+            else if (btnShtSx) // shift bin array left by 1
             {
                 for (int row = 0; row < numRows; row++) // righe
                     {
@@ -533,7 +553,7 @@ while (!WindowShouldClose())
                         matrice[row][numCols-1] = temp;
                     }
             }
-            else if (IsKeyPressed(KEY_W)) // shift bin array up by 1
+            else if (btnShtUp) // shift bin array up by 1
             {
                 for (int col = 0; col < numCols; col++) // colonne
                     {
@@ -545,7 +565,7 @@ while (!WindowShouldClose())
                         matrice[numRows - 1][col] = temp;
                     }
             }
-            else if (IsKeyPressed(KEY_X))// shift bin array down by 1
+            else if (btnShtDn) // shift bin array down by 1
              {
                     for (int col = 0; col < numCols; col++) // colonne
                         {
@@ -558,7 +578,7 @@ while (!WindowShouldClose())
                         }
                 }
 
-            else if (IsKeyPressed(KEY_E))// rotate matrix clockwise : works only for square matrix e.g 8x8, 16x16 and so on...
+            else if (btnRotate) // rotate matrix clockwise : works only for square matrix e.g 8x8, 16x16 and so on...
              {
                     // trasposizione  matrice binaria
                     for (int row = 0; row < numRows; row++) {
@@ -578,7 +598,7 @@ while (!WindowShouldClose())
                     }
             }
 
-                else if (IsKeyPressed(KEY_H))// horizontal mirror
+                else if (btnVmirr) // vertical mirror
                 {
                     copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
@@ -587,7 +607,7 @@ while (!WindowShouldClose())
                     }
                 }
 
-                else if (IsKeyPressed(KEY_V))// // vertical mirror
+                else if (btnHmirr) // horizontal mirror
                 {
                     copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
@@ -595,8 +615,6 @@ while (!WindowShouldClose())
                             matrice[numRows -1 - row][col] = matriceMirrorV[row][col];
                     }
                 }
-
-
 
                 //---------------------------------------------------------------------
                 //  file LIbrary management
@@ -660,10 +678,10 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // Draw cursor moving when inside the sprite grid
         //----------------------------------------------------------------------
-        // DrawRectangleRec((Rectangle){ spriteGridPos.x + (py*cellSize), spriteGridPos.y + (px*cellSize), 
-        //                   cellSize, 
-        //                   cellSize},
-        //                   Fade(ON_COLOR, 0.5f));
+        DrawRectangleRec((Rectangle){ spriteGridPos.x + (py*cellSize), spriteGridPos.y + (px*cellSize), 
+                          cellSize, 
+                          cellSize},
+                          Fade(ON_COLOR, 0.5f));
 
         //----------------------------------------------------------------------
         // Draw crosshair (and hide grid)
@@ -702,18 +720,20 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         drawThumbnail();
         //display cursor position and selected color info 
-        // Draw x,y info
-        DrawTextEx(font, TextFormat("x:%02i y:%02i [x%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x-4,miniaturePos.y+136},18,0,FG_COLOR);
+        // Draw x,y for current cell, zoom value
+        DrawTextEx(font, TextFormat("x:%02i y:%02i [z:%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x ,miniaturePos.y-24},16,0,BLACK);
+
         // draw current color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+168 , 28,28,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x + 2 ,miniaturePos.y+170 , 24 , 24, colors[currentColor]);
-        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 166},18,0, BLACK);
-        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 186},12,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+140 , 26,26,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x + 1 ,miniaturePos.y+141 , 24 , 24, colors[currentColor]);
+        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 36, miniaturePos.y + 138},18,0, BLACK);
+        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 36, miniaturePos.y + 156},12,0,FG_COLOR);
+      
         // Draw selected color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 210 , 28,28,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x +2,miniaturePos.y + 212 , 24 , 24, colors[selectedColor]);
-        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 48, miniaturePos.y + 208},18,0,BLACK);
-        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 48, miniaturePos.y + 228},12,0,FG_COLOR);
+        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 170 , 26,26,BORDER_COLOR);
+        DrawRectangle(miniaturePos.x +1,miniaturePos.y + 171 , 24 , 24, colors[selectedColor]);
+        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 36, miniaturePos.y + 168},18,0,BLACK);
+        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 36, miniaturePos.y + 186},12,0,FG_COLOR);
 
 
         //----------------------------------------------------------------------
@@ -759,33 +779,36 @@ while (!WindowShouldClose())
                 }   
                 DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
             }
-                GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 56, 130, 20 }, "Current file:");
-                if(GuiTextBox((Rectangle){ libraryPos.x, listHeight + 76, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-                GuiLabel((Rectangle){ libraryPos.x+2, listHeight+106, 160, 20 }, "Press 'S' to save matrix.");
-            //------------------------------------------------------------------
-            // draw panel bar
-            GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-            //Keybinding label
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+40, 140, 20 }, "Press 'G' to show/hide grid.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'N' to create new default file.");
             
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'C' to clear all.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'R' to replace color.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'F' to fill color area.");
-            
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'A' to shift matrix left.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'D' to shit matrix right.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'W' to shift matrix up.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'X' to shift matrix down.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'E' to rotate clockwise.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+240, 140, 20 }, "Press 'H' to horiz. mirror.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+260, 140, 20 }, "Press 'V' to Vert. mirror");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+280, 140, 20 }, "Press 'Z' to undo last action.");
+            GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 56, 130, 20 }, "Current file:");
+            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 76, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+            GuiLabel((Rectangle){ libraryPos.x+2, listHeight+106, 160, 20 }, "['S'] to save file.");
 
-            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y, 140, 20 }, "Mousewheel to zoom in/out.");
-            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y+20, 140, 20 }, "WinKey + mouse left to move.");
-            GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y+40, 140, 20 }, "Press 'Q' to quit program.");
-            
+        // toolbar and messages
+        int btnWidth = 32;
+        int btnHeight = 32;
+        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+        btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#97#");
+        btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
+        btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#194#");
+
+        btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
+
+        
+        btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
+        btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#60#");
+        btnShtDx = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 72, btnWidth, btnHeight }, "#119#");
+
+        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 108, btnWidth, btnHeight }, "#41#");
+        btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
+        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 108, btnWidth, btnHeight }, "#40#");
+
+            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
+            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
+            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
+            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
+            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
+
         EndDrawing();
     }
     UnloadRenderTexture(target);

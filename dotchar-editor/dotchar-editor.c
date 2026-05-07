@@ -68,7 +68,7 @@ char hex[HEX_VAL_X][HEX_VAL_Y];
 int revert_matrix[BIN_ROWS][BIN_COLS];
 int revert_font[128][8];
 int copypaste_matrix[BIN_ROWS][BIN_COLS];
-int mirrorV_matrix[BIN_ROWS][BIN_COLS];
+int matrix_Mirror[BIN_ROWS][BIN_COLS];
 
 // ARDUINO Matrix tool colors (light)
 #define BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
@@ -508,24 +508,22 @@ int main (int argc, char *argv[])
 
         if (btnMirrorH)
         {
-            int temp;
+            copy_matrix_2d(&matrice[0][0], &matrix_Mirror[0][0], 8, 8);
             for (int i = 0; i < BIN_ROWS; ++i)
             {
-                for (int j = 0; j < BIN_COLS / 2; j++) {
-                temp = matrice[j][i];
-                matrice[j][i] = matrice[BIN_COLS - 1 - j][i];
-                matrice[BIN_COLS - 1 - j][i] = temp;
+                for (int j = 0; j < BIN_COLS; j++) {
+                    matrice[BIN_COLS -1- j][i] = matrix_Mirror[j][i];
                 }
             }
         }
 
         if (btnMirrorV)
         {
-            copy_matrix_2d(&matrice[0][0], &mirrorV_matrix[0][0], 8, 8);
+            copy_matrix_2d(&matrice[0][0], &matrix_Mirror[0][0], 8, 8);
             for (int i = 0; i < BIN_ROWS; ++i)
             {
                 for (int j = 0; j < BIN_COLS; j++) {
-                    matrice[j][BIN_ROWS -1 -i] = mirrorV_matrix[j][i];
+                    matrice[j][BIN_ROWS -1 -i] = matrix_Mirror[j][i];
                 }
             }
         }
