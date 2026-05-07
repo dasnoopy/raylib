@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.4.5"
+#define TOOL_VERSION            "1.4.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -49,9 +49,9 @@ const int cellSize = 20;
  // initial X,Y coordinates for variuos interface elements
 const Vector2 colorsBarPos = {192, 730};
 const Vector2 spriteGridPos = {220, 48};
-const Vector2 miniaturePos = {28,64};
-const Vector2 toolbarPos = {40,240};
-const Vector2 keyinfoPos = {24,650};
+const Vector2 miniaturePos = {28,68};
+const Vector2 toolbarPos = {40,204};
+const Vector2 keyinfoPos = {24,610};
 const Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
@@ -353,7 +353,7 @@ int main (int argc, char *argv[])
     int selected = 0;
     int scrollOffset = 0;
 
-    const int itemHeight = 24;
+    const int itemHeight = 25;
     const int listHeight = itemHeight*26; //altezza in pixel lista
     int visibleItems = listHeight / itemHeight;
 
@@ -720,13 +720,13 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i (z:%.02f)",px,py,camera.zoom),(Vector2){miniaturePos.x +2,miniaturePos.y+134},16,0,BLACK);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x-136, colorsBarPos.y+4},16,0,BLACK);
         // draw current color frame
-        DrawRectangleLines(toolbarPos.x  ,toolbarPos.y+ 108 , 32,32,BORDER_COLOR);
-        DrawRectangle(toolbarPos.x + 1 ,toolbarPos.y + 109 , 30 , 30, colors[currentColor]);
+        DrawRectangleLines(colorsBarPos.x -175  ,colorsBarPos.y , 26,26,BORDER_COLOR);
+        DrawRectangle(colorsBarPos.x-174 ,colorsBarPos.y + 1, 24 , 24, colors[currentColor]);
         // Draw selected color frame
-        DrawRectangleLines(toolbarPos.x + 72 ,toolbarPos.y + 108 , 32,32,BORDER_COLOR);
-        DrawRectangle(toolbarPos.x + 73 ,toolbarPos.y + 109 , 30 , 30, colors[selectedColor]);
+        //DrawRectangleLines(toolbarPos.x + 72 ,toolbarPos.y + 108 , 32,32,BORDER_COLOR);
+        //DrawRectangle(toolbarPos.x + 73 ,toolbarPos.y + 109 , 30 , 30, colors[selectedColor]);
 
 
 
@@ -774,9 +774,9 @@ while (!WindowShouldClose())
                 DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
             }
             
-            GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 56, 130, 20 }, "Current file:");
-            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 76, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-            GuiLabel((Rectangle){ libraryPos.x+2, listHeight+106, 160, 20 }, "['S'] to save file.");
+            GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Work file: ['S'] to save.");
+            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+
 
         // toolbar and messages
         int btnWidth = 32;
