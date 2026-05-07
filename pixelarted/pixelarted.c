@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.3.0"
+#define TOOL_VERSION            "1.3.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -190,7 +190,7 @@ void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
         DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, BG_COLOR);
-        DrawRectangleLines(miniaturePos.x, miniaturePos.y , (numCols*miniatureSCALE), (numRows*miniatureSCALE), BORDER_COLOR);
+        DrawRectangleLines(miniaturePos.x-1, miniaturePos.y-1 , 2+(numCols*miniatureSCALE), 2+(numRows*miniatureSCALE), BORDER_COLOR);
     // intestazioni riga/colonna matrice colore e miniatura
         for (int row = 0; row < numRows; row++)
         {
