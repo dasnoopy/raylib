@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.3.1"
+#define TOOL_VERSION            "1.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,9 +36,9 @@
 const int screenWidth = 1080;
 const int screenHeight = 768;
 
-#define numRows       32
 #define numCols       32
-const int gridSpacing = 20;
+#define numRows       32
+const int cellSize = 20;
 
 #define MAX_COLORS_COUNT    24          // Number of colors available
 
@@ -55,7 +55,7 @@ Vector2 miniaturePos = {28,64};
 Vector2 panelBarPos = {24,300};
 Vector2 panel2BarPos = {24,690};
 Vector2 libraryPos = {906,20};
-Rectangle scissorArea = { 220,86, numCols*gridSpacing,numRows*gridSpacing };
+Rectangle scissorArea = { 220,86, numCols*cellSize,numRows*cellSize };
 
 // definizione matrici
 int matrice[numRows][numCols];
@@ -153,8 +153,8 @@ void drawCheckerboard(void)
         for (int row = 0; row < numRows-1; row+=2)
             for (int col = 0; col < numCols-1; col+=2)
                 {
-                DrawRectangleRec((Rectangle){spriteGridPos.x + ( col * gridSpacing), spriteGridPos.y + ( row * gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
-                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (col * gridSpacing), spriteGridPos.y + gridSpacing + (row * gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + ( col * cellSize), spriteGridPos.y + ( row * cellSize), cellSize, cellSize},CHECKB_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + cellSize+ (col * cellSize), spriteGridPos.y + cellSize + (row * cellSize), cellSize, cellSize},CHECKB_COLOR);
                 }
         DrawRectangleLinesEx(scissorArea,1,CHECKB_COLOR);
     }
@@ -163,9 +163,9 @@ void drawCheckerboard(void)
 void drawGridLines(void)
 {
         for (int row = 0; row <= numRows; row+=1) // horizontal lines
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * gridSpacing)},(Vector2){spriteGridPos.x + (numCols* gridSpacing), spriteGridPos.y + (row * gridSpacing)},1, GRID_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, GRID_COLOR);
         for (int col = 0; col <= numCols; col+=1) //vertical lines
-            DrawLineEx((Vector2){spriteGridPos.x + (col * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * gridSpacing), spriteGridPos.y + (numRows*gridSpacing)},1, GRID_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, GRID_COLOR);
         DrawRectangleLinesEx(scissorArea,1,GRID_COLOR);
 }
 
@@ -177,11 +177,11 @@ void drawSprite()
                     {
                         // disegna sfondo cella  in base al valore 1/0
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
-                        DrawRectangleRec((Rectangle){(spriteGridPos.x + (gridSpacing * col)) , (spriteGridPos.y + (gridSpacing * row)), 
-                          gridSpacing, 
-                          gridSpacing }, 
+                        DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), 
+                          cellSize, 
+                          cellSize }, 
                           colors[matrice[row][col]]);
-                         //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,WHITE);
+
                     }
                 }   
 }
@@ -212,7 +212,7 @@ void showArrayVal(void)
 {
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++) 
-            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + gridSpacing*col), 4 + (spriteGridPos.y + gridSpacing*row),10, ON_COLOR);
+            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + cellSize*col), 4 + (spriteGridPos.y + cellSize*row),10, ON_COLOR);
 }
 
 void replaceColor(int old, int new)
@@ -421,15 +421,15 @@ while (!WindowShouldClose())
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
 
-                player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / gridSpacing ;
-                player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / gridSpacing;
+                player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / cellSize ;
+                player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / cellSize;
 
 
                 // Make sure player does not go out of bounds
                 if (player.cell.x < 0) player.cell.x = 0;
-                if (player.cell.x >= numRows) player.cell.x = numRows - 1;
+                else if (player.cell.x >= numRows) player.cell.x = numRows - 1;
                 if (player.cell.y < 0) player.cell.y = 0;
-                if (player.cell.y >= numCols) player.cell.y = numCols - 1;
+                else if (player.cell.y >= numCols) player.cell.y = numCols - 1;
 
                 // IMPROVE HERE make a better undo action
                 //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
@@ -451,7 +451,7 @@ while (!WindowShouldClose())
                     if (IsKeyDown(KEY_DOWN))
                     {
                         camera.target.y += speed;
-                         if (camera.target.y > spriteGridPos.y + (numRows*gridSpacing)) camera.target.y = spriteGridPos.y + (numRows*gridSpacing);
+                         if (camera.target.y > spriteGridPos.y + (numRows*cellSize)) camera.target.y = spriteGridPos.y + (numRows*cellSize);
                     }
                     if (IsKeyDown(KEY_LEFT))
                     {
@@ -461,7 +461,7 @@ while (!WindowShouldClose())
                     if (IsKeyDown(KEY_RIGHT))
                     {
                         camera.target.x += speed;
-                         if (camera.target.x > spriteGridPos.x + (numCols*gridSpacing)) camera.target.x = spriteGridPos.x + (numCols*gridSpacing);
+                         if (camera.target.x > spriteGridPos.x + (numCols*cellSize)) camera.target.x = spriteGridPos.x + (numCols*cellSize);
                     }
                 }
         }
@@ -558,11 +558,11 @@ while (!WindowShouldClose())
                         }
                 }
 
-            else if (IsKeyPressed(KEY_E))// rotate matrix clockwise
+            else if (IsKeyPressed(KEY_E))// rotate matrix clockwise : works only for square matrix e.g 8x8, 16x16 and so on...
              {
                     // trasposizione  matrice binaria
                     for (int row = 0; row < numRows; row++) {
-                        for (int col = row +1 ; col < numCols ; col++) { 
+                        for (int col = row + 1 ; col < numCols ; col++) { 
                            int temp = matrice[col][row];
                            matrice[col][row] =  matrice[row][col];
                            matrice[row][col] = temp;
@@ -580,21 +580,16 @@ while (!WindowShouldClose())
 
                 else if (IsKeyPressed(KEY_H))// horizontal mirror
                 {
-                    int temp;
-                    for (int row = 0; row < numRows; ++row)
-                    {
-                        for (int col = 0; col < numCols / 2; col++) 
-                        {
-                        temp = matrice[row][col];
-                        matrice[row][col] = matrice[row][numCols - 1 - col];
-                        matrice[row][numCols - 1 - col] = temp;
-                        }
+                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
+                    for (int row = 0; row < numRows; row++)
+                        for (int col = 0; col < numCols; col++) {
+                            matrice[row][numCols -1 - col] = matriceMirrorV[row][col];
                     }
                 }
 
                 else if (IsKeyPressed(KEY_V))// // vertical mirror
                 {
-                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], 32, 32);
+                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
                             matrice[numRows -1 - row][col] = matriceMirrorV[row][col];
@@ -632,8 +627,8 @@ while (!WindowShouldClose())
 
     BeginDrawing();
         ClearBackground(GRID_BG_COLOR);
-        DrawRectangle(186,50, numCols*gridSpacing + 68,screenHeight, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonnaa
-        DrawRectangleLines(186,50, numCols*gridSpacing +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
+        DrawRectangle(186,50, numCols*cellSize + 68,screenHeight, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonnaa
+        DrawRectangleLines(186,50, numCols*cellSize +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
@@ -662,10 +657,12 @@ while (!WindowShouldClose())
         drawSprite(); // disegna immagine
         //showArrayVal();  // enable just to debug content of matrix
 
-        // Draw cursor moving when inside the sprite grid        
-        // DrawRectangleRec((Rectangle){ spriteGridPos.x + (px*gridSpacing), spriteGridPos.y + (py*gridSpacing), 
-        //                   gridSpacing, 
-        //                   gridSpacing},
+        //----------------------------------------------------------------------
+        // Draw cursor moving when inside the sprite grid
+        //----------------------------------------------------------------------
+        // DrawRectangleRec((Rectangle){ spriteGridPos.x + (py*cellSize), spriteGridPos.y + (px*cellSize), 
+        //                   cellSize, 
+        //                   cellSize},
         //                   Fade(ON_COLOR, 0.5f));
 
         //----------------------------------------------------------------------
@@ -673,12 +670,12 @@ while (!WindowShouldClose())
         // ---------------------------------------------------------------------
         if (!showGrid) {
             //vertical
-            DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y }, 
-                       (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (numRows*gridSpacing)  },
+            DrawLineEx((Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y }, 
+                       (Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y + (numRows*cellSize)  },
                        1, Fade(ON_COLOR, 0.5f));
             // horizontal
-            DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + gridSpacing/2 }, 
-                       (Vector2){ spriteGridPos.x + (numCols*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
+            DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (px*cellSize) + cellSize/2 }, 
+                       (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
                        1, Fade(ON_COLOR, 0.5f));
             }
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
@@ -692,13 +689,13 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         for (int row = 0; row < numRows; row++)
         {
-        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * gridSpacing)}, 12, 0, FG_COLOR); //sinistra
-        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x + numCols*gridSpacing +8,spriteGridPos.y + 4 + (row * gridSpacing)}, 12, 0, FG_COLOR);//destra
+        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 12, 0, FG_COLOR); //sinistra
+        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 12, 0, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
-        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * gridSpacing),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
-        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * gridSpacing),spriteGridPos.y + numRows*gridSpacing+8} ,12,0,FG_COLOR);//sotto
+        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
+        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,12,0,FG_COLOR);//sotto
         }
         //----------------------------------------------------------------------
         // draw sprite miniature and colors info
