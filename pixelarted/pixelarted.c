@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.4.0"
+#define TOOL_VERSION            "1.4.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -51,8 +51,8 @@ const int cellSize = 20;
  // initial X,Y coordinates for variuos interface elements
 Vector2 colorsBarPos = {192, 12};
 Vector2 spriteGridPos = {220, 86};
-Vector2 miniaturePos = {28,87};
-Vector2 toolbarPos = {40,380};
+Vector2 miniaturePos = {28,64};
+Vector2 toolbarPos = {40,240};
 Vector2 keyinfoPos = {24,654};
 Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { 220,86, numCols*cellSize,numRows*cellSize };
@@ -67,12 +67,11 @@ int selectedColor = 24;
 int currentColor = 0;
 int colorMouseHover = 0;
 int miniatureSCALE= 4;
-bool showGrid = true;
+bool showGrid = false;
 bool mouseHoverCells = false;
 char fNAME[] = "library/default.pix";
 char extfile[] = { "pix" };
 bool fnameEditMode = false;
-bool keyBinding = true;
 bool isEditing = false;
 
 int px,py;
@@ -454,7 +453,7 @@ while (!WindowShouldClose())
                   //copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
 
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
-                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
+                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
 
 
             //-------------------------------------------------------------------
@@ -715,25 +714,21 @@ while (!WindowShouldClose())
         DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
         DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,12,0,FG_COLOR);//sotto
         }
+
         //----------------------------------------------------------------------
         // draw sprite miniature and colors info
         //----------------------------------------------------------------------
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i [z:%.02f]",px,py,camera.zoom),(Vector2){miniaturePos.x ,miniaturePos.y-24},16,0,BLACK);
-
+        DrawTextEx(font, TextFormat("x:%02i y:%02i (z:%.02f)",px,py,camera.zoom),(Vector2){miniaturePos.x +2,miniaturePos.y+134},16,0,BLACK);
         // draw current color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y+140 , 26,26,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x + 1 ,miniaturePos.y+141 , 24 , 24, colors[currentColor]);
-        DrawTextEx(font,colorNames[currentColor],(Vector2){miniaturePos.x + 36, miniaturePos.y + 138},18,0, BLACK);
-        DrawTextEx(font,"Current color",(Vector2){miniaturePos.x + 36, miniaturePos.y + 156},12,0,FG_COLOR);
-      
+        DrawRectangleLines(toolbarPos.x  ,toolbarPos.y+ 108 , 32,32,BORDER_COLOR);
+        DrawRectangle(toolbarPos.x + 1 ,toolbarPos.y + 109 , 30 , 30, colors[currentColor]);
         // Draw selected color frame
-        DrawRectangleLines(miniaturePos.x  ,miniaturePos.y + 170 , 26,26,BORDER_COLOR);
-        DrawRectangle(miniaturePos.x +1,miniaturePos.y + 171 , 24 , 24, colors[selectedColor]);
-        DrawTextEx(font,colorNames[selectedColor],(Vector2){miniaturePos.x + 36, miniaturePos.y + 168},18,0,BLACK);
-        DrawTextEx(font,"Selected color",(Vector2){miniaturePos.x + 36, miniaturePos.y + 186},12,0,FG_COLOR);
+        DrawRectangleLines(toolbarPos.x + 72 ,toolbarPos.y + 108 , 32,32,BORDER_COLOR);
+        DrawRectangle(toolbarPos.x + 73 ,toolbarPos.y + 109 , 30 , 30, colors[selectedColor]);
+
 
 
         //----------------------------------------------------------------------
@@ -788,20 +783,25 @@ while (!WindowShouldClose())
         int btnWidth = 32;
         int btnHeight = 32;
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
+        GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
+        GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
         btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#97#");
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#194#");
 
+        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 36, btnWidth, btnHeight }, "#41#");
         btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
-
+        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
         
         btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
         btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#60#");
         btnShtDx = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 72, btnWidth, btnHeight }, "#119#");
 
-        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 108, btnWidth, btnHeight }, "#41#");
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
-        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 108, btnWidth, btnHeight }, "#40#");
 
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
