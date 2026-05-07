@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.2.1"
+#define TOOL_VERSION            "1.3.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,10 +36,12 @@
 const int screenWidth = 1080;
 const int screenHeight = 768;
 
-#define BIN_COLS       32
-#define BIN_ROWS       32
-#define MAX_COLORS_COUNT    24          // Number of colors available
+#define numRows       32
+#define numCols       32
 const int gridSpacing = 20;
+
+#define MAX_COLORS_COUNT    24          // Number of colors available
+
 
 //file management
 #define MAX_FILES 512
@@ -53,11 +55,13 @@ Vector2 miniaturePos = {28,64};
 Vector2 panelBarPos = {24,300};
 Vector2 panel2BarPos = {24,690};
 Vector2 libraryPos = {906,20};
-Rectangle scissorArea = { 220,86, BIN_COLS*gridSpacing,BIN_ROWS*gridSpacing };
+Rectangle scissorArea = { 220,86, numCols*gridSpacing,numRows*gridSpacing };
 
 // definizione matrici
-int matrice[BIN_COLS][BIN_ROWS];
-int matriceUndo[BIN_ROWS][BIN_COLS];
+int matrice[numRows][numCols];
+int matriceUndo[numRows][numCols];
+int matriceMirrorV[numRows][numCols];
+
 // Definizione variabili
 int selectedColor = 24;
 int currentColor = 0;
@@ -71,68 +75,38 @@ bool fnameEditMode = false;
 bool keyBinding = true;
 bool isEditing = false;
 
-// Some Basic Colors
-// NOTE: Custom raylib color palette for amazing visuals on WHITE background
-#define LIGHTGRAY  CLITERAL(Color){ 200, 200, 200, 255 }   // Light Gray
-#define GRAY       CLITERAL(Color){ 130, 130, 130, 255 }   // Gray
-#define DARKGRAY   CLITERAL(Color){ 80, 80, 80, 255 }      // Dark Gray
+// custom Colors
 
-#define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
-#define ORANGE     CLITERAL(Color){ 255, 161, 0, 255 }     // Orange
-#define PINK       CLITERAL(Color){ 255, 109, 194, 255 }   // Pink
-#define RED        CLITERAL(Color){ 230, 41, 55, 255 }     // Red
-#define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
-#define GREEN      CLITERAL(Color){ 0, 228, 48, 255 }      // Green
-#define LIME       CLITERAL(Color){ 0, 158, 47, 255 }      // Lime
-#define DARKGREEN  CLITERAL(Color){ 0, 117, 44, 255 }      // Dark Green
-#define SKYBLUE    CLITERAL(Color){ 102, 191, 255, 255 }   // Sky Blue
-#define BLUE       CLITERAL(Color){ 0, 121, 241, 255 }     // Blue
-#define DARKBLUE   CLITERAL(Color){ 0, 82, 172, 255 }      // Dark Blue
-#define PURPLE     CLITERAL(Color){ 200, 122, 255, 255 }   // Purple
-#define VIOLET     CLITERAL(Color){ 135, 60, 190, 255 }    // Violet
-#define DARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
-#define BEIGE      CLITERAL(Color){ 211, 176, 131, 255 }   // Beige
-#define BROWN      CLITERAL(Color){ 127, 106, 79, 255 }    // Brown
-#define DARKBROWN  CLITERAL(Color){ 76, 63, 47, 255 }      // Dark Brown
+#define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
+#define myBLACK      CLITERAL(Color){ 14, 35, 46, 255 }         // Black
+#define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
+#define myYELLOW     CLITERAL(Color){ 255, 255, 62, 255 }     // Yellow
+#define myGOLD       CLITERAL(Color){ 255, 192, 34, 255 }     // Gold
+#define myORANGE     CLITERAL(Color){ 255, 112, 17, 255 }     //  Orange
+#define myPINK       CLITERAL(Color){ 241, 202, 255, 255 }     //  Pink
+#define myRED        CLITERAL(Color){ 220, 0, 0, 255 }     //  Red
+#define myMAROON     CLITERAL(Color){ 181, 0, 0, 255 }     //  Maroon
+#define myGREEN      CLITERAL(Color){ 204, 255, 66, 255 }      // Green
+#define myLIME       CLITERAL(Color){ 154, 222, 0, 255 }      // Lime
+#define myDARKGREEN  CLITERAL(Color){ 0, 145, 0, 255 }      // Dark Green
+#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
+#define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
+#define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
+#define myPURPLE     CLITERAL(Color){ 215, 108, 255, 255 }   // Purple
+#define myVIOLET     CLITERAL(Color){ 185, 0, 255, 255 }    // Violet
+#define myDARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
+#define myBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
+#define myBROWN      CLITERAL(Color){ 184, 129, 0, 255 }    // Brown
+#define myDARKBROWN  CLITERAL(Color){ 128, 77, 44, 255 }      // Dark Brown
+#define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
+#define myGRAY       CLITERAL(Color){ 151, 171, 176, 255 }   // Gray
+#define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
 
 // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
-        BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
-        SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
-        LIGHTGRAY, GRAY, DARKGRAY, BLACK };
-
-
-// Custom color Palette
-// #define MYWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-// #define MYBLACK      CLITERAL(Color){ 26, 21, 39, 255 }         // Black
-// #define MYBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-// #define MYYELLOW     CLITERAL(Color){ 249, 240, 107, 255 }     // Yellow
-// #define MYGOLD       CLITERAL(Color){ 245, 194, 17, 255 }     // Gold
-// #define MYORANGE     CLITERAL(Color){ 255, 120, 0, 255 }     //  Orange
-// #define MYPINK       CLITERAL(Color){ 255, 127, 157, 255 }     //  Pink
-// #define MYRED        CLITERAL(Color){ 237, 51, 59, 255 }     //  Red
-// #define MYMAROON     CLITERAL(Color){ 165, 29, 45, 255 }     //  Maroon
-// #define MYGREEN      CLITERAL(Color){ 143, 240, 164, 255 }      // Green
-// #define MYLIME       CLITERAL(Color){ 51, 209, 122, 255 }      // Lime
-// #define MYDARKGREEN  CLITERAL(Color){ 0, 162, 105, 255 }      // Dark Green
-// #define MYSKYBLUE    CLITERAL(Color){ 153, 193, 241, 255 }   // Sky Blue
-// #define MYBLUE       CLITERAL(Color){ 53, 132, 228, 255 }     // Blue
-// #define MYDARKBLUE   CLITERAL(Color){ 26, 95, 180, 255 }      // Dark Blue
-// #define MYPURPLE     CLITERAL(Color){ 200, 122, 255, 255 }   // Purple
-// #define MYVIOLET     CLITERAL(Color){ 135, 60, 190, 255 }    // Violet
-// #define MYDARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
-// #define MYBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
-// #define MYBROWN      CLITERAL(Color){ 152, 106, 68, 255 }    // Brown
-// #define MYDARKBROWN  CLITERAL(Color){ 99, 69, 44, 255 }      // Dark Brown
-// #define MYLIGHTGRAY  CLITERAL(Color){ 192, 191, 188,255}   // Light Gray
-// #define MYGRAY       CLITERAL(Color){ 154, 153, 150, 255 }   // Gray
-// #define MYDARKGRAY   CLITERAL(Color){ 94, 92, 100, 255 }      // Dark Gray
-
-// // Colors to choose from
-// const Color colors[MAX_COLORS_COUNT] = {
-//         MYBLANK, MYWHITE,MYYELLOW, MYGOLD, MYORANGE, MYPINK, MYRED, MYMAROON, MYGREEN, MYLIME, MYDARKGREEN,
-//         MYSKYBLUE, MYBLUE, MYDARKBLUE, MYPURPLE, MYVIOLET, MYDARKPURPLE, MYBEIGE, MYBROWN, MYDARKBROWN,
-//         MYLIGHTGRAY, MYGRAY, MYDARKGRAY, MYBLACK };
+        myBLANK, myWHITE,myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
+        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
+        myLIGHTGRAY, myGRAY, myDARKGRAY, myBLACK };
 
 const char *colorNames[MAX_COLORS_COUNT] = { 
         "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
@@ -176,11 +150,11 @@ typedef struct {
 // Draw checkerboard (default)
 void drawCheckerboard(void)
 {
-        for (int y = 0; y < BIN_ROWS-1; y+=2)
-            for (int x = 0; x < BIN_COLS-1; x+=2)
+        for (int row = 0; row < numRows-1; row+=2)
+            for (int col = 0; col < numCols-1; col+=2)
                 {
-                DrawRectangleRec((Rectangle){spriteGridPos.x + (x*gridSpacing), spriteGridPos.y + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
-                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (x*gridSpacing), spriteGridPos.y + gridSpacing + (y*gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + ( col * gridSpacing), spriteGridPos.y + ( row * gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
+                DrawRectangleRec((Rectangle){spriteGridPos.x + gridSpacing+ (col * gridSpacing), spriteGridPos.y + gridSpacing + (row * gridSpacing), gridSpacing, gridSpacing},CHECKB_COLOR);
                 }
         DrawRectangleLinesEx(scissorArea,1,CHECKB_COLOR);
     }
@@ -188,25 +162,25 @@ void drawCheckerboard(void)
 // Draw grid lines 
 void drawGridLines(void)
 {
-        for (int i = 0; i <= BIN_ROWS; i+=1)
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (i * gridSpacing)},(Vector2){spriteGridPos.x + (BIN_COLS* gridSpacing), spriteGridPos.y + i*gridSpacing},1, GRID_COLOR);
-        for (int j = 0; j <= BIN_COLS; j+=1)
-            DrawLineEx((Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (j * gridSpacing), spriteGridPos.y + (BIN_ROWS*gridSpacing)},1, GRID_COLOR);
+        for (int row = 0; row <= numRows; row+=1) // horizontal lines
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * gridSpacing)},(Vector2){spriteGridPos.x + (numCols* gridSpacing), spriteGridPos.y + (row * gridSpacing)},1, GRID_COLOR);
+        for (int col = 0; col <= numCols; col+=1) //vertical lines
+            DrawLineEx((Vector2){spriteGridPos.x + (col * gridSpacing), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * gridSpacing), spriteGridPos.y + (numRows*gridSpacing)},1, GRID_COLOR);
         DrawRectangleLinesEx(scissorArea,1,GRID_COLOR);
 }
 
 void drawSprite()
 {    
-            for (int i = 0; i < BIN_ROWS; i++)
+            for (int row = 0; row < numRows; row++)
                 {
-                    for (int j = 0; j < BIN_COLS; j++)
+                    for (int col = 0; col < numCols; col++)
                     {
                         // disegna sfondo cella  in base al valore 1/0
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
-                        DrawRectangleRec((Rectangle){(spriteGridPos.x + gridSpacing*j) , (spriteGridPos.y + gridSpacing*i), 
+                        DrawRectangleRec((Rectangle){(spriteGridPos.x + (gridSpacing * col)) , (spriteGridPos.y + (gridSpacing * row)), 
                           gridSpacing, 
                           gridSpacing }, 
-                          colors[matrice[j][i]]);
+                          colors[matrice[row][col]]);
                          //DrawText(TextFormat("%02i",matrice[j][i]),2+spriteGridPos.x + gridSpacing*j,2+spriteGridPos.y + gridSpacing*i,10,WHITE);
                     }
                 }   
@@ -215,36 +189,38 @@ void drawSprite()
 void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
-        DrawRectangle(miniaturePos.x,miniaturePos.y,BIN_COLS*miniatureSCALE,BIN_ROWS*miniatureSCALE, BG_COLOR);
-        DrawRectangleLines(miniaturePos.x, miniaturePos.y , (BIN_COLS*miniatureSCALE), (BIN_ROWS*miniatureSCALE), BORDER_COLOR);
+        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, BG_COLOR);
+        DrawRectangleLines(miniaturePos.x, miniaturePos.y , (numCols*miniatureSCALE), (numRows*miniatureSCALE), BORDER_COLOR);
     // intestazioni riga/colonna matrice colore e miniatura
-        for (int i = 0; i < BIN_ROWS; i++)
+        for (int row = 0; row < numRows; row++)
         {
-            for (int j = 0; j < BIN_COLS; ++j)
+            for (int col = 0; col < numCols; ++col)
             {
-                DrawRectangle(miniaturePos.x + (miniatureSCALE*j), miniaturePos.y + (miniatureSCALE*i) ,miniatureSCALE ,miniatureSCALE, colors[matrice[j][i]]);
+                DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE ,miniatureSCALE, colors[matrice[row][col]]);
             }
         }
 }
 
 // azzera matrice colore
-void resetSprite(void)
+void initGrid(void)
 {
-    for (int i = 0; i < BIN_ROWS; i++)
-        for (int j = 0; j < BIN_COLS; j++) matrice[j][i] = 0;
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++)
+            matrice[row][col] = 0;
 }
 void showArrayVal(void)
 {
-    for (int i = 0; i < BIN_ROWS; i++)
-        for (int j = 0; j < BIN_COLS; j++) DrawText(TextFormat("%2d",matrice[j][i]), 4+(spriteGridPos.x + gridSpacing*j) ,4+(spriteGridPos.y + gridSpacing*i),10, ON_COLOR);
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++) 
+            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + gridSpacing*col), 4 + (spriteGridPos.y + gridSpacing*row),10, ON_COLOR);
 }
 
 void replaceColor(int old, int new)
 {
-            for (int i = 0; i < BIN_ROWS; i++) 
-                for (int j = 0; j < BIN_COLS; j++) 
+            for (int row = 0; row < numRows; row++) 
+                for (int col = 0; col < numCols; col++) 
                 {
-                    if (matrice[j][i] == old) matrice[j][i] = new;
+                    if (matrice[row][col] == old) matrice[row][col] = new;
                 }
 }
 
@@ -271,7 +247,7 @@ void floodFill(int row, int col, int oldColor, int newColor)
         {
             checkRow = row + adjacent[i].dx;
             checkCol = col + adjacent[i].dy;
-            if((checkRow < BIN_ROWS) && (checkCol < BIN_COLS)) /* within window boundaries */
+            if((checkRow < numRows) && (checkCol < numCols)) /* within window boundaries */
             {
                 if((checkRow >= 0) && (checkCol >= 0))
                 {
@@ -385,7 +361,7 @@ for (int i = 0; i < MAX_COLORS_COUNT; i++)
     player.cell = (Point){ 0, 0 };
 
 //reset matrice sprite e copia di backup
-    resetSprite();
+    initGrid();
 
 // set FPS
 SetTargetFPS(60);
@@ -445,19 +421,19 @@ while (!WindowShouldClose())
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
 
-                player.cell.x = (mouseWorldPos.x - spriteGridPos.x) / gridSpacing ;
-                player.cell.y = (mouseWorldPos.y - spriteGridPos.y) / gridSpacing;
+                player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / gridSpacing ;
+                player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / gridSpacing;
 
 
                 // Make sure player does not go out of bounds
                 if (player.cell.x < 0) player.cell.x = 0;
-                if (player.cell.x >= BIN_COLS) player.cell.x = BIN_COLS - 1;
+                if (player.cell.x >= numRows) player.cell.x = numRows - 1;
                 if (player.cell.y < 0) player.cell.y = 0;
-                if (player.cell.y >= BIN_ROWS) player.cell.y = BIN_ROWS - 1;
+                if (player.cell.y >= numCols) player.cell.y = numCols - 1;
 
                 // IMPROVE HERE make a better undo action
                 //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                  //copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                  //copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
 
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
                 if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0;
@@ -475,7 +451,7 @@ while (!WindowShouldClose())
                     if (IsKeyDown(KEY_DOWN))
                     {
                         camera.target.y += speed;
-                         if (camera.target.y > spriteGridPos.y + (BIN_ROWS*gridSpacing)) camera.target.y = spriteGridPos.y + (BIN_ROWS*gridSpacing);
+                         if (camera.target.y > spriteGridPos.y + (numRows*gridSpacing)) camera.target.y = spriteGridPos.y + (numRows*gridSpacing);
                     }
                     if (IsKeyDown(KEY_LEFT))
                     {
@@ -485,7 +461,7 @@ while (!WindowShouldClose())
                     if (IsKeyDown(KEY_RIGHT))
                     {
                         camera.target.x += speed;
-                         if (camera.target.x > spriteGridPos.x + (BIN_COLS*gridSpacing)) camera.target.x = spriteGridPos.x + (BIN_COLS*gridSpacing);
+                         if (camera.target.x > spriteGridPos.x + (numCols*gridSpacing)) camera.target.x = spriteGridPos.x + (numCols*gridSpacing);
                     }
                 }
         }
@@ -509,89 +485,123 @@ while (!WindowShouldClose())
             else if (IsKeyPressed(KEY_N))
             {
                      // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-                    resetSprite();
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
+                    initGrid();
                     strcpy(fNAME,"library/default.pix");
             }
             else if (IsKeyPressed(KEY_C)) 
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
-                    resetSprite();
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
+                    initGrid();
                 }
             else if (IsKeyPressed(KEY_R)) 
                 {
                     // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                     replaceColor(currentColor, selectedColor);
                 }
-            else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], BIN_ROWS, BIN_COLS);
+            else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
             else if (IsKeyPressed(KEY_S)) isSaving=true;
             else if (IsKeyPressed(KEY_F))
             {
                 // fai sempre una copia di backup dello stato attuale della matrice
-                copyMatrix(&matrice[0][0], &matriceUndo[0][0], BIN_ROWS, BIN_COLS);
+                copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                 floodFill(px,py,currentColor,selectedColor);
             }
             else if (IsKeyPressed(KEY_D)) // shift bin array right by 1
             {
-                for (int i = 0; i < BIN_ROWS; i++) // righe
+                for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza ultimo bit della riga
-                        const int tmp = matrice[BIN_COLS - 1][i];
-                        for (int j = BIN_COLS-1; j>0; j--) // colonne
-                        {                        
-                            // sposta verso destra bit righe
-                            matrice[j][i] = matrice[j-1][i];
-                        }
+                        const int temp = matrice[row][numCols - 1];
+                        for (int col = numCols-1; col > 0; col--) // colonne
+                            matrice[row][col] = matrice[row][col-1];
                         // alla fine il "primo" bit prende il valore dell'ultimo
-                        matrice[0][i] = tmp;
+                        matrice[row][0] = temp;
                     }
             }
             else if (IsKeyPressed(KEY_A))// shift bin array left by 1
             {
-                for (int i = 0; i < BIN_ROWS; i++) // righe
+                for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza primo bit della riga
-                        const int tmp = matrice[0][i];
-                        for (int j = 0; j< BIN_COLS-1; j++) // colonne
-                        {                        
-                            // sposta verso destra bit righe
-                            matrice[j][i] = matrice[j+1][i];
-                        }
+                        const int temp = matrice[row][0];
+                        for (int col = 0; col < numCols-1; col++) // colonne
+                            matrice[row][col] = matrice[row][col+1];
                         // alla fine ultimo bit prende il valore del prim
-                        matrice[BIN_COLS-1][i] = tmp;
+                        matrice[row][numCols-1] = temp;
                     }
             }
-            else if (IsKeyPressed(KEY_W)) // shift bin array down by 1
+            else if (IsKeyPressed(KEY_W)) // shift bin array up by 1
             {
-                for (int i = 0; i < BIN_COLS; i++) // colonne
+                for (int col = 0; col < numCols; col++) // colonne
                     {
                         // memorizza prima riga
-                        const int tmp = matrice[i][0];
-                            for (int j=0; j < BIN_ROWS-1; ++j) // righe
-                            {
-                                matrice[i][j] = matrice[i][j+1];
-                            }
-                        //
+                        const int temp = matrice[0][col];
+                            for (int row=0; row < numRows-1; row++) // righe
+                                matrice[row][col] = matrice[row+1][col];
                         // ultima riga prende valori della prima
-                        matrice[i][BIN_ROWS- 1] = tmp;
+                        matrice[numRows - 1][col] = temp;
                     }
             }
-            else if (IsKeyPressed(KEY_X))// shift bin array up by 1
+            else if (IsKeyPressed(KEY_X))// shift bin array down by 1
              {
-                    for (int i = 0; i < BIN_COLS; i++) // colonne
+                    for (int col = 0; col < numCols; col++) // colonne
                         {
                             // memorizza stato ultima riga
-                            const int tmp = matrice[i][BIN_ROWS - 1];
-                            for (int j = BIN_ROWS -1; j>0; --j) // righe
-                            {
-                                matrice[i][j] = matrice[i][j-1];
-                            }
+                            const int temp = matrice[numRows - 1][col];
+                            for (int row = numRows -1;  row > 0; row--) // righe
+                                matrice[row][col] = matrice[row-1][col];
                             // prima riga prende valore ultima riga
-                            matrice[i][0] = tmp;
+                            matrice[0][col] = temp;
                         }
                 }
+
+            else if (IsKeyPressed(KEY_E))// rotate matrix clockwise
+             {
+                    // trasposizione  matrice binaria
+                    for (int row = 0; row < numRows; row++) {
+                        for (int col = row +1 ; col < numCols ; col++) { 
+                           int temp = matrice[col][row];
+                           matrice[col][row] =  matrice[row][col];
+                           matrice[row][col] = temp;
+                        }
+                    }
+                    // poi ruota di 90° antiorario
+                    for (int row = 0; row < numRows; row++) {
+                        for (int col = 0,k = numCols -1; col<k; col++, k--) { 
+                           int temp = matrice[row][col];
+                           matrice[row][col] =  matrice[row][k];
+                           matrice[row][k] = temp;
+                        }
+                    }
+            }
+
+                else if (IsKeyPressed(KEY_H))// horizontal mirror
+                {
+                    int temp;
+                    for (int row = 0; row < numRows; ++row)
+                    {
+                        for (int col = 0; col < numCols / 2; col++) 
+                        {
+                        temp = matrice[row][col];
+                        matrice[row][col] = matrice[row][numCols - 1 - col];
+                        matrice[row][numCols - 1 - col] = temp;
+                        }
+                    }
+                }
+
+                else if (IsKeyPressed(KEY_V))// // vertical mirror
+                {
+                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], 32, 32);
+                    for (int row = 0; row < numRows; row++)
+                        for (int col = 0; col < numCols; col++) {
+                            matrice[numRows -1 - row][col] = matriceMirrorV[row][col];
+                    }
+                }
+
+
 
                 //---------------------------------------------------------------------
                 //  file LIbrary management
@@ -622,8 +632,8 @@ while (!WindowShouldClose())
 
     BeginDrawing();
         ClearBackground(GRID_BG_COLOR);
-        DrawRectangle(186,50, BIN_ROWS*gridSpacing + 68,screenHeight, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonnaa
-        //DrawRectangleLines(186,50, BIN_ROWS*gridSpacing +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
+        DrawRectangle(186,50, numCols*gridSpacing + 68,screenHeight, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonnaa
+        DrawRectangleLines(186,50, numCols*gridSpacing +68,screenHeight, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
 
@@ -664,11 +674,11 @@ while (!WindowShouldClose())
         if (!showGrid) {
             //vertical
             DrawLineEx((Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y }, 
-                       (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (BIN_ROWS*gridSpacing)  },
+                       (Vector2){ spriteGridPos.x + (px*gridSpacing) + (gridSpacing/2), spriteGridPos.y + (numRows*gridSpacing)  },
                        1, Fade(ON_COLOR, 0.5f));
             // horizontal
             DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (py*gridSpacing) + gridSpacing/2 }, 
-                       (Vector2){ spriteGridPos.x + (BIN_COLS*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
+                       (Vector2){ spriteGridPos.x + (numCols*gridSpacing) , spriteGridPos.y  + (py*gridSpacing) + (gridSpacing/2) },
                        1, Fade(ON_COLOR, 0.5f));
             }
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
@@ -680,15 +690,15 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // draw rows and columns headers.
         //----------------------------------------------------------------------
-        for (int i = 0; i < BIN_ROWS; i+=1)
+        for (int row = 0; row < numRows; row++)
         {
-        DrawTextEx(font, TextFormat("%01d",i),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (i * gridSpacing)}, 12, 0, FG_COLOR); //sinistra
-        DrawTextEx(font, TextFormat("%01d",i),(Vector2){spriteGridPos.x + BIN_COLS*gridSpacing +8,spriteGridPos.y + 4 + (i * gridSpacing)}, 12, 0, FG_COLOR);//destra
+        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * gridSpacing)}, 12, 0, FG_COLOR); //sinistra
+        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x + numCols*gridSpacing +8,spriteGridPos.y + 4 + (row * gridSpacing)}, 12, 0, FG_COLOR);//destra
         }
-        for (int j = 0; j < BIN_COLS; j+=1)
+        for (int col = 0; col < numCols; col++)
         {
-        DrawTextEx(font,TextFormat("%01d",j),(Vector2){spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
-        DrawTextEx(font,TextFormat("%01d",j),(Vector2){spriteGridPos.x + 4 + (j * gridSpacing),spriteGridPos.y + BIN_ROWS*gridSpacing+8} ,12,0,FG_COLOR);//sotto
+        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * gridSpacing),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
+        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * gridSpacing),spriteGridPos.y + numRows*gridSpacing+8} ,12,0,FG_COLOR);//sotto
         }
         //----------------------------------------------------------------------
         // draw sprite miniature and colors info
@@ -737,7 +747,7 @@ while (!WindowShouldClose())
             // -----------------------------------------------------------------
             //  draw file list / Work library 
             //------------------------------------------------------------------
-            DrawText("Art Library",libraryPos.x+16, libraryPos.y-4, 20, FG_COLOR);
+            DrawText("Library",libraryPos.x+40, libraryPos.y-4, 20, FG_COLOR);
             DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,BG_COLOR);
             DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,BORDER_COLOR);
             for (int i = 0; i < visibleItems; i++) {
@@ -760,15 +770,20 @@ while (!WindowShouldClose())
             GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
             //Keybinding label
             GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+40, 140, 20 }, "Press 'G' to show/hide grid.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'C' to clear all.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'R' to replace color.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'A' to shift matrix left.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'D' to shit matrix right.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'W' to shift matrix up.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'X' to shift matrix down.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'Z' to undo last action.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'F' to fill color area.");
-            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'N' to create new default file.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+60, 140, 20 }, "Press 'N' to create new default file.");
+            
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+80, 140, 20 }, "Press 'C' to clear all.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+100, 140, 20 }, "Press 'R' to replace color.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+120, 140, 20 }, "Press 'F' to fill color area.");
+            
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+140, 140, 20 }, "Press 'A' to shift matrix left.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+160, 140, 20 }, "Press 'D' to shit matrix right.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+180, 140, 20 }, "Press 'W' to shift matrix up.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+200, 140, 20 }, "Press 'X' to shift matrix down.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+220, 140, 20 }, "Press 'E' to rotate clockwise.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+240, 140, 20 }, "Press 'H' to horiz. mirror.");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+260, 140, 20 }, "Press 'V' to Vert. mirror");
+            GuiLabel((Rectangle){ panelBarPos.x, panelBarPos.y+280, 140, 20 }, "Press 'Z' to undo last action.");
 
             GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y, 140, 20 }, "Mousewheel to zoom in/out.");
             GuiLabel((Rectangle){ panel2BarPos.x, panel2BarPos.y+20, 140, 20 }, "WinKey + mouse left to move.");
