@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.5.0"
+#define TOOL_VERSION            "1.5.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -74,30 +74,28 @@ bool isEditing = false;
 
 int px,py;
 
-
 // custom Colors
-
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
 #define myBLACK      CLITERAL(Color){ 14, 35, 46, 255 }         // Black
 #define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
 #define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
-#define myGOLD       CLITERAL(Color){ 251, 192, 2, 255 }     // Gold
-#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange
-#define myPINK       CLITERAL(Color){ 241, 202, 255, 255 }     //  Pink
+#define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
+#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
+#define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
 #define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 138, 30, 3, 255 }     //  Maroon / Granata
+#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
 #define myGREEN      CLITERAL(Color){ 204, 255, 66, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 154, 222, 0, 255 }      // Lime
 #define myDARKGREEN  CLITERAL(Color){ 0, 140, 69, 255 }      // Dark Green /verde bandiera
 #define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myPURPLE     CLITERAL(Color){ 215, 108, 255, 255 }   // Purple
-#define myVIOLET     CLITERAL(Color){ 185, 0, 255, 255 }    // Violet
-#define myDARKPURPLE CLITERAL(Color){ 112, 31, 126, 255 }    // Dark Purple
-#define myBEIGE      CLITERAL(Color){ 205, 171, 143, 255 }   // Beige
-#define myBROWN      CLITERAL(Color){ 184, 129, 0, 255 }    // Brown
-#define myDARKBROWN  CLITERAL(Color){ 128, 77, 44, 255 }      // Dark Brown
+#define myPURPLE     CLITERAL(Color){ 147,112,219, 255 }   // Purple
+#define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
+#define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
+#define myBEIGE      CLITERAL(Color){ 213,188,162, 255 }   // Beige
+#define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
+#define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
 #define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
 #define myGRAY       CLITERAL(Color){ 151, 171, 176, 255 }   // Gray
 #define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
@@ -107,6 +105,14 @@ const Color colors[MAX_COLORS_COUNT] = {
         myBLANK, myWHITE,myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
         mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
         myLIGHTGRAY, myGRAY, myDARKGRAY, myBLACK };
+
+// // Colors to choose from
+// const Color colors[MAX_COLORS_COUNT] = {
+//          BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
+//          SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
+//          LIGHTGRAY, GRAY, DARKGRAY, BLACK };
+
+
 
 const char *colorNames[MAX_COLORS_COUNT] = { 
         "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
@@ -120,7 +126,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
 #define BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
 // grid and checkerboard
-#define GRID_COLOR CLITERAL(Color){ 116, 126, 146, 255} 
+#define GRID_COLOR CLITERAL(Color){ 200, 200, 200, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
 #define CHECKB_COLOR CLITERAL(Color){ 249, 254, 254, 255} 
 // some funs
@@ -205,12 +211,12 @@ void drawThumbnail (void)
     // cornice e sfondo miniatura
         DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, BG_COLOR);
         DrawRectangleLines(miniaturePos.x-1, miniaturePos.y-1 , 2+(numCols*miniatureSCALE), 2+(numRows*miniatureSCALE), BORDER_COLOR);
-    // intestazioni riga/colonna matrice colore e miniatura
+        //miniatura
         for (int row = 0; row < numRows; row++)
         {
             for (int col = 0; col < numCols; ++col)
             {
-                DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE ,miniatureSCALE, colors[matrice[row][col]]);
+            DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE,miniatureSCALE, colors[matrice[row][col]]);
             }
         }
 }
@@ -525,6 +531,8 @@ while (!WindowShouldClose())
             {
                     initGrid();
                     strcpy(fNAME,"library/default.pix");
+                    //azzera matrice undo
+                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
             }
             else if (btnClear)  //clear matrix 
                 {
@@ -796,9 +804,9 @@ while (!WindowShouldClose())
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#194#");
 
-        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 36, btnWidth, btnHeight }, "#41#");
+        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 108, btnWidth, btnHeight }, "#41#");
         btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
-        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
+        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 108, btnWidth, btnHeight }, "#40#");
         
         btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
         btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#60#");
