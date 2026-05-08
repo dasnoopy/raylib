@@ -679,7 +679,7 @@ while (!WindowShouldClose())
         DrawRectangleRec((Rectangle){ spriteGridPos.x + (py*cellSize), spriteGridPos.y + (px*cellSize), 
                           cellSize, 
                           cellSize},
-                          Fade(ON_COLOR, 0.5f));
+                          Fade(BLACK, 0.5f));
 
         //----------------------------------------------------------------------
         // Draw crosshair (and hide grid)
@@ -688,11 +688,11 @@ while (!WindowShouldClose())
             //vertical
             DrawLineEx((Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y }, 
                        (Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y + (numRows*cellSize)  },
-                       1, Fade(ON_COLOR, 0.5f));
+                       1, Fade(BLACK, 0.5f));
             // horizontal
             DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (px*cellSize) + cellSize/2 }, 
                        (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
-                       1, Fade(ON_COLOR, 0.5f));
+                       1, Fade(BLACK, 0.5f));
             }
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
         if (showGrid) drawGridLines();
@@ -748,6 +748,8 @@ while (!WindowShouldClose())
             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
             fclose(fLoad);
             isLoading=false;
+            // fai subito una copia della matrice
+            copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
         }
 
             // -----------------------------------------------------------------
