@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.4.7"
+#define TOOL_VERSION            "1.5.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -34,7 +34,7 @@
 #include "raygui.h"
 
 const int screenWidth = 1080;
-const int screenHeight = 768;
+const int screenHeight = 732;
 
 #define numCols       32
 #define numRows       32
@@ -47,11 +47,11 @@ const int cellSize = 20;
 #define MAX_NAME 256
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {192, 730};
+const Vector2 colorsBarPos = {40, 348};
 const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {28,68};
-const Vector2 toolbarPos = {40,204};
-const Vector2 keyinfoPos = {24,610};
+const Vector2 toolbarPos = {40,220};
+const Vector2 keyinfoPos = {912,620};
 const Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
@@ -353,8 +353,8 @@ int main (int argc, char *argv[])
     int selected = 0;
     int scrollOffset = 0;
 
-    const int itemHeight = 25;
-    const int listHeight = itemHeight*26; //altezza in pixel lista
+    const int itemHeight = 23;
+    const int listHeight = itemHeight*16; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
     // gestione stato load & save file
@@ -362,12 +362,19 @@ int main (int argc, char *argv[])
     bool isSaving=false;
 
 // Define colorsRecs data (for every rectangle)
+int offX=0;
+int offY=0;
 for (int i = 0; i < MAX_COLORS_COUNT; i++)
     {
-    colorsRecs[i].x = colorsBarPos.x + 27.0f*i + 2*i;
-    colorsRecs[i].y = colorsBarPos.y;
-    colorsRecs[i].width = 26;
-    colorsRecs[i].height = 26;
+    if (i % 3 == 0) {
+        offX=0;
+        offY++;
+    }
+    colorsRecs[i].x = colorsBarPos.x + 33.0f*offX + 2*offX;
+    colorsRecs[i].y = colorsBarPos.y + 34.0f*offY;
+    colorsRecs[i].width = 31;
+    colorsRecs[i].height = 31;
+    offX++;
     }
 
 // Init player 0 (cursor for bin matrix)
@@ -720,10 +727,10 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x-136, colorsBarPos.y+4},16,0,BLACK);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x +16, colorsBarPos.y+348},16,0,BLACK);
         // draw current color frame
-        DrawRectangleLines(colorsBarPos.x -175  ,colorsBarPos.y , 26,26,BORDER_COLOR);
-        DrawRectangle(colorsBarPos.x-174 ,colorsBarPos.y + 1, 24 , 24, colors[currentColor]);
+        DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 344 , 26,26,BORDER_COLOR);
+        DrawRectangle(colorsBarPos.x-19 ,colorsBarPos.y + 345, 24 , 24, colors[currentColor]);
 
         //----------------------------------------------------------------------
         // SAVE and LOAD in binary mode : to improve!
