@@ -84,9 +84,9 @@ int px,py;
 #define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
 #define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
 #define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
-#define myGREEN      CLITERAL(Color){ 204, 255, 66, 255 }      // Green
-#define myLIME       CLITERAL(Color){ 154, 222, 0, 255 }      // Lime
-#define myDARKGREEN  CLITERAL(Color){ 0, 140, 69, 255 }      // Dark Green /verde bandiera
+#define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
+#define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
+#define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
 #define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
@@ -124,11 +124,11 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
-#define BG_COLOR CLITERAL(Color){ 236, 241,241, 255} 
+#define BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
 // grid and checkerboard
-#define GRID_COLOR CLITERAL(Color){ 200, 200, 200, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
-#define CHECKB_COLOR CLITERAL(Color){ 249, 254, 254, 255} 
+#define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
+#define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
+#define CHECKB_COLOR CLITERAL(Color){ 245, 250, 250, 255} 
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
@@ -209,7 +209,7 @@ void drawSprite()
 void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
-        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, BG_COLOR);
+        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, GRID_BG_COLOR);
         DrawRectangleLines(miniaturePos.x-1, miniaturePos.y-1 , 2+(numCols*miniatureSCALE), 2+(numRows*miniatureSCALE), BORDER_COLOR);
         //miniatura
         for (int row = 0; row < numRows; row++)
@@ -336,7 +336,7 @@ int main (int argc, char *argv[])
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
     // load TTF font with better antialiasing
-    Font font = LoadFontEx("assets/VictorMono-Bold.ttf", 18, 0, 0);
+    Font font = LoadFontEx("assets/OSD-Mono.ttf", 16, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     // Set UI style
     // Custom GUI font isLoading
@@ -653,12 +653,12 @@ while (!WindowShouldClose())
 // Draw
 //----------------------------------------------------------------------------------
     BeginTextureMode(target);
-        ClearBackground(GRID_BG_COLOR);
+        ClearBackground(BG_COLOR);
     EndTextureMode();
 
     BeginDrawing();
-        ClearBackground(GRID_BG_COLOR);
-        DrawRectangle(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize + 68,numRows*cellSize + 68, BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonna
+        ClearBackground(BG_COLOR);
+        DrawRectangle(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize + 68,numRows*cellSize + 68, GRID_BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonna
         DrawRectangleLines(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize +68,numRows*cellSize + 68, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
         DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
         DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
@@ -683,7 +683,7 @@ while (!WindowShouldClose())
     BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
         BeginMode2D(camera);
         drawCheckerboard(); // just to emulate a transparent background
-
+        
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
         //showArrayVal();  // enable just to debug content of matrix
@@ -711,7 +711,6 @@ while (!WindowShouldClose())
             }
         // grid below sprite (if want grid above sprite move line just before EndMode2D)
         if (showGrid) drawGridLines();
-        
         EndMode2D();
     EndScissorMode();
 
@@ -720,13 +719,13 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         for (int row = 0; row < numRows; row++)
         {
-        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 12, 0, FG_COLOR); //sinistra
-        DrawTextEx(font, TextFormat("%01d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 12, 0, FG_COLOR);//destra
+        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 9, 0, FG_COLOR); //sinistra
+        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 9, 0, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
-        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
-        DrawTextEx(font,TextFormat("%01d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,12,0,FG_COLOR);//sotto
+        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},9,0,FG_COLOR);//sopra
+        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,9,0,FG_COLOR);//sotto
         }
 
         //----------------------------------------------------------------------
@@ -735,7 +734,7 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x +16, colorsBarPos.y+348},16,0,BLACK);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x +16, colorsBarPos.y+348},12,0,FG_COLOR);
         // draw current color frame
         DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 344 , 26,26,BORDER_COLOR);
         DrawRectangle(colorsBarPos.x-19 ,colorsBarPos.y + 345, 24 , 24, colors[currentColor]);
@@ -771,7 +770,7 @@ while (!WindowShouldClose())
             //  draw file list / Work library 
             //------------------------------------------------------------------
             DrawText("Library",libraryPos.x+40, libraryPos.y-4, 20, FG_COLOR);
-            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,BG_COLOR);
+            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_BG_COLOR);
             DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,BORDER_COLOR);
             for (int i = 0; i < visibleItems; i++) {
                 int index = i + scrollOffset;
