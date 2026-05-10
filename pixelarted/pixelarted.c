@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.1"
+#define TOOL_VERSION            "1.6.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -130,10 +130,10 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // grid and checkerboard
 #define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
-#define CHECKB_COLOR CLITERAL(Color){ 245, 250, 250, 255} 
+#define CHECKB_COLOR CLITERAL(Color){ 244, 249, 249, 255} 
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
-#define OFFa_COLOR CLITERAL(Color){ 242, 103, 39,255}
+#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 131, 131, 131, 255} 
 
 // bottoni toolbar
@@ -150,6 +150,7 @@ bool btnShtDx = false;
 bool btnRotate = false;
 bool btnBruHor = false;
 bool btnBruVer = false;
+bool btnQuit = false;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -518,7 +519,7 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
-            if (IsKeyPressed(KEY_Q)) break;
+            if (btnQuit || IsKeyPressed(KEY_Q)) break;
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
             else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
             else if (IsKeyPressed(KEY_R)) //replace current color with selectec color
@@ -683,7 +684,7 @@ while (!WindowShouldClose())
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
         DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
-                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height +2},2, FG_COLOR);
+                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},2, FG_COLOR);
 
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
@@ -742,10 +743,10 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x +16, colorsBarPos.y+348},12,0,FG_COLOR);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},12,0,FG_COLOR);
         // draw current color frame
-        DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 344 , 26,26,BORDER_COLOR);
-        DrawRectangle(colorsBarPos.x-19 ,colorsBarPos.y + 345, 24 , 24, colors[currentColor]);
+        DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 342 , 22,22,BORDER_COLOR);
+        DrawRectangle(colorsBarPos.x-18 ,colorsBarPos.y + 344, 18 , 18, colors[currentColor]);
 
         //----------------------------------------------------------------------
         // SAVE and LOAD in binary mode : to improve!
@@ -815,7 +816,7 @@ while (!WindowShouldClose())
         GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
-        if (showGrid) GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#97#", &showGrid);
+        if (showGrid) GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#101#", &showGrid);
         else GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#66#", &showGrid);
 
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
@@ -841,6 +842,8 @@ while (!WindowShouldClose())
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
+
+            btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
 
         EndDrawing();
     }
