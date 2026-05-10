@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -50,7 +50,7 @@ const int cellSize = 20;
 const Vector2 colorsBarPos = {40, 328};
 const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,72};
-const Vector2 toolbarPos = {40,202};
+const Vector2 toolbarPos = {40,198};
 const Vector2 keyinfoPos = {912,620};
 const Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
@@ -362,9 +362,8 @@ int main (int argc, char *argv[])
     int fileCount = load_files_recursive(".", files,0);
     int selected = 0;
     int scrollOffset = 0;
-
     const int itemHeight = 23;
-    const int listHeight = itemHeight*16; // "numero" di file vizualizzati
+    const int listHeight = itemHeight*22; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
     // gestione stato load & save file
@@ -456,15 +455,10 @@ while (!WindowShouldClose())
                 player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / cellSize ;
                 player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / cellSize;
 
-
-          
-
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
                     { matrice[player.cell.x][player.cell.y] = selectedColor;
                         if (brushHmirr) matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
                         else if (brushVmirr) matrice[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
-
-
                     }
 
                 if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
@@ -510,9 +504,7 @@ while (!WindowShouldClose())
         // aggiorna posizione "cursore" e relativo colore...
         int px= player.cell.x;
         int py= player.cell.y;
-
         int currentColor = matrice[px][py];
-
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -669,8 +661,8 @@ while (!WindowShouldClose())
         ClearBackground(BG_COLOR);
         DrawRectangle(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize + 68,numRows*cellSize + 68, GRID_BG_COLOR);  //sfondo checkerboard compreso intestazioni riga/colonna
         DrawRectangleLines(spriteGridPos.x-34,spriteGridPos.y-36, numCols*cellSize +68,numRows*cellSize + 68, BORDER_COLOR); //bordo attorno al rettangolo qui sopra!
-        DrawText(TextFormat("%s", TOOL_SHORT_NAME), 36, 14, 20, FG_COLOR); 
-        DrawText(TextFormat("version %s", TOOL_VERSION), 52, 38, 10, GRAY); 
+        DrawText(TextFormat("%s", TOOL_SHORT_NAME), 38, 14, 20, FG_COLOR); 
+        DrawText(TextFormat("version %s", TOOL_VERSION), 58, 38, 10, GRAY); 
 
         //----------------------------------------------------------------------
         // Draw color selection bar
@@ -704,7 +696,6 @@ while (!WindowShouldClose())
                           cellSize, 
                           cellSize},
                           Fade(BLACK, 0.5f));
-
         //----------------------------------------------------------------------
         // Draw crosshair (and hide grid)
         // ---------------------------------------------------------------------
@@ -751,7 +742,6 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // SAVE and LOAD in binary mode : to improve!
         //----------------------------------------------------------------------
-
         if (isSaving)
         {
             FILE *fSave = fopen(fNAME, "wb");
@@ -776,9 +766,9 @@ while (!WindowShouldClose())
         }
 
             // -----------------------------------------------------------------
-            //  draw file list / Work library 
+            //  print file list / library 
             //------------------------------------------------------------------
-            DrawText("Library",libraryPos.x+40, libraryPos.y-4, 20, FG_COLOR);
+            DrawText("Library",libraryPos.x, 14, 20, FG_COLOR);
             DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_BG_COLOR);
             DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,BORDER_COLOR);
             for (int i = 0; i < visibleItems; i++) {
@@ -793,7 +783,7 @@ while (!WindowShouldClose())
                 }   
                 DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
             }
-            
+            //------------------------------------------------------------------            
             GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Work file: ['S'] to save.");
             if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
@@ -824,10 +814,11 @@ while (!WindowShouldClose())
 
         GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y +108 , 32, 32 }, "#85#", &brushHmirr);
             if (brushHmirr) brushVmirr=false;
+
         btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
+
         GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 108 , 32, 32 }, "#83#", &brushVmirr);
             if (brushVmirr) brushHmirr=false;
-        
 
         btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
         btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#77#");
@@ -837,13 +828,13 @@ while (!WindowShouldClose())
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
         btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
 
-            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
-            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
-            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
-            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
-            GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
 
-            btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
+        btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
 
         EndDrawing();
     }
