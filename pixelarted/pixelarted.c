@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.5.1"
+#define TOOL_VERSION            "1.6.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -71,6 +71,8 @@ char fNAME[] = "library/default.pix";
 char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool isEditing = false;
+bool brushHmirr = false;
+bool brushVmirr = false;
 
 int px,py;
 
@@ -131,7 +133,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define CHECKB_COLOR CLITERAL(Color){ 245, 250, 250, 255} 
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
-#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
+#define OFFa_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 131, 131, 131, 255} 
 
 // bottoni toolbar
@@ -146,7 +148,8 @@ bool btnShtDn = false;
 bool btnShtSx = false;
 bool btnShtDx = false;
 bool btnRotate = false;
-
+bool btnBruHor = false;
+bool btnBruVer = false;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -376,8 +379,8 @@ for (int i = 0; i < MAX_COLORS_COUNT; i++)
         offX=0;
         offY++;
     }
-    colorsRecs[i].x = colorsBarPos.x + 33.0f*offX + 2*offX;
-    colorsRecs[i].y = colorsBarPos.y + 34.0f*offY;
+    colorsRecs[i].x = colorsBarPos.x + 34.0f*offX + 2*offX;
+    colorsRecs[i].y = colorsBarPos.y + 35.0f*offY;
     colorsRecs[i].width = 31;
     colorsRecs[i].height = 31;
     offX++;
@@ -453,18 +456,23 @@ while (!WindowShouldClose())
                 player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / cellSize;
 
 
+          
+
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
+                    { matrice[player.cell.x][player.cell.y] = selectedColor;
+                        if (brushHmirr) matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
+                        else if (brushVmirr) matrice[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
+
+
+                    }
+
+                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
+      
                 // Make sure player does not go out of bounds
                 if (player.cell.x < 0) player.cell.x = 0;
                 else if (player.cell.x >= numRows) player.cell.x = numRows - 1;
                 if (player.cell.y < 0) player.cell.y = 0;
                 else if (player.cell.y >= numCols) player.cell.y = numCols - 1;
-
-                // IMPROVE HERE make a better undo action
-                //if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // copia la matrice colori in una matrice copia per un succ. revert completo...
-                  //copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-
-                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = selectedColor;
-                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
 
 
             //-------------------------------------------------------------------
@@ -793,25 +801,40 @@ while (!WindowShouldClose())
         int btnWidth = 32;
         int btnHeight = 32;
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+        // define button style
         GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
         GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
         GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
         GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
         GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
         GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
-        btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#97#");
-        btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
-        btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#194#");
+        // define TOGGLE styel
+        GuiSetStyle(TOGGLE, TEXT_COLOR_NORMAL,0x000000FF);
+        GuiSetStyle(TOGGLE, BASE_COLOR_NORMAL,0xECF1F1FF);
+        GuiSetStyle(TOGGLE, TEXT_COLOR_PRESSED,0x000000FF);
+        GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
-        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 108, btnWidth, btnHeight }, "#41#");
+        //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
+        if (showGrid) GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#97#", &showGrid);
+        else GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#66#", &showGrid);
+
+        btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
+        btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
+
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y +108 , 32, 32 }, "#23#H", &brushHmirr);
+            if (brushHmirr) brushVmirr=false;
         btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
-        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 108, btnWidth, btnHeight }, "#40#");
+        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 108 , 32, 32 }, "#23#V", &brushVmirr);
+            if (brushVmirr) brushHmirr=false;
         
+
         btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
-        btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#60#");
+        btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#77#");
         btnShtDx = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 72, btnWidth, btnHeight }, "#119#");
 
+        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 36, btnWidth, btnHeight }, "#41#");
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
+        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
 
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
             GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
