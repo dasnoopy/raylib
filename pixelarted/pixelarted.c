@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.3"
+#define TOOL_VERSION            "1.6.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,10 +47,10 @@ const int cellSize = 20;
 #define MAX_NAME 256
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {40, 348};
+const Vector2 colorsBarPos = {40, 328};
 const Vector2 spriteGridPos = {220, 48};
-const Vector2 miniaturePos = {28,68};
-const Vector2 toolbarPos = {40,220};
+const Vector2 miniaturePos = {44,72};
+const Vector2 toolbarPos = {40,202};
 const Vector2 keyinfoPos = {912,620};
 const Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
@@ -64,7 +64,7 @@ int matriceMirrorV[numRows][numCols];
 int selectedColor = 24;
 int currentColor = 0;
 int colorMouseHover = 0;
-int miniatureSCALE= 4;
+int miniatureSCALE= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
 char fNAME[] = "library/default.pix";
@@ -213,8 +213,8 @@ void drawSprite()
 void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
+        DrawRectangleLines(miniaturePos.x-4, miniaturePos.y-4 , 8+(numCols*miniatureSCALE), 8+(numRows*miniatureSCALE), BORDER_COLOR);
         DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, GRID_BG_COLOR);
-        DrawRectangleLines(miniaturePos.x-1, miniaturePos.y-1 , 2+(numCols*miniatureSCALE), 2+(numRows*miniatureSCALE), BORDER_COLOR);
         //miniatura
         for (int row = 0; row < numRows; row++)
         {
@@ -822,10 +822,10 @@ while (!WindowShouldClose())
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
 
-        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y +108 , 32, 32 }, "#23#H", &brushHmirr);
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y +108 , 32, 32 }, "#85#", &brushHmirr);
             if (brushHmirr) brushVmirr=false;
         btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
-        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 108 , 32, 32 }, "#23#V", &brushVmirr);
+        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 108 , 32, 32 }, "#83#", &brushVmirr);
             if (brushVmirr) brushHmirr=false;
         
 
