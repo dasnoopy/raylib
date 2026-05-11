@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.6"
+#define TOOL_VERSION            "1.6.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,10 +47,10 @@ const int cellSize = 20;
 #define MAX_NAME 256
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {40, 328};
+const Vector2 colorsBarPos = {40, 356};
 const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,72};
-const Vector2 toolbarPos = {40,198};
+const Vector2 toolbarPos = {40,188};
 const Vector2 keyinfoPos = {912,620};
 const Vector2 libraryPos = {906,20};
 Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
@@ -213,7 +213,7 @@ void drawSprite()
 void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
-        DrawRectangleLines(miniaturePos.x-4, miniaturePos.y-4 , 8+(numCols*miniatureSCALE), 8+(numRows*miniatureSCALE), BORDER_COLOR);
+        DrawRectangleLines(miniaturePos.x-2, miniaturePos.y-2 , 4+(numCols*miniatureSCALE), 4+(numRows*miniatureSCALE), BORDER_COLOR);
         DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, GRID_BG_COLOR);
         //miniatura
         for (int row = 0; row < numRows; row++)
@@ -363,7 +363,7 @@ int main (int argc, char *argv[])
     int selected = 0;
     int scrollOffset = 0;
     const int itemHeight = 23;
-    const int listHeight = itemHeight*22; // "numero" di file vizualizzati
+    const int listHeight = itemHeight*18; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
     // gestione stato load & save file
@@ -455,6 +455,13 @@ while (!WindowShouldClose())
                 player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / cellSize ;
                 player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / cellSize;
 
+                // Make sure player does not go out of bounds
+                if (player.cell.x < 0) player.cell.x = 0;
+                else if (player.cell.x >= numRows) player.cell.x = numRows - 1;
+                if (player.cell.y < 0) player.cell.y = 0;
+                else if (player.cell.y >= numCols) player.cell.y = numCols - 1;
+
+
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
                     { matrice[player.cell.x][player.cell.y] = selectedColor;
                         if (brushHmirr) matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
@@ -462,13 +469,6 @@ while (!WindowShouldClose())
                     }
 
                 if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
-      
-                // Make sure player does not go out of bounds
-                if (player.cell.x < 0) player.cell.x = 0;
-                else if (player.cell.x >= numRows) player.cell.x = numRows - 1;
-                if (player.cell.y < 0) player.cell.y = 0;
-                else if (player.cell.y >= numCols) player.cell.y = numCols - 1;
-
 
             //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
@@ -828,8 +828,9 @@ while (!WindowShouldClose())
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
         btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
 
-        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y, 140, 20 }, "['R' ] to replace color.");
-        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+20, 140, 20 }, "['F'] to fill color area.");
+        GuiLabel((Rectangle){ toolbarPos.x, toolbarPos.y + 144, 140, 20 }, "['R' ] to replace color.");
+        GuiLabel((Rectangle){ toolbarPos.x, toolbarPos.y + 164, 140, 20 }, "['F'] to fill color area.");
+
         GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
         GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
         GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
