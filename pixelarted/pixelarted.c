@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.7"
+#define TOOL_VERSION            "1.6.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -73,6 +73,7 @@ bool fnameEditMode = false;
 bool isEditing = false;
 bool brushHmirr = false;
 bool brushVmirr = false;
+bool debug = false;
 
 int px,py;
 
@@ -113,8 +114,6 @@ const Color colors[MAX_COLORS_COUNT] = {
 //          BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
 //          SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
 //          LIGHTGRAY, GRAY, DARKGRAY, BLACK };
-
-
 
 const char *colorNames[MAX_COLORS_COUNT] = { 
         "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
@@ -319,9 +318,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 
             if (ext && strcmp(ext, ".pix") == 0) {
                  int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
-                if (written >= 0 && written < MAX_NAME) {
-                    count++;
-                }
+                if (written >= 0 && written < MAX_NAME) count++;
             }
         }
     }
@@ -512,6 +509,7 @@ while (!WindowShouldClose())
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
             if (btnQuit || IsKeyPressed(KEY_Q)) break;
+            else if (IsKeyPressed(KEY_D)) debug = !debug;
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
             else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
             else if (IsKeyPressed(KEY_R)) //replace current color with selectec color
@@ -687,7 +685,7 @@ while (!WindowShouldClose())
         
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
-        //showArrayVal();  // enable just to debug content of matrix
+        if (debug) showArrayVal();  // enable just to debug content of matrix
 
         //----------------------------------------------------------------------
         // Draw cursor moving when inside the sprite grid
