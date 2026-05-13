@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.6.8"
+#define TOOL_VERSION            "1.7.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -71,10 +71,12 @@ char fNAME[] = "library/default.pix";
 char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool isEditing = false;
-bool brushHmirr = false;
-bool brushVmirr = false;
+bool isDrawHmirr = false;
+bool isDrawVmirr = false;
+bool isFloodFill = false;
+bool isColorRepl = false;
+bool isDrawing = true;
 bool debug = false;
-
 int px,py;
 
 // custom Colors
@@ -186,10 +188,10 @@ void drawCheckerboard(void)
 void drawGridLines(void)
 {
         for (int row = 0; row <= numRows; row+=1) // horizontal lines
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, GRID_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, FG_COLOR);
         for (int col = 0; col <= numCols; col+=1) //vertical lines
-            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, GRID_COLOR);
-        DrawRectangleLinesEx(scissorArea,1,GRID_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, FG_COLOR);
+        DrawRectangleLinesEx(scissorArea,1,FG_COLOR);
 }
 
 void drawSprite()
@@ -329,7 +331,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
+    //SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
     InitWindow(screenWidth, screenHeight, "Pixel Art Editor");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -458,14 +460,28 @@ while (!WindowShouldClose())
                 if (player.cell.y < 0) player.cell.y = 0;
                 else if (player.cell.y >= numCols) player.cell.y = numCols - 1;
 
+                // aggiorna posizione "cursore" e relativo colore...
+                px= player.cell.x;
+                py= player.cell.y;
+                currentColor = matrice[px][py];
 
-                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) 
-                    { matrice[player.cell.x][player.cell.y] = selectedColor;
-                        if (brushHmirr) matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
-                        else if (brushVmirr) matrice[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) {
+                        if (isDrawing) matrice[player.cell.x][player.cell.y] = selectedColor;
+                        if (isDrawHmirr) {
+                            matrice[player.cell.x][player.cell.y] = selectedColor;
+                            matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
+                        }
+                        if (isDrawVmirr) {
+                            matrice[player.cell.x][player.cell.y] = selectedColor;
+                            matrice[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
+                        }
+                        if (isColorRepl) replaceColor(currentColor, selectedColor);
+                        if (isFloodFill) floodFill(px,py,currentColor,selectedColor);
+
+
                     }
 
-                if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
+                if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
 
             //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
@@ -498,10 +514,7 @@ while (!WindowShouldClose())
         ShowCursor(); //restore os cursor visibility outside matrix
         isEditing = false; } // fuori dalla matrice faccio quello che voglio!
 
-        // aggiorna posizione "cursore" e relativo colore...
-        int px= player.cell.x;
-        int py= player.cell.y;
-        int currentColor = matrice[px][py];
+
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -805,29 +818,58 @@ while (!WindowShouldClose())
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
         if (showGrid) GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#101#", &showGrid);
-        else GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#66#", &showGrid);
-
+            else GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#66#", &showGrid);
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
 
-        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y +108 , 32, 32 }, "#85#", &brushHmirr);
-            if (brushHmirr) brushVmirr=false;
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y + 36 , 32, 32 }, "#23#", &isDrawing);
+            if (isDrawing) {
+                isColorRepl=false;
+                isFloodFill=false;
+                isDrawHmirr=false;
+                isDrawVmirr=false;
+            }
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y + 72 , 32, 32 }, "#29#", &isFloodFill);
+            if (isFloodFill) {
+                isDrawing=false;
+                isColorRepl=false;
+                isDrawHmirr=false;
+                isDrawVmirr=false;
+            }
+        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 72 , 32, 32 }, "#94#", &isColorRepl);
+            if (isColorRepl) {
+                isDrawing=false;
+                isFloodFill=false;
+                isDrawHmirr=false;
+                isDrawVmirr=false;
+            }
 
-        btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 36, btnWidth, btnHeight }, "#121#");
 
-        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 108 , 32, 32 }, "#83#", &brushVmirr);
-            if (brushVmirr) brushHmirr=false;
+        GuiToggle((Rectangle){ toolbarPos.x + 36, toolbarPos.y + 36 , 32, 32 }, "#85#", &isDrawHmirr);
+            if (isDrawHmirr) {
+                isDrawing=false;
+                isDrawVmirr=false;
+                isFloodFill=false;
+                isColorRepl=false;
+            }
 
-        btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 72, btnWidth, btnHeight }, "#118#");
-        btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#77#");
-        btnShtDx = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 72, btnWidth, btnHeight }, "#119#");
+        btnShtUp = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 72, btnWidth, btnHeight }, "#121#");
 
-        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 36, btnWidth, btnHeight }, "#41#");
-        btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#120#");
-        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 36, btnWidth, btnHeight }, "#40#");
+        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 36 , 32, 32 }, "#83#", &isDrawVmirr);
+            if (isDrawVmirr) {
+                isDrawing=false;
+                isDrawHmirr=false;
+                isFloodFill=false;
+                isColorRepl=false;
+            }
 
-        GuiLabel((Rectangle){ toolbarPos.x, toolbarPos.y + 144, 140, 20 }, "['R' ] to replace color.");
-        GuiLabel((Rectangle){ toolbarPos.x, toolbarPos.y + 164, 140, 20 }, "['F'] to fill color area.");
+        btnShtSx = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y + 108, btnWidth, btnHeight }, "#118#");
+        btnRotate = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 108, btnWidth, btnHeight }, "#77#");
+        btnShtDx = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 108, btnWidth, btnHeight }, "#119#");
+
+        btnHmirr = GuiButton((Rectangle){toolbarPos.x , toolbarPos.y + 144, btnWidth, btnHeight }, "#41#");
+        btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 144, btnWidth, btnHeight }, "#120#");
+        btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 144, btnWidth, btnHeight }, "#40#");
 
         GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
         GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
