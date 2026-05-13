@@ -331,7 +331,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 
 int main (int argc, char *argv[])
 {
-    //SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
+    SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
     InitWindow(screenWidth, screenHeight, "Pixel Art Editor");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
