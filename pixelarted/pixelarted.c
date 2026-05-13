@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.0"
+#define TOOL_VERSION            "1.7.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -67,7 +67,7 @@ int colorMouseHover = 0;
 int miniatureSCALE= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fNAME[] = "library/default.pix";
+char fNAME[] = "default.pix";
 char extfile[] = { "pix" };
 bool fnameEditMode = false;
 bool isEditing = false;
@@ -75,7 +75,10 @@ bool isDrawHmirr = false;
 bool isDrawVmirr = false;
 bool isFloodFill = false;
 bool isColorRepl = false;
-bool isDrawing = true;
+bool isDrawing = false;
+// gestione stato load & save file
+bool isLoading=false;
+bool isSaving=false;
 bool debug = false;
 int px,py;
 
@@ -341,9 +344,6 @@ int main (int argc, char *argv[])
     // load TTF font with better antialiasing
     Font font = LoadFontEx("assets/OSD-Mono.ttf", 16, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
-    // Set UI style
-    // Custom GUI font isLoading
-    //GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
     GuiSetIconScale(1);
 
@@ -365,9 +365,7 @@ int main (int argc, char *argv[])
     const int listHeight = itemHeight*18; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
-    // gestione stato load & save file
-    bool isLoading=false;
-    bool isSaving=false;
+
 
 // Define colorsRecs data (for every rectangle)
 int offX=0;
@@ -477,8 +475,6 @@ while (!WindowShouldClose())
                         }
                         if (isColorRepl) replaceColor(currentColor, selectedColor);
                         if (isFloodFill) floodFill(px,py,currentColor,selectedColor);
-
-
                     }
 
                 if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
@@ -525,24 +521,11 @@ while (!WindowShouldClose())
             else if (IsKeyPressed(KEY_D)) debug = !debug;
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
             else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
-            else if (IsKeyPressed(KEY_R)) //replace current color with selectec color
-                {
-                    // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-                    replaceColor(currentColor, selectedColor);
-                }
-            else if (IsKeyPressed(KEY_F)) // flood fill
-            {
-                // fai sempre una copia di backup dello stato attuale della matrice
-                copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-                floodFill(px,py,currentColor,selectedColor);
-            }
             else if (btnGrid) showGrid = !showGrid;
-
             else if (btnNew)
             {
                     initGrid();
-                    strcpy(fNAME,"library/default.pix");
+                    strcpy(fNAME,"default.pix");
                     //azzera matrice undo
                     copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
             }
