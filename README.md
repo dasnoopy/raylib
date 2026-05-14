@@ -17,14 +17,12 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
-** Some screenshot**
-
-** PixelArt Editor**
+_PixelArt Editor_
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
-** Dotchar editor**
+_Dotchar editor_
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
-** 5 Band resistor calculator**
+_5 Band resistor calculator_
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 

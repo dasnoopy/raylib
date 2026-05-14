@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.2"
+#define TOOL_VERSION            "1.7.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -58,7 +58,7 @@ Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numR
 // definizione matrici
 int matrice[numRows][numCols];
 int matriceUndo[numRows][numCols];
-int matriceMirrorV[numRows][numCols];
+int matriceMirror[numRows][numCols];
 
 // Definizione variabili
 int selectedColor = 24;
@@ -101,7 +101,7 @@ int px,py;
 #define myPURPLE     CLITERAL(Color){ 147,112,219, 255 }   // Purple
 #define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
 #define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
-#define myBEIGE      CLITERAL(Color){ 213,188,162, 255 }   // Beige
+#define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
 #define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
 #define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
 #define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
@@ -240,16 +240,14 @@ void showArrayVal(void)
 {
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++) 
-            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + cellSize*col), 4 + (spriteGridPos.y + cellSize*row),10, ON_COLOR);
+            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + cellSize*col), 5 + (spriteGridPos.y + cellSize*row),10, FG_COLOR);
 }
 
 void replaceColor(int old, int new)
 {
             for (int row = 0; row < numRows; row++) 
                 for (int col = 0; col < numCols; col++) 
-                {
                     if (matrice[row][col] == old) matrice[row][col] = new;
-                }
 }
 
 void copyMatrix(int * src, int * dst, int N, int M)
@@ -365,8 +363,6 @@ int main (int argc, char *argv[])
     const int itemHeight = 23;
     const int listHeight = itemHeight*18; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
-
-
 
 // Define colorsRecs data (for every rectangle)
 int offX=0;
@@ -511,8 +507,6 @@ while (!WindowShouldClose())
         ShowCursor(); //restore os cursor visibility outside matrix
         isEditing = false; } // fuori dalla matrice faccio quello che voglio!
 
-
-
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
@@ -608,19 +602,19 @@ while (!WindowShouldClose())
 
                 else if (btnVmirr) // vertical mirror
                 {
-                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
+                    copyMatrix(&matrice[0][0], &matriceMirror[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
-                            matrice[row][numCols -1 - col] = matriceMirrorV[row][col];
+                            matrice[row][numCols -1 - col] = matriceMirror[row][col];
                     }
                 }
 
                 else if (btnHmirr) // horizontal mirror
                 {
-                    copyMatrix(&matrice[0][0], &matriceMirrorV[0][0], numRows, numCols);
+                    copyMatrix(&matrice[0][0], &matriceMirror[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
-                            matrice[numRows -1 - row][col] = matriceMirrorV[row][col];
+                            matrice[numRows -1 - row][col] = matriceMirror[row][col];
                     }
                 }
 
@@ -664,14 +658,16 @@ while (!WindowShouldClose())
         //-----------------------------------------------------------------------
         for (int i = 0; i < MAX_COLORS_COUNT; i++) {
             DrawRectangleRec(colorsRecs[i], colors[i]);
-        //  riquadro attorno al primo colore: BLANK (trasparente)
-            DrawRectangleLinesEx(colorsRecs[i],1, BORDER_COLOR);
+        //  riquadro attorno ai colori
+            DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
+        // debug info
+            if (debug)  DrawText(TextFormat("%2d",i), colorsRecs[i].x + 2 , colorsRecs[i].y + 4,10, FG_COLOR);
         }
         // passando sopra il colore rendilo piu chiaro
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
         DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
-                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},2, FG_COLOR);
+                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},2, BORDER_COLOR);
 
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
@@ -801,7 +797,7 @@ while (!WindowShouldClose())
         GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
-        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#101#", &showGrid);
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#38#", &showGrid);
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
 
