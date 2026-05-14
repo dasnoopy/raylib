@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.1"
+#define TOOL_VERSION            "1.7.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -105,7 +105,7 @@ int px,py;
 #define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
 #define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
 #define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
-#define myGRAY       CLITERAL(Color){ 151, 171, 176, 255 }   // Gray
+#define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
 #define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
 
 // Colors to choose from
@@ -138,7 +138,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 131, 131, 131, 255} 
+#define BORDER_COLOR CLITERAL(Color){ 20, 25, 25, 202} 
 
 // bottoni toolbar
     // UI required variables
@@ -191,10 +191,10 @@ void drawCheckerboard(void)
 void drawGridLines(void)
 {
         for (int row = 0; row <= numRows; row+=1) // horizontal lines
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, FG_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, BORDER_COLOR);
         for (int col = 0; col <= numCols; col+=1) //vertical lines
-            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, FG_COLOR);
-        DrawRectangleLinesEx(scissorArea,1,FG_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, BORDER_COLOR);
+        DrawRectangleLinesEx(scissorArea,1,BORDER_COLOR);
 }
 
 void drawSprite()
@@ -293,7 +293,8 @@ void floodFill(int row, int col, int oldColor, int newColor)
 int compare_files(const void *a, const void *b) {
     const char *fa = (const char *)a;
     const char *fb = (const char *)b;
-    return strcmp(fa, fb);
+    return strcmp(fa, fb); // case sensitive
+    // return strcasecmp((const char *)a, (const char *)b); // no case sensitive
 }
 
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
@@ -800,8 +801,7 @@ while (!WindowShouldClose())
         GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
-        if (showGrid) GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#101#", &showGrid);
-            else GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#66#", &showGrid);
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#101#", &showGrid);
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
         btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
 
