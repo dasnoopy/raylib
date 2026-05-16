@@ -20,12 +20,13 @@
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
+*            export font_custom.h
 *
 *******************************************************************************************/
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.7.5"
+#define TOOL_VERSION            "2.8.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -81,7 +82,7 @@ int matrix_Mirror[BIN_ROWS][BIN_COLS];
 // mouse and clipoard
 bool mouseHoverCells = false;
 bool mouseHoverASCII = false;
-const char fNAME[] = "data.fnt";
+const char fNAME[] = "font.bin";
 
 // bottoni toolbar
     // UI required variables
@@ -530,13 +531,33 @@ int main (int argc, char *argv[])
 
         if (btnSave)
         {
-                // Source - https://stackoverflow.com/a/18597747
-                // Posted by Sergey Kalinichenko
-                // Retrieved 2026-04-16, License - CC BY-SA 3.0
-
+                //salva binario
                 FILE *fSave = fopen(fNAME, "wb");
+                if (fSave == NULL) {
+                    printf("File [font.bin] non trovato!\n");
+                    return 1; }
                 fwrite(TableFont, sizeof(char), sizeof(TableFont), fSave);
                 fclose(fSave);
+
+                // salva myFont.h
+                FILE *fp = fopen("font.h", "w");
+                if (fp == NULL) {
+                    printf("File [font.bin] non trovato!\n");
+                    return 1;}
+                
+                fprintf(fp, "// custom matrix font definition\n");
+                fprintf(fp, "int TableFont[128][8] = {\n");
+                for (int i = 0; i < 128; ++i) {
+                    fprintf(fp,"\t{");
+                    // scrivi i primi 7 byte nel formato 0x00,
+                    for (int j = 0; j < 7; ++j) fprintf(fp,"0x%02x,",TableFont [i][j]);
+                    // scrivi ultimo byte riga "0x00}," e ultimissimo byte "0x00}" 
+                    if (i<127) fprintf(fp,"0x%02x}, // char: %i\n",TableFont[i][7],i);
+                    else fprintf(fp,"0x%02x} // char: 127\n",TableFont[127][7]);
+                }
+                fprintf(fp, "};\n");
+                fclose(fp);
+
         }
 
         if (btnLoad)
@@ -544,7 +565,7 @@ int main (int argc, char *argv[])
 
             FILE *fLoad = fopen(fNAME, "rb"); 
                 if (fLoad == NULL) {
-                    printf("File [data.fnt] non trovato!\n");
+                    printf("File [font.bin] non trovato!\n");
                     return 1;
                     // gestire file not found con finestra
 
@@ -689,8 +710,8 @@ int main (int argc, char *argv[])
         btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, btnWidth, btnHeight }, "Paste char");
         btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, btnWidth, btnHeight }, "Revert char");
         btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, btnWidth, btnHeight }, "Delete char");
-        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, btnWidth, btnHeight }, "Load data.fnt");
-        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, btnWidth, btnHeight }, "Save data.fnt");
+        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, btnWidth, btnHeight }, "Load font.bin");
+        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, btnWidth, btnHeight }, "Save font.bin");
         btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, btnWidth, btnHeight }, "Default font");
         EndDrawing();
     }

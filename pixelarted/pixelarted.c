@@ -749,6 +749,9 @@ while (!WindowShouldClose())
         if (isLoading)
         {
             FILE *fLoad = fopen(fNAME, "rb"); 
+                if (fLoad == NULL) {
+                    printf("Impossibile scrivere il file [%s]!\n",fNAME);
+                return 1; }
             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
             fclose(fLoad);
             isLoading=false;
