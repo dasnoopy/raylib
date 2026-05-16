@@ -67,8 +67,8 @@ int colorMouseHover = 0;
 int miniatureSCALE= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fNAME[] = "default.pix";
-char extfile[] = { "pix" };
+char fName[] = "default.pix";
+char extfName[] = ".pix" ;
 bool fnameEditMode = false;
 bool isEditing = false;
 bool isDrawHmirr = false;
@@ -320,7 +320,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         else if (S_ISREG(st.st_mode)) {
             const char *ext = strrchr(name, '.');
 
-            if (ext && strcmp(ext, ".pix") == 0) {
+            if (ext && strcmp(ext, extfName) == 0) {
                  int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
                 if (written >= 0 && written < MAX_NAME) count++;
             }
@@ -520,7 +520,7 @@ while (!WindowShouldClose())
             else if (btnNew)
             {
                     initGrid();
-                    strcpy(fNAME,"default.pix");
+                    strcpy(fName,"default.pix");
                     //azzera matrice undo
                     copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
             }
@@ -627,7 +627,7 @@ while (!WindowShouldClose())
                         if (IsKeyPressed(KEY_DOWN)) selected++;
                         if (IsKeyPressed(KEY_UP)) selected--;
                         if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
-                            strcpy(fNAME,files[selected]);
+                            strcpy(fName,files[selected]);
                             camera.zoom=1.0f;
                             isLoading=true;
                         }
@@ -735,9 +735,9 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         if (isSaving)
         {
-            FILE *fSave = fopen(fNAME, "wb");
+            FILE *fSave = fopen(fName, "wb");
                 if (fSave == NULL) {
-                    printf("Impossibile scrivere il file [%s]!\n",fNAME);
+                    printf("Impossibile scrivere il file [%s]!\n",fName);
                     return 1; }
             fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
             fclose(fSave);
@@ -748,9 +748,9 @@ while (!WindowShouldClose())
 
         if (isLoading)
         {
-            FILE *fLoad = fopen(fNAME, "rb"); 
+            FILE *fLoad = fopen(fName, "rb"); 
                 if (fLoad == NULL) {
-                    printf("Impossibile scrivere il file [%s]!\n",fNAME);
+                    printf("Impossibile scrivere il file [%s]!\n",fName);
                 return 1; }
             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
             fclose(fLoad);
@@ -779,7 +779,7 @@ while (!WindowShouldClose())
             }
             //------------------------------------------------------------------            
             GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Work file: ['S'] to save.");
-            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
 
         // toolbar and messages
