@@ -2,31 +2,24 @@
 *
 *   DOT CHAR EDITOR
 *   A simple app to learn C using raylib library
-* 
-*  CHANGELOG:
-* 
-*  v. 1.0   : first release: draw a 8x8 dot matrix and show/copy HEX value
-*  v. 1.2   : add controls to shift matrix up/down/left/right/invert/rotate left/right
-*  v. 1.3   : add some other trivial utilities and code cleaning
-*  v. 1.3.2 : add some visual improvements;
-* 
+
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************
 *
 *   TODO LIST POSSIBLE IMPROVEMENTS:
 *       - consentire edit solo dei caratteri validi da 33 a 127
-*       - gestione font.data : 
+*       - gestione font.bin e font.h  : 
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
-*            export font_custom.h
+*           - write somewhere the file name in use and define file to load save like pixeled
 *
 *******************************************************************************************/
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.8.0"
+#define TOOL_VERSION            "2.8.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,22 +28,33 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-// load custom font to a 128x8 matrix
-#include "custom_font.h"
-
+#include <dirent.h>
+#include <sys/stat.h>
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-const int screenWidth = 768;
+// load custom font to a 128x8 matrix
+#include "custom_font.h"
+
+// barra path su Linux oppure su WIN
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
+const int screenWidth = 960;
 const int screenHeight = 720;
 
  // initial X,Y coordinates for variuos interface elements
-Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
-Vector2 toolbar_XY = { 22, 40 }; // posizione toolbar
+const Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
+const Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
+const Vector2 toolbar_XY = { 22, 40 }; // posizione toolbar
+const Vector2 libraryPos = {780,24}; // posizione libreria file
 // ASCII TABLE
-Vector2 ascii_grid_XY  = { 168, 408 };
+const Vector2 ascii_grid_XY  = { 168, 408 };
+
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
 
 #define gridSpacing       36
@@ -82,7 +86,12 @@ int matrix_Mirror[BIN_ROWS][BIN_COLS];
 // mouse and clipoard
 bool mouseHoverCells = false;
 bool mouseHoverASCII = false;
-const char fNAME[] = "font.bin";
+
+//file management
+#define MAX_FILES 512
+#define MAX_NAME 256
+char fNAME[] = "font.bin";
+char extfile[] = { "bin" };
 
 // bottoni toolbar
     // UI required variables
@@ -103,6 +112,13 @@ const char fNAME[] = "font.bin";
     bool btnMirrorH = false;
     bool btnMirrorV = false;
     bool btnRevertFont = false;
+    // quando scrivo nome file non fare niente altro
+    bool fnameEditMode = false;
+    bool isEditing = false;
+    // gestione stato load & save file
+    bool isLoading=false;
+    bool isSaving=false;
+
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -328,6 +344,49 @@ void copy_matrix_2d(int * src, int * dst, int N, int M){
     }
 }
 
+int compare_files(const void *a, const void *b) {
+    const char *fa = (const char *)a;
+    const char *fb = (const char *)b;
+    return strcmp(fa, fb); // case sensitive
+    // return strcasecmp((const char *)a, (const char *)b); // no case sensitive
+}
+
+int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
+{
+    DIR *dir = opendir(path);
+    if (!dir) return count;
+
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
+        const char *name = entry->d_name;
+
+        // evita "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+        char fullpath[512];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
+        // se è file → controlla estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && strcmp(ext, ".bin") == 0) {
+                 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) count++;
+            }
+        }
+    }
+    closedir(dir);
+    qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
+    return count;
+}
+
 int main (int argc, char *argv[])
 {
 
@@ -363,6 +422,17 @@ int main (int argc, char *argv[])
     // Init  player1 (cursor for ASCII table matrix)
     PlayerState player1 = { 0 };
     player1.cell = (Point){ 0, 0 };
+
+// file open/save variables
+    char files[MAX_FILES][MAX_NAME];
+    int fileCount = load_files_recursive(".", files,0);
+    int selected = 0;
+    int scrollOffset = 0;
+    const int itemHeight = 23;
+    const int listHeight = itemHeight*18; // "numero" di file vizualizzati
+    int visibleItems = listHeight / itemHeight;
+
+
 
     //reset matrice binaria
     reset_matrix();
@@ -529,62 +599,9 @@ int main (int argc, char *argv[])
             }
         }
 
-        if (btnSave)
-        {
-                //salva binario
-                FILE *fSave = fopen(fNAME, "wb");
-                if (fSave == NULL) {
-                    printf("File [font.bin] non trovato!\n");
-                    return 1; }
-                fwrite(TableFont, sizeof(char), sizeof(TableFont), fSave);
-                fclose(fSave);
-
-                // salva myFont.h
-                FILE *fp = fopen("font.h", "w");
-                if (fp == NULL) {
-                    printf("File [font.bin] non trovato!\n");
-                    return 1;}
-                
-                fprintf(fp, "// custom matrix font definition\n");
-                fprintf(fp, "int TableFont[128][8] = {\n");
-                for (int i = 0; i < 128; ++i) {
-                    fprintf(fp,"\t{");
-                    // scrivi i primi 7 byte nel formato 0x00,
-                    for (int j = 0; j < 7; ++j) fprintf(fp,"0x%02x,",TableFont [i][j]);
-                    // scrivi ultimo byte riga "0x00}," e ultimissimo byte "0x00}" 
-                    if (i<127) fprintf(fp,"0x%02x}, // char: %i\n",TableFont[i][7],i);
-                    else fprintf(fp,"0x%02x} // char: 127\n",TableFont[127][7]);
-                }
-                fprintf(fp, "};\n");
-                fclose(fp);
-
-        }
-
-        if (btnLoad)
-        {
-
-            FILE *fLoad = fopen(fNAME, "rb"); 
-                if (fLoad == NULL) {
-                    printf("File [font.bin] non trovato!\n");
-                    return 1;
-                    // gestire file not found con finestra
-
-                    }
-            fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
-            fclose(fLoad);
-
-            // aggiorna carattere selezionato dopo load font table
-            LoadLetter(curr_ascii_char);
-
-            // copia di backup del carattere corrente
-            copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
-        }
         
         //----------------------------------------------------------------------------------
         // Player movement logic using arrow keys
-
-
-
         mousePosition = GetMousePosition();
         
         // rileva se la posizione mouse e' dentro la matrice binaria...
@@ -593,6 +610,7 @@ int main (int argc, char *argv[])
             
             if (mouseHoverCells)
             {
+                    isEditing = true;
                     if (IsKeyPressed(KEY_RIGHT)) player.cell.x++;
                     else if (IsKeyPressed(KEY_LEFT)) player.cell.x--;
                     else if (IsKeyPressed(KEY_UP)) player.cell.y--;
@@ -613,6 +631,7 @@ int main (int argc, char *argv[])
                     matrice[player.cell.x][player.cell.y] =!matrice[player.cell.x][player.cell.y];
                     }
             }
+            else { isEditing = false; } // fuori dalla matrice faccio quello che voglio!
                     
             // rileva se la posizione mouse e' dentro la tabella ASCIIa...
             if (mouseHoverASCII)
@@ -639,6 +658,29 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
         if (IsKeyPressed(KEY_Q)) break;
 
+        if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
+        {
+                //---------------------------------------------------------------------
+                //  file LIbrary management
+                //----------------------------------------------------------------------
+                // Scroll con tastiera per sopstarsi tra i files (solo se si e' fuori dalla zona di editing)
+                 if (!isEditing)
+                    {
+                        if (IsKeyPressed(KEY_DOWN)) selected++;
+                        if (IsKeyPressed(KEY_UP)) selected--;
+                        if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
+                            strcpy(fNAME,files[selected]);
+                            isLoading=true;
+                        }
+                        // Clamp selezione
+                        if (selected < 0) selected = 0;
+                        if (selected >= fileCount) selected = fileCount - 1;
+                        // Mantieni selezione visibile
+                        if (selected < scrollOffset) scrollOffset = selected;
+                        if (selected >= scrollOffset + visibleItems) scrollOffset = selected - visibleItems + 1;
+                    }
+           if (IsKeyPressed(KEY_S)) isSaving=true; //save file
+        }
         //----------------------------------------------------------------------------------
 		// Draw
         //----------------------------------------------------------------------------------
@@ -652,13 +694,15 @@ int main (int argc, char *argv[])
             // draw round rectangle as "fake" background with some opacity
             DrawRectangle(0,0,150, screenHeight,GRID_BG_COLOR);
             DrawLine(150,0,150,screenHeight,LIGHTGRAY);
+            DrawRectangle(screenWidth-200, 0,200, screenHeight,GRID_BG_COLOR);
+            DrawLine(screenWidth-200,0,screenWidth-200,screenHeight,LIGHTGRAY);
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
             // some windows info e tricks
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 20, 16, 20, FG_COLOR); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 36, 40, 10, GRAY); 
-
+            
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
             {
@@ -689,14 +733,94 @@ int main (int argc, char *argv[])
                           gridSpacing -1, 
                           gridSpacing -1,
                           matrice[j][i] ? ON_COLOR : OFF_COLOR); 
-            
+        
+
+        if (isSaving)
+        {
+                //salva binario
+                FILE *fSave = fopen(fNAME, "wb");
+                if (fSave == NULL) {
+                    printf("Errore non definito durante salvataggio file!\n");
+                    return 1; }
+                fwrite(TableFont, sizeof(char), sizeof(TableFont), fSave);
+                fclose(fSave);
+
+                // // salva myFont.h
+                // FILE *fp = fopen("font.h", "w");
+                // if (fp == NULL) {
+                //     printf("File [font.bin] non trovato!\n");
+                //     return 1;}
+                
+                // fprintf(fp, "// custom matrix font definition\n");
+                // fprintf(fp, "int TableFont[128][8] = {\n");
+                // for (int i = 0; i < 128; ++i) {
+                //     fprintf(fp,"\t{");
+                //     // scrivi i primi 7 byte nel formato 0x00,
+                //     for (int j = 0; j < 7; ++j) fprintf(fp,"0x%02x, ",TableFont [i][j]);
+                //     // scrivi ultimo byte riga "0x00}," e ultimissimo byte "0x00}" 
+                //     if (i<127) fprintf(fp,"0x%02x}, // char: %i\n",TableFont[i][7],i);
+                //     else fprintf(fp,"0x%02x} // char: 127\n",TableFont[127][7]);
+                // }
+                // fprintf(fp, "};\n");
+                // fclose(fp);
+
+                // aggiorna files list
+                fileCount = load_files_recursive(".", files,0);
+                isSaving=false;
+        }
+
+        if (isLoading)
+        {
+
+            FILE *fLoad = fopen(fNAME, "rb"); 
+                if (fLoad == NULL) {
+                    printf("File [font.bin] non trovato!\n");
+                    return 1;
+                    // gestire file not found con finestra
+                    }
+            fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
+            fclose(fLoad);
+
+            // aggiorna carattere selezionato dopo load font table
+            LoadLetter(curr_ascii_char);
+
+            // copia di backup del carattere corrente
+            copy_matrix_2d(&matrice[0][0], &revert_matrix[0][0], 8, 8);
+
+            isLoading=false;
+        }
+    
+            // -----------------------------------------------------------------
+            //  print file list / library 
+            //------------------------------------------------------------------
+            DrawText("Library",libraryPos.x, 16, 20, FG_COLOR);
+            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_BG_COLOR);
+            DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_COLOR);
+            for (int i = 0; i < visibleItems; i++) {
+                int index = i + scrollOffset;
+                if (index >= fileCount) break;
+
+                int y = libraryPos.y + 30 + i * itemHeight;
+                Rectangle rect = {libraryPos.x, y, 160, itemHeight};
+                    // Evidenzia file selezionato
+                if (index == selected) {
+                    DrawRectangleRec(rect, ON_COLOR);
+                }   
+                DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
+            }
+            //------------------------------------------------------------------            
+        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+            GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Font file: ['S'] to save.");
+            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+                    //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &saveDotH);
+            btnRevertFont = GuiButton((Rectangle){ libraryPos.x,listHeight+120 , 160, 28 }, "Load default font"); 
        
         //  toolbar
         int btnWidth = 104;
         int btnHeight = 28;
-        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+
         //GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Grid on/off", &showGrid);
-        //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &showGrid); 
+
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, btnWidth, btnHeight}, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, btnWidth, btnHeight }, "Shift right");
         btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, btnWidth, btnHeight }, "Shift left");
@@ -710,9 +834,7 @@ int main (int argc, char *argv[])
         btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, btnWidth, btnHeight }, "Paste char");
         btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, btnWidth, btnHeight }, "Revert char");
         btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, btnWidth, btnHeight }, "Delete char");
-        btnLoad       = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*14, btnWidth, btnHeight }, "Load font.bin");
-        btnSave       = GuiButton((Rectangle){ toolbar_XY.x,30 + toolbar_XY.y + gridSpacing*15, btnWidth, btnHeight }, "Save font.bin");
-        btnRevertFont = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*16, btnWidth, btnHeight }, "Default font");
+
         EndDrawing();
     }
     UnloadRenderTexture(target);

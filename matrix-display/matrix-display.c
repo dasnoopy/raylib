@@ -200,9 +200,9 @@ int main (int argc, char *argv[])
         // il file font.data con l' altro programma dotchar-editor!, modificarlo,
         // salvarlo e ricopiarlo qui!  :-)
         // questo sovrascrive la tabella caratteri di default definita nel file: include.h
-            FILE *fLoad = fopen("data.fnt", "rb"); 
+            FILE *fLoad = fopen("font.bin", "rb"); 
             if (fLoad == NULL) {
-                printf("File [data.fnt] non trovato!\n");
+                printf("File [font.bin] non trovato!\n");
             return 1;
             }
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
