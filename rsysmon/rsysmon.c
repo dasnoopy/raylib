@@ -25,8 +25,8 @@
 #define TOOL_SHORT_NAME         "rSysMon"
 #define TOOL_VERSION            "0.0.3"
 
-//#include "custom_font.h" // load default FontTable
-int TableFont[128][8] = {};
+#include "custom_font.h" // load default FontTable
+//int TableFont[128][8] = {};
 
 // valore W e H da adattare in base al fontset creato con dotchar-editor (max. 8x8)
 const int ASCII_WIDTH = 6; 
@@ -53,7 +53,7 @@ int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH);
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
   Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
-  float radius = 0.064f; // no radius
+  float radius = 0.072f; // no radius
   int   segs   = 8; // non segments
   DrawRectangleRounded ( rect, radius, segs, color );
 }
@@ -88,7 +88,8 @@ void drawLetter(int col,int row,int ASCII_CODE)
             HexToBin(TableFont[pos][y],byte);
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH - 1; i>-1 ; i--) {
-                DrawRectangle(posX,posY,dotSize  ,dotSize , byte[i] ? FG_COLOR : BLANK);
+                //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
+                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? FG_COLOR : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -187,14 +188,14 @@ int main (int argc, char *argv[])
     SetConfigFlags (FLAG_VSYNC_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
-    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
+    // SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     // center window on the screen
     // SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
     SetWindowPosition(32,104); 
     SetWindowState(FLAG_WINDOW_UNDECORATED);
     //SetWindowState(FLAG_WINDOW_TOPMOST);
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    SetTargetFPS(60);
+    SetTargetFPS(10);
 
     while (!WindowShouldClose())
     {
@@ -203,15 +204,14 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         // Load at runtime, un custom font dal file font.bin!
         // questo sovrascrive la tabella caratteri di default definita nel file: include.h
-            FILE *fLoad = fopen("rsysmon.fnt", "rb"); 
-            if (fLoad == NULL) {
-                printf("File non trovato!\n");
-            return 1;
-            }
-            fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
-            fclose(fLoad);
+            // FILE *fLoad = fopen("rsysmon.fnt", "rb"); 
+            // if (fLoad == NULL) {
+            //     printf("File non trovato!\n");
+            // return 1;
+            // }
+            // fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);
+            // fclose(fLoad);
 
-            if (IsKeyPressed(KEY_Q)) break;
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -222,9 +222,9 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,WIDTH, HEIGHT,BG_COLOR);
 
             get_dateTime(5,5); // row, col
+            get_uname(5,30);
             get_uptime(5,50);
             get_ipAddress(5,60);
-            get_uname(5,30);
 
         EndDrawing();
     }

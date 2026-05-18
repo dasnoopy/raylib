@@ -18,7 +18,7 @@
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.8.2"
+#define TOOL_VERSION            "2.8.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -747,25 +747,27 @@ int main (int argc, char *argv[])
                 fwrite(TableFont, sizeof(char), sizeof(TableFont), fSave);
                 fclose(fSave);
 
-                // // salva myFont.h
-                // FILE *fp = fopen("font.h", "w");
-                // if (fp == NULL) {
-                //     printf("File [default.fnt] non trovato!\n");
-                //     return 1;}
+                    // salva myFont.h
+                if (saveDotH) {    
+                    FILE *fp = fopen("custom_font.h", "w");
+                    if (fp == NULL) {
+                        printf("File non trovato!\n");
+                        return 1;}
+                    
+                    fprintf(fp, "// custom matrix font definition\n");
+                    fprintf(fp, "int TableFont[128][8] = {\n");
+                    for (int i = 0; i < 128; ++i) {
+                        fprintf(fp,"\t{");
+                        // scrivi i primi 7 byte nel formato 0x00,
+                        for (int j = 0; j < 7; ++j) fprintf(fp,"0x%02x, ",TableFont [i][j]);
+                        // scrivi ultimo byte riga "0x00}," e ultimissimo byte "0x00}" 
+                        if (i<127) fprintf(fp,"0x%02x}, // char: %i\n",TableFont[i][7],i);
+                        else fprintf(fp,"0x%02x} // char: 127\n",TableFont[127][7]);
+                    }
+                    fprintf(fp, "};\n");
+                    fclose(fp);
+                }
                 
-                // fprintf(fp, "// custom matrix font definition\n");
-                // fprintf(fp, "int TableFont[128][8] = {\n");
-                // for (int i = 0; i < 128; ++i) {
-                //     fprintf(fp,"\t{");
-                //     // scrivi i primi 7 byte nel formato 0x00,
-                //     for (int j = 0; j < 7; ++j) fprintf(fp,"0x%02x, ",TableFont [i][j]);
-                //     // scrivi ultimo byte riga "0x00}," e ultimissimo byte "0x00}" 
-                //     if (i<127) fprintf(fp,"0x%02x}, // char: %i\n",TableFont[i][7],i);
-                //     else fprintf(fp,"0x%02x} // char: 127\n",TableFont[127][7]);
-                // }
-                // fprintf(fp, "};\n");
-                // fclose(fp);
-
                 // aggiorna files list
                 fileCount = load_files_recursive(".", files,0);
                 isSaving=false;
