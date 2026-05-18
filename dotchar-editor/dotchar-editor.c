@@ -9,11 +9,11 @@
 *
 *   TODO LIST POSSIBLE IMPROVEMENTS:
 *       - consentire edit solo dei caratteri validi da 33 a 127
-*       - gestione font.bin e font.h  : 
+*       - gestione default.fnt e font.h  : 
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
-*           - write somewhere the file name in use and define file to load save like pixeled
+*       - barre laterali stessa larghezza
 *
 *******************************************************************************************/
 
@@ -50,7 +50,7 @@ const int screenHeight = 720;
  // initial X,Y coordinates for variuos interface elements
 const Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
 const Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
-const Vector2 toolbar_XY = { 22, 40 }; // posizione toolbar
+const Vector2 toolbar_XY = { 22, 60 }; // posizione toolbar
 const Vector2 libraryPos = {780,24}; // posizione libreria file
 // ASCII TABLE
 const Vector2 ascii_grid_XY  = { 168, 408 };
@@ -90,8 +90,8 @@ bool mouseHoverASCII = false;
 //file management
 #define MAX_FILES 512
 #define MAX_NAME 256
-char fNAME[] = "font.bin";
-char extfile[] = { "bin" };
+char fNAME[] = "default.fnt";
+const char extfName[] = ".fnt";
 
 // bottoni toolbar
     // UI required variables
@@ -118,7 +118,7 @@ char extfile[] = { "bin" };
     // gestione stato load & save file
     bool isLoading=false;
     bool isSaving=false;
-
+    bool saveDotH = false;
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -376,7 +376,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         else if (S_ISREG(st.st_mode)) {
             const char *ext = strrchr(name, '.');
 
-            if (ext && strcmp(ext, ".bin") == 0) {
+            if (ext && strcmp(ext, extfName) == 0) {
                  int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
                 if (written >= 0 && written < MAX_NAME) count++;
             }
@@ -449,6 +449,7 @@ int main (int argc, char *argv[])
         if (btnRevertFont) 
         {   
             //ripristina copia orginale matrice TableFont ...
+            strcpy(fNAME,"default.fnt");
             copy_matrix_2d(&revert_font[0][0], &TableFont[0][0], 128, 8);
             LoadLetter(curr_ascii_char);
             // copia di backup del carattere corrente
@@ -748,7 +749,7 @@ int main (int argc, char *argv[])
                 // // salva myFont.h
                 // FILE *fp = fopen("font.h", "w");
                 // if (fp == NULL) {
-                //     printf("File [font.bin] non trovato!\n");
+                //     printf("File [default.fnt] non trovato!\n");
                 //     return 1;}
                 
                 // fprintf(fp, "// custom matrix font definition\n");
@@ -774,7 +775,7 @@ int main (int argc, char *argv[])
 
             FILE *fLoad = fopen(fNAME, "rb"); 
                 if (fLoad == NULL) {
-                    printf("File [font.bin] non trovato!\n");
+                    printf("File [default.fnt] non trovato!\n");
                     return 1;
                     // gestire file not found con finestra
                     }
@@ -794,7 +795,7 @@ int main (int argc, char *argv[])
             //  print file list / library 
             //------------------------------------------------------------------
             DrawText("Library",libraryPos.x, 16, 20, FG_COLOR);
-            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_BG_COLOR);
+            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,BG_COLOR);
             DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_COLOR);
             for (int i = 0; i < visibleItems; i++) {
                 int index = i + scrollOffset;
@@ -812,14 +813,15 @@ int main (int argc, char *argv[])
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
             GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Font file: ['S'] to save.");
             if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fNAME, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-                    //GuiToggle((Rectangle){toolbar_XY.x , toolbar_XY.y, 108, 34  }, "Show grid", &saveDotH);
-            btnRevertFont = GuiButton((Rectangle){ libraryPos.x,listHeight+120 , 160, 28 }, "Load default font"); 
+            
+            GuiCheckBox((Rectangle){libraryPos.x, listHeight+112, 20, 20  }, "Create also [font].h", &saveDotH);
+            btnRevertFont = GuiButton((Rectangle){ libraryPos.x,listHeight+160 , 160, 28 }, "Load default font"); 
        
         //  toolbar
         int btnWidth = 104;
         int btnHeight = 28;
 
-        //GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Grid on/off", &showGrid);
+        //GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Show grid", &showGrid);
 
         btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, btnWidth, btnHeight}, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, btnWidth, btnHeight }, "Shift right");
@@ -838,7 +840,6 @@ int main (int argc, char *argv[])
         EndDrawing();
     }
     UnloadRenderTexture(target);
-    // UnloadFont(font);
     CloseWindow();
     return 0;
 }
