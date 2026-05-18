@@ -13,7 +13,6 @@
 *           - file missing x esempio 
 *           - warning overwrite file font.data
 *           - warning load che sovrascrive mappa caratteri attuale
-*       - barre laterali stessa larghezza
 *
 *******************************************************************************************/
 
@@ -44,16 +43,16 @@
 #define SEPARATOR "/"
 #endif
 
-const int screenWidth = 960;
+const int screenWidth = 1024;
 const int screenHeight = 720;
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 bin_grid_XY = {188, 60 }; // x, y devono essere uguale o multiplo di gridSpacing ....
-const Vector2 hex_grid_XY = {668, 60 }; // posizione tabella esadecimale
-const Vector2 toolbar_XY = { 22, 60 }; // posizione toolbar
-const Vector2 libraryPos = {780,24}; // posizione libreria file
+const Vector2 bin_grid_XY = {244, 60}; // x, y devono essere uguale o multiplo di gridSpacing ....
+const Vector2 hex_grid_XY = {724, 60}; // posizione tabella esadecimale
+const Vector2 toolbar_XY = { 40, 72}; // posizione toolbar
+const Vector2 libraryPos = {844,28}; // posizione libreria file
 // ASCII TABLE
-const Vector2 ascii_grid_XY  = { 168, 408 };
+const Vector2 ascii_grid_XY  = { 224, 408};
 
 int curr_ascii_char = 32; //carattere corrente selezionato nella tabella ASCII : default iniziale "!"
 
@@ -112,6 +111,8 @@ const char extfName[] = ".fnt";
     bool btnMirrorH = false;
     bool btnMirrorV = false;
     bool btnRevertFont = false;
+    bool btnQuit = false;
+
     // quando scrivo nome file non fare niente altro
     bool fnameEditMode = false;
     bool isEditing = false;
@@ -657,7 +658,7 @@ int main (int argc, char *argv[])
 
         // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
         if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
-        if (IsKeyPressed(KEY_Q)) break;
+        if (btnQuit || IsKeyPressed(KEY_Q)) break;
 
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
@@ -693,16 +694,16 @@ int main (int argc, char *argv[])
             ClearBackground(BG_COLOR);
 
             // draw round rectangle as "fake" background with some opacity
-            DrawRectangle(0,0,150, screenHeight,GRID_BG_COLOR);
-            DrawLine(150,0,150,screenHeight,LIGHTGRAY);
+            DrawRectangle(0,0,200, screenHeight,GRID_BG_COLOR);
+            DrawLine(200,0,200,screenHeight,LIGHTGRAY);
             DrawRectangle(screenWidth-200, 0,200, screenHeight,GRID_BG_COLOR);
             DrawLine(screenWidth-200,0,screenWidth-200,screenHeight,LIGHTGRAY);
             // stampa la tabella ASCII aggiornata
             drawASCII_Table();
 
             // some windows info e tricks
-            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 20, 16, 20, FG_COLOR); 
-            DrawText(TextFormat("version %s", TOOL_VERSION), 36, 40, 10, GRAY); 
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 42, 16, 20, FG_COLOR); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 60, 40, 10, GRAY); 
             
             // intestazioni riga/colonna matrice binaria
             for (int z = 0; z < BIN_COLS; z++)
@@ -818,25 +819,26 @@ int main (int argc, char *argv[])
             btnRevertFont = GuiButton((Rectangle){ libraryPos.x,listHeight+160 , 160, 28 }, "Load default font"); 
        
         //  toolbar
-        int btnWidth = 104;
-        int btnHeight = 28;
+        int btnWidth = 112;
+        int btnHeight = 30;
 
         //GuiCheckBox((Rectangle){toolbar_XY.x +2 , toolbar_XY.y+8, 20, 20 }, "Show grid", &showGrid);
 
-        btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, 2 + toolbar_XY.y + gridSpacing*1, btnWidth, btnHeight}, "Shift up");
+        btnShiftUp    = GuiButton((Rectangle){ toolbar_XY.x, toolbar_XY.y + gridSpacing*1, btnWidth, btnHeight}, "Shift up");
         btnShiftRight = GuiButton((Rectangle){ toolbar_XY.x, 4 + toolbar_XY.y + gridSpacing*2, btnWidth, btnHeight }, "Shift right");
-        btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 6 + toolbar_XY.y + gridSpacing*3, btnWidth, btnHeight }, "Shift left");
-        btnShiftDown  = GuiButton((Rectangle){ toolbar_XY.x, 8 + toolbar_XY.y + gridSpacing*4, btnWidth, btnHeight }, "Shift down");
-        btnRotateLeft = GuiButton((Rectangle){ toolbar_XY.x,10 + toolbar_XY.y + gridSpacing*5, btnWidth, btnHeight }, "Rotate left");
-        btnRotateRight= GuiButton((Rectangle){ toolbar_XY.x,12 + toolbar_XY.y + gridSpacing*6, btnWidth, btnHeight }, "Rotate right");
-        btnMirrorH    = GuiButton((Rectangle){ toolbar_XY.x,14 + toolbar_XY.y + gridSpacing*7, btnWidth, btnHeight }, "Horiz. mirror");
-        btnMirrorV    = GuiButton((Rectangle){ toolbar_XY.x,16 + toolbar_XY.y + gridSpacing*8, btnWidth, btnHeight }, "Vert. mirror");
-        btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,18 + toolbar_XY.y + gridSpacing*9, btnWidth, btnHeight }, "Invert dots");
-        btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*10, btnWidth, btnHeight }, "Copy char");
-        btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,22 + toolbar_XY.y + gridSpacing*11, btnWidth, btnHeight }, "Paste char");
-        btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*12, btnWidth, btnHeight }, "Revert char");
-        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,26 + toolbar_XY.y + gridSpacing*13, btnWidth, btnHeight }, "Delete char");
+        btnShiftLeft  = GuiButton((Rectangle){ toolbar_XY.x, 8 + toolbar_XY.y + gridSpacing*3, btnWidth, btnHeight }, "Shift left");
+        btnShiftDown  = GuiButton((Rectangle){ toolbar_XY.x,12 + toolbar_XY.y + gridSpacing*4, btnWidth, btnHeight }, "Shift down");
+        btnRotateLeft = GuiButton((Rectangle){ toolbar_XY.x,16 + toolbar_XY.y + gridSpacing*5, btnWidth, btnHeight }, "Rotate left");
+        btnRotateRight= GuiButton((Rectangle){ toolbar_XY.x,20 + toolbar_XY.y + gridSpacing*6, btnWidth, btnHeight }, "Rotate right");
+        btnMirrorH    = GuiButton((Rectangle){ toolbar_XY.x,24 + toolbar_XY.y + gridSpacing*7, btnWidth, btnHeight }, "Horiz. mirror");
+        btnMirrorV    = GuiButton((Rectangle){ toolbar_XY.x,28 + toolbar_XY.y + gridSpacing*8, btnWidth, btnHeight }, "Vert. mirror");
+        btnInvert     = GuiButton((Rectangle){ toolbar_XY.x,32 + toolbar_XY.y + gridSpacing*9, btnWidth, btnHeight }, "Invert dots");
+        btnCopy       = GuiButton((Rectangle){ toolbar_XY.x,36 + toolbar_XY.y + gridSpacing*10, btnWidth, btnHeight }, "Copy char");
+        btnPaste      = GuiButton((Rectangle){ toolbar_XY.x,40 + toolbar_XY.y + gridSpacing*11, btnWidth, btnHeight }, "Paste char");
+        btnRevertChar = GuiButton((Rectangle){ toolbar_XY.x,44 + toolbar_XY.y + gridSpacing*12, btnWidth, btnHeight }, "Revert char");
+        btnClear      = GuiButton((Rectangle){ toolbar_XY.x,48 + toolbar_XY.y + gridSpacing*13, btnWidth, btnHeight }, "Delete char");
 
+         btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
         EndDrawing();
     }
     UnloadRenderTexture(target);
