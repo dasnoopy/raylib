@@ -1,3 +1,6 @@
+// da fare:
+// se scheda rete is Down mac address e' fake : scrive qlc
+
 #include <stdio.h>
 #include <time.h>
 #include <raylib.h>
@@ -23,7 +26,7 @@
 
 #define TOOL_NAME               "System Monitor"
 #define TOOL_SHORT_NAME         "rSysMon"
-#define TOOL_VERSION            "0.0.3"
+#define TOOL_VERSION            "0.2.0"
 
 #include "custom_font.h" // load default FontTable
 //int TableFont[128][8] = {};
@@ -32,8 +35,8 @@
 const int ASCII_WIDTH = 6; 
 const int ASCII_HEIGHT= 8; 
 
-const int ROWS=120;  // 1 riga = ROWS*dotSize
-const int COLS=130 ; //TODO: adattare in base al vaolore di: dotSize
+const int ROWS=240;  // 1 riga = ROWS*dotSize
+const int COLS=174 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 2 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
 #define WIDTH dotSize*COLS
@@ -47,8 +50,8 @@ const int COLS=130 ; //TODO: adattare in base al vaolore di: dotSize
 int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH); 
 
 // NORD colors
-#define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
-#define BG_COLOR CLITERAL(Color){236, 241, 241, 64}
+#define BG_COLOR CLITERAL(Color){ 55, 65, 70, 232}
+#define FG_COLOR CLITERAL(Color){133, 208, 211, 255}
 
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
@@ -89,7 +92,7 @@ void drawLetter(int col,int row,int ASCII_CODE)
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH - 1; i>-1 ; i--) {
                 //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? FG_COLOR : BLANK);
+                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? WHITE : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -121,28 +124,10 @@ void get_dateTime(int row, int col)
         strftime(buffer_date, 26, "Date  : %d/%m/%Y", tm_info);
         drawString(col,row,buffer_date);
         strftime(buffer_time, 26, "Time  : %H:%M:%S", tm_info);
-       drawString(col,row+10,buffer_time);
+
+        drawString(col,row+10,buffer_time);
 }
 
-void get_ipAddress(int row, int col)
-{
-    int n;
-    struct ifreq ifr;
-    char iface[] = "eth0"; //Change this to the network of your choice (eth0, wlan0, etc.)
-
-    n = socket(AF_INET, SOCK_DGRAM, 0);
-    ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name , iface , IFNAMSIZ - 1);
-    ioctl(n, SIOCGIFADDR, &ifr);
-    close(n);
-
-    char *prefix = malloc(64); 
-    strcpy(prefix,iface);
-    strcat(prefix, "  : ");
-    strcat(prefix, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
-    drawString(row, col,prefix);
-
-}
 
 void get_uptime(int row, int col)
 {
@@ -172,7 +157,7 @@ void get_uname(int row, int col)
       exit(EXIT_FAILURE);
    }
 
-    drawString(row, col, buffer.nodename);
+   drawString(row, col, buffer.nodename);
    drawString(row, col+10, buffer.sysname);
    drawString(row+38, col+10, buffer.release);
    //drawString(row, col+10,  buffer.version);
@@ -183,9 +168,86 @@ void get_uname(int row, int col)
    #endif
 }
 
+void get_ipAddress(int row, int col, char *iface)
+{
+    int fd;
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) != -1) {
+        ifr.ifr_addr.sa_family = AF_INET;
+        strncpy(ifr.ifr_name , iface , IFNAMSIZ - 1);
+
+         /* grab flags associated with this interface */
+        ioctl(fd, SIOCGIFFLAGS, &ifr);
+        drawString(row,col, "netdev  :");
+        drawString(row+60,col, ifr.ifr_name);
+        
+        if (ifr.ifr_flags & IFF_UP) drawString(row,col +10 ,"status  : UP");
+        else drawString(row,col +10,"status  : DOWN");
+
+        ioctl(fd, SIOCGIFADDR, &ifr);
+        close(fd);
+    }
+
+    char buffer[64]; 
+    strcpy(buffer,"ip addr : ");
+    strcat(buffer, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
+
+    drawString(row, col + 20, buffer);
+}
+
+void get_MACaddr(int row, int col, char *iface)
+{
+    int fd;
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    unsigned char *mac;
+     
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) != -1) {
+
+        ifr.ifr_addr.sa_family = AF_INET;
+        strncpy(ifr.ifr_name , iface , IFNAMSIZ-1);
+        ioctl(fd, SIOCGIFHWADDR, &ifr);
+        close(fd);
+    }
+
+    mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+    char buffer[64];
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "Mac addr: %.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n" , 
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
+    );
+        drawString(row, col, buffer);
+}
+
+
+void get_CPULoad(int row, int col)
+{
+    char FileBuffer[1024];
+    float ld1,ld2,ld3;
+
+    FILE *FileHandler = fopen("/proc/loadavg", "r");
+        if (FileHandler == NULL) {
+            printf("Errore apertura file!\n");
+        }
+    fgets(FileBuffer, sizeof(FileBuffer) - 1, FileHandler);
+    sscanf(FileBuffer, "%f %f %f", &ld1, &ld2, &ld3);
+    fclose(FileHandler);
+
+    snprintf(
+        FileBuffer,
+        sizeof(FileBuffer),
+        "Load  : %0.2f %0.2f %0.2f",
+        ld1,ld2,ld3 );
+
+    drawString(row,col,FileBuffer);
+}
+
 int main (int argc, char *argv[])
 {
-    SetConfigFlags (FLAG_VSYNC_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
     // SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
@@ -222,10 +284,14 @@ int main (int argc, char *argv[])
             drawRectangleRounded(0,0,WIDTH, HEIGHT,BG_COLOR);
 
             get_dateTime(5,5); // row, col
-            get_uname(5,30);
-            get_uptime(5,50);
-            get_ipAddress(5,60);
-
+            get_uname(5,35);
+            get_uptime(5,55);
+            get_ipAddress(5,75,"eth0");
+            get_MACaddr(5,105,"eth0");
+            get_ipAddress(5,125,"wlan0");
+            get_MACaddr(5,155,"wlan0");
+            get_CPULoad(5,220);
+            //get_MEMinfo(5,95);
         EndDrawing();
     }
     CloseWindow();
