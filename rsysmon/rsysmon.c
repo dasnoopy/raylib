@@ -50,7 +50,7 @@ const int ASCII_WIDTH = 6;
 const int ASCII_HEIGHT= 8; 
 
 const int ROWS=300;  // 1 riga = ROWS*dotSize
-const int COLS=174 ; //TODO: adattare in base al vaolore di: dotSize
+const int COLS=180 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 2 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
 #define WIDTH dotSize*COLS
@@ -194,7 +194,7 @@ void get_dateTime (int col, int row)
         drawString(col,row,buffer_date);
 
         strftime(buffer_time, 26, "%H:%M:%S", tm_info);
-        drawString(col+115,row,buffer_time);
+        drawString(col+120,row,buffer_time);
 }
 
 
@@ -249,18 +249,18 @@ void get_ipAddress (int col, int row, char *iface)
 
          /* grab flags associated with this interface */
         ioctl(fd, SIOCGIFFLAGS, &ifr);
-        drawString(col,row, "netdev  :");
-        drawString(col+60,row, ifr.ifr_name);
+        drawString(col,row, "netdev   :");
+        drawString(col+66,row, ifr.ifr_name);
         
-        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status  : UP");
-        else drawString(col,row +10,"status  : DOWN");
+        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP");
+        else drawString(col,row +10,"status   : DOWN");
 
         ioctl(fd, SIOCGIFADDR, &ifr);
         close(fd);
     }
 
     char buffer[64]; 
-    strcpy(buffer,"ip addr.: ");
+    strcpy(buffer,"ip addr. : ");
     strcat(buffer, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
 
     drawString(col, row + 20, buffer);
@@ -286,7 +286,7 @@ void get_MACaddr (int col, int row, char *iface)
     snprintf(
         buffer,
         sizeof(buffer),
-        "hw addr.: %.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n" , 
+        "hw addr. : %.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n" , 
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
     );
         drawString(col, row, buffer);
@@ -323,20 +323,39 @@ void get_MEMinfo (int col, int row)
     strcpy(buffer,"Total mem: ");
     drawString(col, row, strcat(buffer, humanMemorySize(ms.total)));
 
-    strcpy(buffer,"Used mem : ");
+    strcpy(buffer,"Used  mem: ");
     drawString(col, row + 10, strcat(buffer, humanMemorySize(ms.used)));
 
-    strcpy(buffer,"Free mem : ");
+    strcpy(buffer,"Free  mem: ");
     drawString(col, row + 20, strcat(buffer, humanMemorySize(ms.free)));
         
     strcpy(buffer,"Avail mem: ");
     drawString(col, row + 30, strcat(buffer, humanMemorySize(ms.avail)));
     
-    strcpy(buffer,"Buff mem : ");
+    strcpy(buffer,"Buff. mem: ");
     drawString(col, row + 40, strcat(buffer, humanMemorySize(ms.buffers)));
 
-    strcpy(buffer,"Cach mem : ");
+    strcpy(buffer,"Cache mem: ");
     drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)));
+}
+
+
+void get_CPUtemp(int col, int row) { // sub function used to print CPU temperature
+    FILE *fp;
+    char str_temp[32];
+    float CPU_temp;
+    // CPU temperature data is stored in this directory.
+    fp=fopen("/sys/class/thermal/thermal_zone0/temp","r");
+    fgets(str_temp,15,fp);      // read file temp
+    CPU_temp = atof(str_temp)/1000.0;   // convert to Celsius degrees
+    //printf("CPU's temperature : %.2f \n",CPU_temp);
+    fclose(fp);
+
+        snprintf(
+        str_temp,
+        sizeof(str_temp),
+        "CPU temp.: %.f`",CPU_temp);
+        drawString(col, row,  str_temp);
 }
 
 int main (int argc, char *argv[])
@@ -363,17 +382,17 @@ int main (int argc, char *argv[])
             // fclose(fLoad);
 
         // Get public IP address using CURL
-        // int count=0;
-        // char PublicIP[128];
-        // while(count<1) {
-        //     FILE *fp = popen("curl --fail --ipv4 https://ifconfig.me", "r");
-        //         if (fp == NULL) {
-        //             perror("popen failed: is CURL installed on your system?");
-        //         }
-        //     fgets(PublicIP, sizeof(PublicIP), fp);
-        //     pclose(fp);
-        //     count++;
-        // }
+        int count=0;
+        char PublicIP[128];
+        while(count<1) {
+            FILE *fp = popen("curl --fail --ipv4 https://ifconfig.me", "r");
+                if (fp == NULL) {
+                    perror("popen failed: is CURL installed on your system?");
+                }
+            fgets(PublicIP, sizeof(PublicIP), fp);
+            pclose(fp);
+            count++;
+        }
 
     while (!WindowShouldClose())
     {
@@ -394,15 +413,16 @@ int main (int argc, char *argv[])
             get_dateTime(5,5); // col = x, row=y
             get_uname(30,20);
 
-            get_uptime(5,45);
-            get_ipAddress(5,60,"eth0");
-            get_MACaddr(5,90,"eth0");
-            get_ipAddress(5,105,"wlan0");
-            get_MACaddr(5,135,"wlan0");
-            get_CPULoad(5,150);
-            get_MEMinfo(5,165);
-            //drawString(5,225,PublicIP); // Public IP address
-
+            get_uptime(30,40);
+            get_ipAddress(5,70,"eth0");
+            get_MACaddr(5,100,"eth0");
+            get_ipAddress(5,116,"wlan0");
+            get_MACaddr(5,146,"wlan0");
+            get_CPULoad(5,162);
+            get_MEMinfo(5,190);
+            drawString(5,55,"Public IP:");
+            drawString(71,55,PublicIP); // Public IP address
+            get_CPUtemp(5,172);
 
         EndDrawing();
     }
