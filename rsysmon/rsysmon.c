@@ -64,7 +64,7 @@ const int COLS=180 ; //TODO: adattare in base al vaolore di: dotSize
 int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH); 
 
 // NORD colors
-#define BG_COLOR CLITERAL(Color){41, 46, 57, 232}
+#define BG_COLOR CLITERAL(Color){41, 46, 57, 248}
 #define FG_COLOR CLITERAL(Color){216, 222, 233, 255}
 
 MemoryStatus_t GetMemoryStatus(void)
@@ -150,7 +150,7 @@ void HexToBin(char hex_number, char* bit_char) {
     }
  }
 
-void drawLetter(int col,int row,int ASCII_CODE)
+void drawLetter(int col,int row,int ASCII_CODE,Color color)
 { 
     int pos = ASCII_CODE ;
     char byte[8]={0,0,0,0,0,0,0,0};
@@ -161,19 +161,19 @@ void drawLetter(int col,int row,int ASCII_CODE)
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH - 1; i>-1 ; i--) {
                 //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? FG_COLOR : BLANK);
+                DrawRectangle(posX,posY,dotSize-1,dotSize, byte[i] ? color : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
             }   
 }
 
-void drawString(int col, int row, char *str)
+void drawString(int col, int row, char *str,Color color)
 {
 
     for (int pos=0; pos < strlen(str); pos++)
       { 
-        drawLetter(col,row,str[pos]);
+        drawLetter(col,row,str[pos],color);
         // dopo aver disegnato la prima lettera, spostati alla successiva
         col += ASCII_WIDTH; // spostati alla lettera successiva
       }
@@ -191,10 +191,10 @@ void get_dateTime (int col, int row)
         tm_info = localtime(&timer);
            
         strftime(buffer_date, 26, "%d/%m/%Y", tm_info);
-        drawString(col,row,buffer_date);
+        drawString(col,row,buffer_date,SKYBLUE);
 
         strftime(buffer_time, 26, "%H:%M:%S", tm_info);
-        drawString(col+120,row,buffer_time);
+        drawString(col+120,row,buffer_time,SKYBLUE);
 }
 
 
@@ -213,7 +213,7 @@ void get_uptime (int col, int row)
         (info.uptime % 3600) / 60
     );
 
-    drawString(col,row, uptime_str);
+    drawString(col,row, uptime_str,GRAY);
 }
 
 void get_uname (int col, int row)
@@ -226,9 +226,9 @@ void get_uname (int col, int row)
       exit(EXIT_FAILURE);
    }
 
-   drawString(col, row, buffer.nodename);
-   drawString(col, row+10, buffer.sysname);
-   drawString(col+36, row+10, buffer.release);
+   drawString(col, row, buffer.nodename,WHITE);
+   drawString(col, row+10, buffer.sysname,LIGHTGRAY);
+   drawString(col+36, row+10, buffer.release,LIGHTGRAY);
    //drawString(col, row+10,  buffer.version);
    //drawString(col, row+30, buffer.machine);
 
@@ -249,11 +249,11 @@ void get_ipAddress (int col, int row, char *iface)
 
          /* grab flags associated with this interface */
         ioctl(fd, SIOCGIFFLAGS, &ifr);
-        drawString(col,row, "netdev   :");
-        drawString(col+66,row, ifr.ifr_name);
+        drawString(col,row, "netdev   :",GREEN);
+        drawString(col+66,row, ifr.ifr_name,GREEN);
         
-        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP");
-        else drawString(col,row +10,"status   : DOWN");
+        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP",GREEN);
+        else drawString(col,row +10,"status   : DOWN",LIME);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
         close(fd);
@@ -263,7 +263,7 @@ void get_ipAddress (int col, int row, char *iface)
     strcpy(buffer,"ip addr. : ");
     strcat(buffer, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
 
-    drawString(col, row + 20, buffer);
+    drawString(col, row + 20, buffer,LIME);
 }
 
 void get_MACaddr (int col, int row, char *iface)
@@ -289,7 +289,7 @@ void get_MACaddr (int col, int row, char *iface)
         "hw addr. : %.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n" , 
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
     );
-        drawString(col, row, buffer);
+        drawString(col, row, buffer,DARKGREEN);
 }
 
 
@@ -312,7 +312,7 @@ void get_CPULoad (int col, int row)
         "CPU load : %0.2f %0.2f %0.2f",
         ld1,ld2,ld3 );
 
-    drawString(col,row,FileBuffer);
+    drawString(col,row,FileBuffer,ORANGE);
 }
 
 void get_MEMinfo (int col, int row)
@@ -320,23 +320,23 @@ void get_MEMinfo (int col, int row)
     char buffer[64]; 
     MemoryStatus_t ms = GetMemoryStatus();
 
-    strcpy(buffer,"Total mem: ");
-    drawString(col, row, strcat(buffer, humanMemorySize(ms.total)));
+    strcpy(buffer,"total mem: ");
+    drawString(col, row, strcat(buffer, humanMemorySize(ms.total)),YELLOW);
 
-    strcpy(buffer,"Used  mem: ");
-    drawString(col, row + 10, strcat(buffer, humanMemorySize(ms.used)));
+    strcpy(buffer,"used  mem: ");
+    drawString(col, row + 10, strcat(buffer, humanMemorySize(ms.used)),GOLD);
 
-    strcpy(buffer,"Free  mem: ");
-    drawString(col, row + 20, strcat(buffer, humanMemorySize(ms.free)));
+    strcpy(buffer,"free  mem: ");
+    drawString(col, row + 20, strcat(buffer, humanMemorySize(ms.free)),BEIGE);
         
-    strcpy(buffer,"Avail mem: ");
-    drawString(col, row + 30, strcat(buffer, humanMemorySize(ms.avail)));
+    strcpy(buffer,"avail mem: ");
+    drawString(col, row + 30, strcat(buffer, humanMemorySize(ms.avail)),PINK);
     
-    strcpy(buffer,"Buff. mem: ");
-    drawString(col, row + 40, strcat(buffer, humanMemorySize(ms.buffers)));
+    strcpy(buffer,"buff. mem: ");
+    drawString(col, row + 40, strcat(buffer, humanMemorySize(ms.buffers)),PURPLE);
 
-    strcpy(buffer,"Cache mem: ");
-    drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)));
+    strcpy(buffer,"cache mem: ");
+    drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)),VIOLET);
 }
 
 
@@ -355,19 +355,25 @@ void get_CPUtemp(int col, int row) { // sub function used to print CPU temperatu
         str_temp,
         sizeof(str_temp),
         "CPU temp.: %.f`",CPU_temp);
-        drawString(col, row,  str_temp);
+        drawString(col, row,  str_temp,MAROON);
 }
 
 int main (int argc, char *argv[])
 {
+    //nascondi finestra durante caricamento iniziale
+    SetWindowState(FLAG_WINDOW_HIDDEN);
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(WIDTH, HEIGHT, "System Info");
-    // SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
-    // center window on the screen
-    //SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
-    SetWindowPosition(32,96); 
+
+
     SetWindowState(FLAG_WINDOW_UNDECORATED);
     //SetWindowState(FLAG_WINDOW_TOPMOST);
+    SetExitKey(KEY_Q);       // set Q as exit key
+    // center window on the screen
+    // SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
+    SetWindowPosition(32,96); 
+
+    RenderTexture target = LoadRenderTexture(WIDTH, HEIGHT);
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(5);
 
@@ -382,17 +388,16 @@ int main (int argc, char *argv[])
             // fclose(fLoad);
 
         // Get public IP address using CURL
-        int count=0;
         char PublicIP[128];
-        while(count<1) {
-            FILE *fp = popen("curl --fail --ipv4 https://ifconfig.me", "r");
+        FILE *fp = popen("curl --fail --ipv4 https://ifconfig.me", "r");
                 if (fp == NULL) {
                     perror("popen failed: is CURL installed on your system?");
                 }
             fgets(PublicIP, sizeof(PublicIP), fp);
             pclose(fp);
-            count++;
-        }
+
+    // fai riapparire finestra dopo caricamento iniziale
+    ClearWindowState(FLAG_WINDOW_HIDDEN);
 
     while (!WindowShouldClose())
     {
@@ -404,6 +409,10 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
+    BeginTextureMode(target);
+        ClearBackground(BG_COLOR);
+    EndTextureMode();
+
 
         BeginDrawing();
             ClearBackground (BLANK);
@@ -412,20 +421,24 @@ int main (int argc, char *argv[])
 
             get_dateTime(5,5); // col = x, row=y
             get_uname(30,20);
-
             get_uptime(30,40);
+            drawString(5,55,"Public IP:",LIGHTGRAY);
+            drawString(71,55,PublicIP,LIGHTGRAY); // Public IP address
             get_ipAddress(5,70,"eth0");
             get_MACaddr(5,100,"eth0");
             get_ipAddress(5,116,"wlan0");
             get_MACaddr(5,146,"wlan0");
             get_CPULoad(5,162);
-            get_MEMinfo(5,190);
-            drawString(5,55,"Public IP:");
-            drawString(71,55,PublicIP); // Public IP address
             get_CPUtemp(5,172);
+            get_MEMinfo(5,190);
+
+
+
 
         EndDrawing();
     }
+
+    UnloadRenderTexture(target);
     CloseWindow();
     return 0;
 }
