@@ -26,6 +26,6 @@ _Dotchar editor_
 _5 Band resistor calculator_
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
-_System info monitor
+_System info monitor_
 ![rsysmon](https://raw.github.com/dasnoopy/raylib/main/screenshot/rsysmon.png)
 
