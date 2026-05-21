@@ -1,6 +1,11 @@
-// da fare:
-// se scheda rete is Down mac address e' fake : scrivere qlc diverso dal mac address che viene 
-// visulizzato!
+/*******************************************************************************************
+*
+*   raylib System Monitor (aka rSysMon)
+*   A simple system monitor for linux made with raylib
+*
+*   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
+*
+********************************************************************************************/
 
 #include <stdio.h>
 #include <time.h>
@@ -40,7 +45,7 @@ MemoryStatus_t;
 
 #define TOOL_NAME               "System Monitor"
 #define TOOL_SHORT_NAME         "rSysMon"
-#define TOOL_VERSION            "0.2.0"
+#define TOOL_VERSION            "0.6.0"
 
 #include "font.h" // load default FontTable
 //int TableFont[128][8] = {};
@@ -49,8 +54,8 @@ MemoryStatus_t;
 const int ASCII_WIDTH = 6; 
 const int ASCII_HEIGHT= 8; 
 
-const int ROWS=300;  // 1 riga = ROWS*dotSize
-const int COLS=180 ; //TODO: adattare in base al vaolore di: dotSize
+const int ROWS=256;  // 1 riga = ROWS*dotSize
+const int COLS=178 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 2 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
 #define WIDTH dotSize*COLS
@@ -64,9 +69,9 @@ const int COLS=180 ; //TODO: adattare in base al vaolore di: dotSize
 int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH); 
 
 // NORD colors
-#define BG_COLOR CLITERAL(Color){41, 46, 57, 248}
+#define BG_COLOR CLITERAL(Color){41, 46, 57, 232}
 #define FG_COLOR CLITERAL(Color){216, 222, 233, 255}
-
+#define BACK_COLOR CLITERAL(Color){59,66,82,232}
 MemoryStatus_t GetMemoryStatus(void)
 {
     MemoryStatus_t mem = {0};
@@ -159,9 +164,9 @@ void drawLetter(int col,int row,int ASCII_CODE,Color color)
             {
             HexToBin(TableFont[pos][y],byte);
             int posX = col * dotSize;
-            for (int i=ASCII_WIDTH - 1; i>-1 ; i--) {
+            for (int i=ASCII_WIDTH -1; i>-1 ; i--) {
                 //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize-1,dotSize, byte[i] ? color : BLANK);
+                DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? color : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -194,7 +199,7 @@ void get_dateTime (int col, int row)
         drawString(col,row,buffer_date,SKYBLUE);
 
         strftime(buffer_time, 26, "%H:%M:%S", tm_info);
-        drawString(col+120,row,buffer_time,SKYBLUE);
+        drawString(col+118,row,buffer_time,SKYBLUE);
 }
 
 
@@ -213,7 +218,7 @@ void get_uptime (int col, int row)
         (info.uptime % 3600) / 60
     );
 
-    drawString(col,row, uptime_str,GRAY);
+    drawString(col,row, uptime_str,RAYWHITE);
 }
 
 void get_uname (int col, int row)
@@ -226,7 +231,7 @@ void get_uname (int col, int row)
       exit(EXIT_FAILURE);
    }
 
-   drawString(col, row, buffer.nodename,WHITE);
+   drawString(col, row, buffer.nodename,RAYWHITE);
    drawString(col, row+10, buffer.sysname,LIGHTGRAY);
    drawString(col+36, row+10, buffer.release,LIGHTGRAY);
    //drawString(col, row+10,  buffer.version);
@@ -249,11 +254,11 @@ void get_ipAddress (int col, int row, char *iface)
 
          /* grab flags associated with this interface */
         ioctl(fd, SIOCGIFFLAGS, &ifr);
-        drawString(col,row, "netdev   :",GREEN);
-        drawString(col+66,row, ifr.ifr_name,GREEN);
+        drawString(col,row, "netdev   :",RAYWHITE);
+        drawString(col+66,row, ifr.ifr_name,RAYWHITE);
         
-        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP",GREEN);
-        else drawString(col,row +10,"status   : DOWN",LIME);
+        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP",LIGHTGRAY);
+        else drawString(col,row +10,"status   : DOWN",LIGHTGRAY);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
         close(fd);
@@ -263,7 +268,7 @@ void get_ipAddress (int col, int row, char *iface)
     strcpy(buffer,"ip addr. : ");
     strcat(buffer, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
 
-    drawString(col, row + 20, buffer,LIME);
+    drawString(col, row + 20, buffer,RAYWHITE);
 }
 
 void get_MACaddr (int col, int row, char *iface)
@@ -289,7 +294,7 @@ void get_MACaddr (int col, int row, char *iface)
         "hw addr. : %.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n" , 
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
     );
-        drawString(col, row, buffer,DARKGREEN);
+        drawString(col, row, buffer,LIGHTGRAY);
 }
 
 
@@ -312,7 +317,7 @@ void get_CPULoad (int col, int row)
         "CPU load : %0.2f %0.2f %0.2f",
         ld1,ld2,ld3 );
 
-    drawString(col,row,FileBuffer,ORANGE);
+    drawString(col,row,FileBuffer,RAYWHITE);
 }
 
 void get_MEMinfo (int col, int row)
@@ -321,22 +326,22 @@ void get_MEMinfo (int col, int row)
     MemoryStatus_t ms = GetMemoryStatus();
 
     strcpy(buffer,"total mem: ");
-    drawString(col, row, strcat(buffer, humanMemorySize(ms.total)),YELLOW);
+    drawString(col, row, strcat(buffer, humanMemorySize(ms.total)),RAYWHITE);
 
     strcpy(buffer,"used  mem: ");
-    drawString(col, row + 10, strcat(buffer, humanMemorySize(ms.used)),GOLD);
+    drawString(col, row + 10, strcat(buffer, humanMemorySize(ms.used)),LIGHTGRAY);
 
     strcpy(buffer,"free  mem: ");
-    drawString(col, row + 20, strcat(buffer, humanMemorySize(ms.free)),BEIGE);
+    drawString(col, row + 20, strcat(buffer, humanMemorySize(ms.free)),RAYWHITE);
         
     strcpy(buffer,"avail mem: ");
-    drawString(col, row + 30, strcat(buffer, humanMemorySize(ms.avail)),PINK);
+    drawString(col, row + 30, strcat(buffer, humanMemorySize(ms.avail)),LIGHTGRAY);
     
     strcpy(buffer,"buff. mem: ");
-    drawString(col, row + 40, strcat(buffer, humanMemorySize(ms.buffers)),PURPLE);
+    drawString(col, row + 40, strcat(buffer, humanMemorySize(ms.buffers)),RAYWHITE);
 
     strcpy(buffer,"cache mem: ");
-    drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)),VIOLET);
+    drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)),LIGHTGRAY);
 }
 
 
@@ -355,7 +360,7 @@ void get_CPUtemp(int col, int row) { // sub function used to print CPU temperatu
         str_temp,
         sizeof(str_temp),
         "CPU temp.: %.f`",CPU_temp);
-        drawString(col, row,  str_temp,MAROON);
+        drawString(col, row,  str_temp, LIGHTGRAY);
 }
 
 int main (int argc, char *argv[])
@@ -418,22 +423,33 @@ int main (int argc, char *argv[])
             ClearBackground (BLANK);
             // draw round rectangle as "fake" background with some opacity
             drawRectangleRounded(0,0,WIDTH, HEIGHT,BG_COLOR);
+            DrawRectangle(0,30,WIDTH,HEIGHT-60,BACK_COLOR);
+            for (int x = 1; x < WIDTH; x+=18) 
+                DrawLine(x,34,x,HEIGHT-30,DARKGRAY);
+            for (int y = 30; y < HEIGHT-27; y+=24)
+                DrawLine(0,y,WIDTH,y,DARKGRAY);
+            DrawRectangleLines(0,30,WIDTH,HEIGHT-60,DARKGRAY);
 
             get_dateTime(5,5); // col = x, row=y
-            get_uname(30,20);
-            get_uptime(30,40);
-            drawString(5,55,"Public IP:",LIGHTGRAY);
-            drawString(71,55,PublicIP,LIGHTGRAY); // Public IP address
-            get_ipAddress(5,70,"eth0");
-            get_MACaddr(5,100,"eth0");
-            get_ipAddress(5,116,"wlan0");
-            get_MACaddr(5,146,"wlan0");
-            get_CPULoad(5,162);
-            get_CPUtemp(5,172);
-            get_MEMinfo(5,190);
 
+            get_uname(5,20);
+            get_uptime(5,40);
+            drawString(5,50,"Public IP:",LIGHTGRAY);
+            drawString(71,50,PublicIP,LIGHTGRAY); // Public IP address
 
+            get_ipAddress(5,65,"eth0");
+            get_MACaddr(5,95,"eth0");
 
+            get_ipAddress(5,110,"wlan0");
+            get_MACaddr(5,140,"wlan0");
+
+            get_CPULoad(5,155);
+            get_CPUtemp(5,165);
+
+            get_MEMinfo(5,180);
+
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 16, HEIGHT-20, 10, FG_COLOR); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), WIDTH-80, HEIGHT-20, 10, GRAY); 
 
         EndDrawing();
     }
