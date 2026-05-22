@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/statvfs.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <unistd.h>
@@ -45,7 +46,7 @@ MemoryStatus_t;
 
 #define TOOL_NAME               "System Monitor"
 #define TOOL_SHORT_NAME         "rSysMon"
-#define TOOL_VERSION            "0.8.0"
+#define TOOL_VERSION            "0.9.0"
 
 #include "font.h" // load default FontTable
 //int TableFont[128][8] = {};
@@ -54,7 +55,7 @@ MemoryStatus_t;
 const int ASCII_WIDTH = 6; 
 const int ASCII_HEIGHT= 8; 
 
-const int ROWS=256;  // 1 riga = ROWS*dotSize
+const int ROWS=262;  // 1 riga = ROWS*dotSize
 const int COLS=178 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 2 // dot size in pixel : consigliato 4 / 8 / 12 / 16
 
@@ -72,6 +73,7 @@ int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH);
 #define BG_COLOR CLITERAL(Color){41, 46, 57, 232}
 #define FG_COLOR CLITERAL(Color){216, 222, 233, 255}
 #define BACK_COLOR CLITERAL(Color){59,66,82,232}
+
 MemoryStatus_t GetMemoryStatus(void)
 {
     MemoryStatus_t mem = {0};
@@ -117,7 +119,7 @@ MemoryStatus_t GetMemoryStatus(void)
 
 char *humanMemorySize(uint64_t bytes) {
     char *result = (char *) malloc(sizeof(char) * 20);
-    char *sizeNames[] = { "B", "KB", "MB", "GB" };
+    char *sizeNames[] = { "B", "KiB", "MiB", "GiB", "TiB" };
 
     uint64_t i = (uint64_t) floor(log(bytes) / log(1024));
     double humanSize = bytes / pow(1024, i);
@@ -133,16 +135,6 @@ void drawRectangleRounded (int x, int y, int w, int h, Color color)
   float radius = 0.072f; // no radius
   int   segs   = 8; // non segments
   DrawRectangleRounded ( rect, radius, segs, color );
-}
-
-void drawGrid(int cols, int rows, Color color)
-// da fare : se cell size minore di 10 non disegnare e esci subito
-{
-            for (int h = 0; h < (GetScreenHeight()/dotSize) + 1; h++)
-               DrawLine(0, h*dotSize, GetScreenWidth(), h*dotSize, color);
-            for (int v = 0; v < (GetScreenWidth()/dotSize) + 1; v++)
-               DrawLine(v*dotSize, 0, v*dotSize, GetScreenHeight(), color);
-
 }
 
 // converti OxFF in binario es:  0xC7 -> 11000111
@@ -257,8 +249,8 @@ void get_ipAddress (int col, int row, char *iface)
         drawString(col,row, "netdev   :",RAYWHITE);
         drawString(col+66,row, ifr.ifr_name,RAYWHITE);
         
-        if (ifr.ifr_flags & IFF_UP) drawString(col,row +10 ,"status   : UP",LIGHTGRAY);
-        else drawString(col,row +10,"status   : DOWN",LIGHTGRAY);
+        if (ifr.ifr_flags & IFF_UP) drawString(col+100,row ,"(UP)",LIGHTGRAY);
+        else drawString(col+100,row,"(DOWN)",LIGHTGRAY);
 
         ioctl(fd, SIOCGIFADDR, &ifr);
         close(fd);
@@ -268,7 +260,7 @@ void get_ipAddress (int col, int row, char *iface)
     strcpy(buffer,"ip addr. : ");
     strcat(buffer, inet_ntoa(( (struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
 
-    drawString(col, row + 20, buffer,RAYWHITE);
+    drawString(col, row + 10, buffer,RAYWHITE);
 }
 
 void get_MACaddr (int col, int row, char *iface)
@@ -344,7 +336,6 @@ void get_MEMinfo (int col, int row)
     drawString(col, row + 50, strcat(buffer, humanMemorySize(ms.cached)),LIGHTGRAY);
 }
 
-
 void get_CPUtemp(int col, int row) { // sub function used to print CPU temperature
     FILE *fp;
     char str_temp[32];
@@ -361,6 +352,37 @@ void get_CPUtemp(int col, int row) { // sub function used to print CPU temperatu
         sizeof(str_temp),
         "CPU temp.: %.f`",CPU_temp);
         drawString(col, row,  str_temp, LIGHTGRAY);
+}
+
+void get_DiskInfo(int col, int row)
+{
+// Source - https://stackoverflow.com/a/12707442
+// Posted by Mc128k
+// Retrieved 2026-05-22, License - CC BY-SA 3.0
+
+char buffer[64]; 
+struct statvfs st;
+statvfs("/", &st);
+unsigned long free_space_main = st.f_bavail * st.f_frsize;
+statvfs("/home", &st);
+unsigned long free_space_home = st.f_bavail * st.f_frsize;
+
+  snprintf(
+        buffer,
+        sizeof(buffer),
+        "part.free: %s (/)",
+        humanMemorySize(free_space_main));
+
+    drawString(col, row, buffer, RAYWHITE);
+
+  snprintf(
+        buffer,
+        sizeof(buffer),
+        "part.free: %s (/home)",
+        humanMemorySize(free_space_home));
+
+    drawString(col, row+10, buffer, RAYWHITE);
+
 }
 
 int main (int argc, char *argv[])
@@ -423,12 +445,8 @@ int main (int argc, char *argv[])
             ClearBackground (BLANK);
             // draw round rectangle as "fake" background with some opacity
             drawRectangleRounded(0,0,WIDTH, HEIGHT,BG_COLOR);
-            DrawRectangle(0,30,WIDTH,HEIGHT-60,BACK_COLOR);
-            for (int x = 1; x < WIDTH; x+=18) 
-                DrawLine(x,34,x,HEIGHT-30,DARKGRAY);
-            for (int y = 30; y < HEIGHT-27; y+=24)
-                DrawLine(0,y,WIDTH,y,DARKGRAY);
-            DrawRectangleLines(0,30,WIDTH,HEIGHT-60,DARKGRAY);
+            DrawRectangle(-1,34,WIDTH+2,HEIGHT-64,BACK_COLOR);
+            DrawRectangleLines(-1,34,WIDTH+2,HEIGHT-64,DARKGRAY);
 
             get_dateTime(5,5); // col = x, row=y
 
@@ -438,18 +456,21 @@ int main (int argc, char *argv[])
             drawString(71,50,PublicIP,LIGHTGRAY); // Public IP address
 
             get_ipAddress(5,65,"eth0");
-            get_MACaddr(5,95,"eth0");
+            get_MACaddr(5,85,"eth0");
 
-            get_ipAddress(5,110,"wlan0");
-            get_MACaddr(5,140,"wlan0");
+            get_ipAddress(5,100,"wlan0");
+            get_MACaddr(5,120,"wlan0");
 
-            get_CPULoad(5,155);
-            get_CPUtemp(5,165);
+            get_CPULoad(5,135);
+            get_CPUtemp(5,145);
 
-            get_MEMinfo(5,180);
+            get_MEMinfo(5,160);
+
+            get_DiskInfo(5,225);
 
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 16, HEIGHT-20, 10, FG_COLOR); 
-            DrawText(TextFormat("version %s", TOOL_VERSION), WIDTH-80, HEIGHT-20, 10, GRAY); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 64, HEIGHT-20, 10, GRAY); 
+            DrawText("[Q] exit program.",WIDTH-90, HEIGHT-20,10,LIGHTGRAY);
 
         EndDrawing();
     }
