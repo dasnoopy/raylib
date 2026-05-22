@@ -45,7 +45,7 @@ MemoryStatus_t;
 
 #define TOOL_NAME               "System Monitor"
 #define TOOL_SHORT_NAME         "rSysMon"
-#define TOOL_VERSION            "0.6.0"
+#define TOOL_VERSION            "0.8.0"
 
 #include "font.h" // load default FontTable
 //int TableFont[128][8] = {};

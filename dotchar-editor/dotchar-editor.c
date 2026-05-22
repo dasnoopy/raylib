@@ -18,7 +18,7 @@
 
 #define TOOL_NAME               "Dot Character Editor"
 #define TOOL_SHORT_NAME         "DotCharEd"
-#define TOOL_VERSION            "2.8.3"
+#define TOOL_VERSION            "2.8.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -430,7 +430,7 @@ int main (int argc, char *argv[])
     int selected = 0;
     int scrollOffset = 0;
     const int itemHeight = 23;
-    const int listHeight = itemHeight*18; // "numero" di file vizualizzati
+    const int listHeight = itemHeight*22; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
 
@@ -658,7 +658,7 @@ int main (int argc, char *argv[])
 
         // scrive bit 1/0 della cella selezionato della matrice binaria,  premendo la BARRA SPAZIO
         if (IsKeyPressed(KEY_SPACE)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];
-        if (btnQuit || IsKeyPressed(KEY_Q)) break;
+
 
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
@@ -682,6 +682,7 @@ int main (int argc, char *argv[])
                         if (selected >= scrollOffset + visibleItems) scrollOffset = selected - visibleItems + 1;
                     }
            if (IsKeyPressed(KEY_S)) isSaving=true; //save file
+           if (btnQuit || IsKeyPressed(KEY_Q)) break;
         }
         //----------------------------------------------------------------------------------
 		// Draw
@@ -749,7 +750,7 @@ int main (int argc, char *argv[])
 
                     // salva myFont.h
                 if (saveDotH) {    
-                    FILE *fp = fopen("custom_font.h", "w");
+                    FILE *fp = fopen("font.h", "w");
                     if (fp == NULL) {
                         printf("File non trovato!\n");
                         return 1;}

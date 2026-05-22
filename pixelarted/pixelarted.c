@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.3"
+#define TOOL_VERSION            "1.7.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -27,7 +27,6 @@
 #else
 #define SEPARATOR "/"
 #endif
-
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
@@ -361,7 +360,7 @@ int main (int argc, char *argv[])
     int selected = 0;
     int scrollOffset = 0;
     const int itemHeight = 23;
-    const int listHeight = itemHeight*18; // "numero" di file vizualizzati
+    const int listHeight = itemHeight*23; // "numero" di file vizualizzati
     int visibleItems = listHeight / itemHeight;
 
 // Define colorsRecs data (for every rectangle)
