@@ -46,7 +46,7 @@ MemoryStatus_t;
 
 #define TOOL_NAME               "System Monitor"
 #define TOOL_SHORT_NAME         "rSysMon"
-#define TOOL_VERSION            "0.9.0"
+#define TOOL_VERSION            "0.9.1"
 
 #include "font.h" // load default FontTable
 //int TableFont[128][8] = {};
@@ -191,7 +191,7 @@ void get_dateTime (int col, int row)
         drawString(col,row,buffer_date,SKYBLUE);
 
         strftime(buffer_time, 26, "%H:%M:%S", tm_info);
-        drawString(col+118,row,buffer_time,SKYBLUE);
+        drawString(col+120,row,buffer_time,SKYBLUE);
 }
 
 
@@ -205,7 +205,7 @@ void get_uptime (int col, int row)
     snprintf(
         uptime_str,
         sizeof(uptime_str),
-        "uptime  : %02ldh %02ldm",
+        "uptime   : %02ldh %02ldm",
         info.uptime / 3600,
         (info.uptime % 3600) / 60
     );
@@ -398,7 +398,7 @@ int main (int argc, char *argv[])
     SetExitKey(KEY_Q);       // set Q as exit key
     // center window on the screen
     // SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
-    SetWindowPosition(32,96); 
+    SetWindowPosition(32,64); 
 
     RenderTexture target = LoadRenderTexture(WIDTH, HEIGHT);
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
@@ -415,14 +415,16 @@ int main (int argc, char *argv[])
             // fclose(fLoad);
 
         // Get public IP address using CURL
-        char PublicIP[128];
+        char PublicIP[64];
         FILE *fp = popen("curl --fail --ipv4 https://ifconfig.me", "r");
                 if (fp == NULL) {
                     perror("popen failed: is CURL installed on your system?");
+                    return 1;
                 }
             fgets(PublicIP, sizeof(PublicIP), fp);
             pclose(fp);
 
+    
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
@@ -452,7 +454,7 @@ int main (int argc, char *argv[])
 
             get_uname(5,20);
             get_uptime(5,40);
-            drawString(5,50,"Public IP:",LIGHTGRAY);
+            drawString(5,50,"Public ip:",LIGHTGRAY);
             drawString(71,50,PublicIP,LIGHTGRAY); // Public IP address
 
             get_ipAddress(5,65,"eth0");
@@ -470,7 +472,7 @@ int main (int argc, char *argv[])
 
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 16, HEIGHT-20, 10, FG_COLOR); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, HEIGHT-20, 10, GRAY); 
-            DrawText("[Q] exit program.",WIDTH-90, HEIGHT-20,10,LIGHTGRAY);
+            DrawText("[ Q ] exit program.",WIDTH-100, HEIGHT-20,10,LIGHTGRAY);
 
         EndDrawing();
     }
