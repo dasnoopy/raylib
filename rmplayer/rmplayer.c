@@ -11,16 +11,15 @@
 * 
 * array di brani no? si?
 * funzione preview
-* slider veri al posto dei fake racthgle
 * visualizer
 * libreria file mp3 
 * random / repeat once / all
 * 
 *******************************************************************************************/
 
-#define TOOL_NAME               "Music Player"
+#define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.4.0"
+#define TOOL_VERSION            "0.4.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -43,7 +42,7 @@ const int screenHeight = 156;
 
 // custom Colors
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define myBLACK      CLITERAL(Color){ 14, 35, 46, 255 }         // Black
+#define myBLACK      CLITERAL(Color){ 10, 20, 30, 255 }         // Black
 #define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
 #define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
 #define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
@@ -67,7 +66,7 @@ const int screenHeight = 156;
 #define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
 #define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
 
-static float exponent = 1.0f;                 // Audio exponentiation value
+static float exponent = 0.72f;                 // Audio exponentiation value
 static float averageVolume[133] = { 0.0f };   // Average volume history
 
 
@@ -110,7 +109,7 @@ int main (int argc, char *argv[])
     SetWindowState(FLAG_WINDOW_HIDDEN);
     SetConfigFlags (FLAG_MSAA_4X_HINT);
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
-    InitWindow(screenWidth, screenHeight, "Raylib Music Player");
+    InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D texture = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
@@ -133,11 +132,11 @@ int main (int argc, char *argv[])
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
     Music music = LoadMusicStream("Music/test.mp3");
-    PlayMusicStream(music);
+    //PlayMusicStream(music);
     
     float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
-    bool isPlay = true;
-    bool isStop = false;
+    bool isPlay = false;
+    bool isStop = true;
     bool isPause = false;  
     bool isMute = false;
     bool isPan = false;
@@ -264,16 +263,22 @@ int main (int argc, char *argv[])
             // Draw Player background
             DrawTexture(texture, screenWidth/2 - texture.width/2, screenHeight/2 - texture.height/2, WHITE);
 
+            
+            DrawLine(434,8,434,81,myDARKGRAY);
+            DrawLine(367,26,500,26,myDARKGRAY);
+            DrawLine(367,45,500,45,myDARKGRAY);
+            DrawLine(367,64,500,64,myDARKGRAY);
+            
             //volume
-            DrawRectangle(507,12,25,99, BLACK);
-            DrawRectangle(508,(int)104-(volume*94),23,6,myLIME);
-            DrawTextEx(font,"VOL",(Vector2){509,8},16,0, myGREEN);
-            DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,myGREEN);
+            DrawRectangle(507,12,25,99, myBLACK);
+            DrawRectangle(508,(int)104-(volume*94),23,6,myGREEN);
+            DrawTextEx(font,"VOL",(Vector2){509,8},16,0, myDARKGREEN);
+            DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,myDARKGREEN);
 
             // pan slider
-            DrawRectangle(367, 89, 132, 21, BLACK);
-            DrawRectangle((int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18,myLIME);
-            DrawTextEx(font,"L                            R",(Vector2){370,90},16,0, myGREEN);
+            DrawRectangle(367, 89, 132, 21, myBLACK);
+            DrawRectangle((int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18,myGREEN);
+            DrawTextEx(font,"Left                 Right",(Vector2){370,90},16,0, myDARKGREEN);
             //DrawTextEx(font,"Right",(Vector2){464,86},16,0, myLIME);
 
 
@@ -284,7 +289,7 @@ int main (int argc, char *argv[])
                 GuiSetStyle(SLIDER, BORDER_COLOR_NORMAL,0x848285FF);
                 GuiSetStyle(SLIDER, BORDER_COLOR_FOCUSED,0x848285FF);
                 GuiSetStyle(SLIDER, BORDER_COLOR_PRESSED,0x848285FF);
-                GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x000000FF);
+                GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
                 GuiSetStyle(SLIDER, BASE_COLOR_FOCUSED,0x00FF01FF);
                 GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF01FF);
                 GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF01FF);
@@ -295,44 +300,47 @@ int main (int argc, char *argv[])
                     SeekMusicStream(music, sliderSeek * songLength);
 
             // tempo da inizio brano e durata totale
-            DrawTextEx(font,"Hour  Min    Sec",(Vector2){18,42},16,0, myLIME);
+            DrawTextEx(font,"Hour  Min    Sec",(Vector2){18,42},16,0, myDARKGREEN);
             char timeStr[32];
-            int hour = 0; //(int)GetMusicTimeLength(music) / .....
-            int minute = (int)GetMusicTimePlayed(music) / 60;
+            int hour   = (int)GetMusicTimePlayed(music) / 3600;
+            int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
             DrawTextEx(font,timeStr,(Vector2){16,52},32,0, myGREEN);
-            int hours = 0; //(int)GetMusicTimeLength(music) / .....
-            int minutes = (int)GetMusicTimeLength(music) / 60;
+            int hours   = (int)GetMusicTimeLength(music) / 3600;
+            int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
             DrawTextEx(font,timeStr,(Vector2){160,64},16,0, myGREEN);
 
-            // una specie di visualizer
+
+
+            // una specie di visualizer : giusto per vivacizzare....
             for (int i = 0; i < 133; i++) //cambiare questo valore anche nelle varbi
             {
                 DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, myGREEN);
             }
 
 
+
             // Play / Stop /Pause flag
-            DrawTextEx(font,"Play",(Vector2){370,8},16,0, isPlay ? myGREEN : myBLACK);
-            DrawTextEx(font,"Stop",(Vector2){370,22},16,0, isStop ? myGREEN : myBLACK);
-            DrawTextEx(font,"Pause",(Vector2){370,36},16,0, isPause ? myGREEN : myBLACK);
+            DrawTextEx(font,"Play",(Vector2){374,8},16,0, isPlay ? myGREEN : myDARKGREEN);
+            DrawTextEx(font,"Stop",(Vector2){374,26},16,0, isStop ? myGREEN : myDARKGREEN);
+            DrawTextEx(font,"Pause",(Vector2){374,45},16,0, isPause ? myGREEN : myDARKGREEN);
             // Random flag
-            DrawTextEx(font,"Random",(Vector2){370,50},16,0, myBLACK);
+            DrawTextEx(font,"Random",(Vector2){374,64},16,0, myDARKGREEN);
             // Mute flag
-            DrawTextEx(font,"Mute",(Vector2){468,8},16,0, isMute ? myGREEN:myBLACK);
-            // Repeat flag
-            DrawTextEx(font,"Repeat",(Vector2){456,22},16,0, myBLACK);
+            DrawTextEx(font,"Mute",(Vector2){440,8},16,0, isMute ? myGREEN:myDARKGREEN);
             // PAN flag
-            DrawTextEx(font,"(< PAN >)",(Vector2){446,36},16,0, isPan ? myGREEN : myBLACK);
+            DrawTextEx(font,"(< PAN >)",(Vector2){440,26},16,0, isPan ? myGREEN : myDARKGREEN);
+            // Repeat flag
+            DrawTextEx(font,"Repeat",(Vector2){440,64},16,0, myDARKGREEN);
 
                   // song of songs
-            DrawTextEx(font,"Titolo della canzone.mp3",(Vector2){16,4},32,0, myLIME);
+            DrawTextEx(font,"Titolo della canzone.mp3",(Vector2){16,4},32,0, myGREEN);
             
-            DrawTextEx(font,"0001 ",(Vector2){136,42},16,0, myLIME);
-            DrawTextEx(font,"of 0001",(Vector2){168,42},16,0, myLIME);
+            DrawTextEx(font,"0001 ",(Vector2){136,42},16,0, myDARKGREEN);
+            DrawTextEx(font,"of 0001",(Vector2){168,42},16,0, myDARKGREEN);
 
 
 

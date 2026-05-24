@@ -83,7 +83,7 @@ int px,py;
 
 // custom Colors
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define myBLACK      CLITERAL(Color){ 14, 35, 46, 255 }         // Black
+#define myBLACK      CLITERAL(Color){ 10, 20, 30, 255 }         // Black
 #define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
 #define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
 #define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
@@ -97,7 +97,7 @@ int px,py;
 #define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myPURPLE     CLITERAL(Color){ 147,112,219, 255 }   // Purple
+#define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
 #define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
 #define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
 #define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
@@ -792,7 +792,7 @@ while (!WindowShouldClose())
         GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
         GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
         GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
-        // define TOGGLE styel
+        // define TOGGLE style
         GuiSetStyle(TOGGLE, TEXT_COLOR_NORMAL,0x000000FF);
         GuiSetStyle(TOGGLE, BASE_COLOR_NORMAL,0xECF1F1FF);
         GuiSetStyle(TOGGLE, TEXT_COLOR_PRESSED,0x000000FF);
