@@ -68,7 +68,7 @@ const int screenHeight = 156;
 #define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
 
 static float exponent = 1.0f;                 // Audio exponentiation value
-static float averageVolume[125] = { 0.0f };   // Average volume history
+static float averageVolume[133] = { 0.0f };   // Average volume history
 
 
 // 'fake' background
@@ -99,9 +99,9 @@ void ProcessAudio(void *buffer, unsigned int frames)
     }
 
     // Moving history to the left
-    for (int i = 0; i < 124; i++) averageVolume[i] = averageVolume[i + 1];
+    for (int i = 0; i < 132; i++) averageVolume[i] = averageVolume[i + 1];
 
-    averageVolume[124] = average;         // Adding last average value
+    averageVolume[132] = average;         // Adding last average value
 }
 
 int main (int argc, char *argv[])
@@ -309,9 +309,9 @@ int main (int argc, char *argv[])
             DrawTextEx(font,timeStr,(Vector2){160,64},16,0, myGREEN);
 
             // una specie di visualizer
-            for (int i = 0; i < 125; i++) //cambiare questo valore anche nelle varbi
+            for (int i = 0; i < 133; i++) //cambiare questo valore anche nelle varbi
             {
-                DrawLine(228 + i, 79 - (int)(averageVolume[i]*32), 228 + i, 79, myGREEN);
+                DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, myGREEN);
             }
 
 
