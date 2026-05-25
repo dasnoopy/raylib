@@ -18,7 +18,7 @@
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.5.0"
+#define TOOL_VERSION            "0.5.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -37,31 +37,15 @@
 const int screenWidth = 540;
 const int screenHeight = 156;
 
-// custom Colors
-#define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define myBLACK      CLITERAL(Color){ 10, 20, 30, 255 }         // Black
-#define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-#define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
-#define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
-#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
-#define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
-#define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
-#define myGREEN      CLITERAL(Color){ 0, 255, 1, 255 }      // Green
-#define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
-#define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
-#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
-#define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
-#define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
-#define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
-#define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
-#define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
-#define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
-#define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
-#define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
-#define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
-#define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
+
+// ARDUINO Matrix tool colors (light)
+#define FG_COLOR    CLITERAL(Color){ 0, 255, 0,255}      // Green
+#define TEXT_COLOR  CLITERAL(Color){ 0, 128, 0, 255}      // Dark Green /verde bandiera
+#define BG_COLOR      CLITERAL(Color){ 10, 20, 30, 255 }         // background Black
+#define BORDER_COLOR CLITERAL(Color){ 55, 65, 70, 255}  //grid color
+#define ON_COLOR CLITERAL(Color){ 0, 255, 0, 255}
+#define OFF_COLOR CLITERAL(Color){ 0,80, 0,255}
+#define VIS_COLOR CLITERAL(Color){ 0, 128, 0, 255}
 
 static float exponent = 0.72f;                 // Audio exponentiation value
 static float averageVolume[133] = { 0.0f };   // Average volume history
@@ -119,8 +103,7 @@ int main (int argc, char *argv[])
     //SetWindowState(FLAG_WINDOW_TOPMOST);
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
-    // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    SetTargetFPS(60);
+
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
@@ -130,18 +113,16 @@ int main (int argc, char *argv[])
 
     // define TOGGLE style
     GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
-    GuiSetStyle(SLIDER, BASE_COLOR_FOCUSED,0x00FF01FF);
-    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF01FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF01FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF01FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF01FF);
+    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF00FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF00FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF00FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF00FF);
     GuiSetStyle(SLIDER, BORDER_WIDTH,0);
 
     // init Audio
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
     Music music = LoadMusicStream("/home/andrea/Music/test.mp3");
-    //PlayMusicStream(music);
     
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -153,10 +134,10 @@ int main (int argc, char *argv[])
     btnTexture[5] = LoadTexture("assets/btnPlus.png"); // Load button texture for seek +10 sec
     btnTexture[6] = LoadTexture("assets/btnNext.png"); // Load button texture for next song in the list
     float frameHeight = btnTexture[0].height / NUM_FRAMES; // altezza immagine / nr. FRAMES
-    // Define button position and button size (for every button loaded)
+    
+    // Define button position and button size for every texture loaded
     Rectangle btnRect[NUM_BUTTONS] = { 0 };
     Rectangle srcRect[NUM_BUTTONS] = { 0 };
-
     for (int i = 0; i < NUM_BUTTONS; i++)
     {
         btnRect[i].x = 9 + (50.0f*i);
@@ -175,17 +156,21 @@ int main (int argc, char *argv[])
 
     float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
     float current_pos = 0.0f;
-    bool isPlay = false;
-    bool isStop = true;
+    bool isPlay = true;
+    bool isStop = !isPlay;
     bool isPause = false;  
     bool isMute = false;
     bool isPan = false;
     float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
-    SetMusicPan(music, pan);
     float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
     float prev_volume = volume;
 
+    if (isPlay) PlayMusicStream(music);  // autoplay at start
+    SetMusicPan(music, pan);
     SetMusicVolume(music, volume);
+
+    // set FPS (uso questo sistema per regolare la velocità di scorrimento)
+    SetTargetFPS(60);
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -204,35 +189,31 @@ int main (int argc, char *argv[])
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
         
         // Restart music playing (stop and play)
-        if (IsKeyPressed(KEY_SPACE))
-        {
+        // if (IsKeyPressed(KEY_SPACE))
+        // {
 
-            if (!isStop) {
-                StopMusicStream(music);
-                isStop=true;
-                isPlay=false;
-                isPause=false;
-            }
-            else {
-                 isStop=false;
-                 isPlay=true;
-                 isPause=false;
-                 PlayMusicStream(music);
-            }
-            
-        }
+        //     if (!isStop) {
+        //         StopMusicStream(music);
+        //         isStop=true;
+        //         isPlay=false;
+        //         isPause=false;
+        //     }
+        //     else {
+        //          isStop=false;
+        //          isPlay=true;
+        //          isPause=false;
+        //          PlayMusicStream(music);
+        //     }
+        // }
 
-        // Pause/Resume music playing
-        if (IsKeyPressed(KEY_P))
-        {
-            if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
-            else {
-                ResumeMusicStream(music);
-                isPause=false;
-                isStop=false;
-                isPlay=true;
-            }
-        }
+        // // Pause/Resume music playing
+        // if (IsKeyPressed(KEY_P))
+        // {
+        //     if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
+        //     else {
+        //         ResumeMusicStream(music), isPause=false, isStop=false, isPlay=true;
+        //     }
+        // }
 
         // Set audio pan
         if (IsKeyPressed(KEY_LEFT))
@@ -296,28 +277,6 @@ int main (int argc, char *argv[])
             srcRect[i].y = btnState[i]*frameHeight;
         }
 
-        if (btnAction[4] && !isStop && !isPause) // seek -10sec
-        {
-                    if (current_pos < 10.0f) {
-                        current_pos = 0.0f; 
-                        PauseMusicStream(music);
-                        SeekMusicStream(music, 0.0f);
-                        PlayMusicStream(music);
-                        }
-                    else SeekMusicStream(music, current_pos - SEEK_TIME);
-        }
-        if (btnAction[5] && !isStop && !isPause) // seek +10sec
-        {
-                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
-                    {
-                        current_pos = 0.0f;
-                        PauseMusicStream(music);
-                        SeekMusicStream(music, 0.0f);
-                        PlayMusicStream(music);
-                        }
-                    else SeekMusicStream(music, current_pos + SEEK_TIME);
-        }
-
         if (btnAction[0]) { // Stop button
                 StopMusicStream(music);
                 isStop=true;
@@ -342,6 +301,28 @@ int main (int argc, char *argv[])
             }
         }
 
+        if (btnAction[4] && !isStop && !isPause) // seek -10sec
+        {
+                    if (current_pos < 10.0f) {
+                        current_pos = 0.0f; 
+                        PauseMusicStream(music);
+                        SeekMusicStream(music, 0.0f);
+                        PlayMusicStream(music);
+                        }
+                    else SeekMusicStream(music, current_pos - SEEK_TIME);
+        }
+        if (btnAction[5] && !isStop && !isPause) // seek +10sec
+        {
+                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
+                    {
+                        current_pos = 0.0f;
+                        PauseMusicStream(music);
+                        SeekMusicStream(music, 0.0f);
+                        PlayMusicStream(music);
+                        }
+                    else SeekMusicStream(music, current_pos + SEEK_TIME);
+        }
+
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -354,23 +335,23 @@ int main (int argc, char *argv[])
             // Draw Player background
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
 
-            DrawLine(434,8,434,81,myDARKGRAY);
-            DrawLine(367,26,500,26,myDARKGRAY);
-            DrawLine(367,45,500,45,myDARKGRAY);
-            DrawLine(367,64,500,64,myDARKGRAY);
+            DrawLine(434,8,434,81,BORDER_COLOR);
+            DrawLine(367,26,500,26,BORDER_COLOR);
+            DrawLine(367,45,500,45,BORDER_COLOR);
+            DrawLine(367,64,500,64,BORDER_COLOR);
             
             //volume slider
-            DrawRectangle(507,12,25,99, myBLACK);
-            DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,myGREEN);
+            DrawRectangle(507,12,25,99, BG_COLOR);
+            DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,FG_COLOR);
 
-            DrawTextEx(font,"VOL",(Vector2){509,8},16,0, myDARKGREEN);
-            DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,myDARKGREEN);
+            DrawTextEx(font,"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
+            DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
 
             // pan slider
-            DrawRectangle(367, 89, 132, 21, myBLACK);
-            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,myGREEN);
-            DrawTextEx(font,"Left",(Vector2){370,90},16,0, myDARKGREEN);
-            DrawTextEx(font,"Right",(Vector2){464,90},16,0, myDARKGREEN);
+            DrawRectangle(367, 89, 132, 21, BG_COLOR);
+            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,FG_COLOR);
+            DrawTextEx(font,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
+            DrawTextEx(font,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
             // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
@@ -385,55 +366,55 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
 
             // tempo attuale brano e durata totale brano
-            DrawTextEx(font,"Hour   Min    Sec",(Vector2){16,42},16,0, myDARKGREEN);
+            DrawTextEx(font,"Hour   Min    Sec",(Vector2){16,42},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
-            DrawTextEx(font,timeStr,(Vector2){16,52},32,0, myGREEN);
+            DrawTextEx(font,timeStr,(Vector2){16,52},32,0, FG_COLOR);
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(font,timeStr,(Vector2){160,64},16,0, myGREEN);
+            DrawTextEx(font,timeStr,(Vector2){160,64},16,0, FG_COLOR);
 
 
 
             // una specie di visualizer : giusto per vivacizzare....
             for (int i = 0; i < 133; i++) //cambiare questo valore anche nelle varbi
             {
-                DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, myGREEN);
+                DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, VIS_COLOR);
             }
 
 
 
             // show Play / Stop /Pause status
-            DrawTextEx(font,"Play",(Vector2){374,8},16,0, isPlay ? myGREEN : myDARKGREEN);
-            DrawTextEx(font,"Stop",(Vector2){374,26},16,0, isStop ? myGREEN : myDARKGREEN);
-            DrawTextEx(font,"Pause",(Vector2){374,45},16,0, isPause ? myGREEN : myDARKGREEN);
-            // Random flag
-            DrawTextEx(font,"Random",(Vector2){374,64},16,0, myDARKGREEN);
+            DrawTextEx(font,"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(font,"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(font,"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
+            // Shuffle flag
+            DrawTextEx(font,"Shuffle",(Vector2){370,64},16,0, OFF_COLOR);
             // Mute flag
-            DrawTextEx(font,"Mute",(Vector2){440,8},16,0, isMute ? myGREEN:myDARKGREEN);
+            DrawTextEx(font,"Mute",(Vector2){436,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
             // PAN flag
-            DrawTextEx(font,"(< PAN >)",(Vector2){440,26},16,0, isPan ? myGREEN : myDARKGREEN);
+            DrawTextEx(font,"(< PAN >)",(Vector2){436,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
             // Repeat flag
-            DrawTextEx(font,"Repeat",(Vector2){440,64},16,0, myDARKGREEN);
+            DrawTextEx(font,"Repeat",(Vector2){436,64},16,0, OFF_COLOR);
 
                   // song of songs
-            DrawTextEx(font,"Titolo della canzone.mp3",(Vector2){16,4},32,0, myGREEN);
+            DrawTextEx(font,"Titolo della canzone.mp3",(Vector2){16,4},32,0, FG_COLOR);
             
-            DrawTextEx(font,"0001 ",(Vector2){136,42},16,0, myDARKGREEN);
-            DrawTextEx(font,"of 0001",(Vector2){168,42},16,0, myDARKGREEN);
+            DrawTextEx(font,"0001 ",(Vector2){136,42},16,0, TEXT_COLOR);
+            DrawTextEx(font,"of 0001",(Vector2){168,42},16,0, TEXT_COLOR);
 
 
 
 
 
-            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, myBLACK); 
-            DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, myGRAY); 
-            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,myBLACK);
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,BLACK);
 
         EndDrawing();
     }
