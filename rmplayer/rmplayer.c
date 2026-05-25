@@ -12,14 +12,13 @@
 * array di brani no? si?
 * libreria file mp3 
 * random / repeat once / all
-* bottoni custom stile mode4win senza usare guibutton
-* esempio raylib process image per capire su quale "bottone" disegnato e'il mouse 
+* ricontrollare logicaa bottoni plaay stop pause : tengo barra e [p]ause?
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.4.5"
+#define TOOL_VERSION            "0.5.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -34,11 +33,9 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-
 // window initial size
 const int screenWidth = 540;
 const int screenHeight = 156;
-
 
 // custom Colors
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
@@ -68,7 +65,10 @@ const int screenHeight = 156;
 
 static float exponent = 0.72f;                 // Audio exponentiation value
 static float averageVolume[133] = { 0.0f };   // Average volume history
+
+#define NUM_BUTTONS 7
 #define SEEK_TIME 10.0f
+#define NUM_FRAMES  3       // Number of frames (rectangles) for the button sprite texture
 
 // 'fake' background
 void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color)  
@@ -107,11 +107,11 @@ int main (int argc, char *argv[])
 {
     //nascondi finestra durante caricamento iniziale
     SetWindowState(FLAG_WINDOW_HIDDEN);
-    SetConfigFlags (FLAG_MSAA_4X_HINT);
+    //SetConfigFlags (FLAG_MSAA_4X_HINT);
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
-    Texture2D texture = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -128,12 +128,51 @@ int main (int argc, char *argv[])
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
+    // define TOGGLE style
+    GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
+    GuiSetStyle(SLIDER, BASE_COLOR_FOCUSED,0x00FF01FF);
+    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF01FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF01FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF01FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF01FF);
+    GuiSetStyle(SLIDER, BORDER_WIDTH,0);
+
     // init Audio
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
-    Music music = LoadMusicStream("Music/test.mp3");
+    Music music = LoadMusicStream("/home/andrea/Music/test.mp3");
     //PlayMusicStream(music);
     
+    // Load texture for toolbar buttons
+    Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
+    btnTexture[0] = LoadTexture("assets/btnStop.png"); // Load button texture for Stop
+    btnTexture[1] = LoadTexture("assets/btnPlay.png"); // Load button texture for Play
+    btnTexture[2] = LoadTexture("assets/btnPause.png"); // Load button texture for Pause
+    btnTexture[3] = LoadTexture("assets/btnPrev.png"); // Load button texture for previous song but
+    btnTexture[4] = LoadTexture("assets/btnMinus.png"); // Load button texture for seek -10 sec
+    btnTexture[5] = LoadTexture("assets/btnPlus.png"); // Load button texture for seek +10 sec
+    btnTexture[6] = LoadTexture("assets/btnNext.png"); // Load button texture for next song in the list
+    float frameHeight = btnTexture[0].height / NUM_FRAMES; // altezza immagine / nr. FRAMES
+    // Define button position and button size (for every button loaded)
+    Rectangle btnRect[NUM_BUTTONS] = { 0 };
+    Rectangle srcRect[NUM_BUTTONS] = { 0 };
+
+    for (int i = 0; i < NUM_BUTTONS; i++)
+    {
+        btnRect[i].x = 9 + (50.0f*i);
+        btnRect[i].y = 88;
+        btnRect[i].width = 49;
+        btnRect[i].height = frameHeight;
+
+        srcRect[i].x = 0;
+        srcRect[i].y = 0;
+        srcRect[i].width = 49;
+        srcRect[i].height = frameHeight;
+    }
+
+    int btnState[NUM_BUTTONS] = { 0 };               // Button state: 0-NORMAL, 1-MOUSE_HOVER, 2-PRESSED
+    bool btnAction[NUM_BUTTONS] = { false };         // Button action should be activated
+
     float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
     float current_pos = 0.0f;
     bool isPlay = false;
@@ -156,8 +195,8 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
+        Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
-
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         current_pos = GetMusicTimePlayed(music); //just to simplify some checks
@@ -242,6 +281,67 @@ int main (int argc, char *argv[])
         SetMusicVolume(music, volume);
         }
 
+        // rileva e memorizza stato per ogni bottone della toolbar
+        for (int i = 0; i < NUM_BUTTONS; ++i)
+        {
+            btnAction[i] = false;
+            // Check button state (base on mouse position and mouse action)
+            if (CheckCollisionPointRec(mousePos, btnRect[i])) {
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) btnState[i] = 2;
+                else btnState[i] = 1;
+                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) btnAction[i] = true;
+            }
+            else btnState[i] = 0;
+            // Calculate button frame rectangle to draw depending on button state
+            srcRect[i].y = btnState[i]*frameHeight;
+        }
+
+        if (btnAction[4] && !isStop && !isPause) // seek -10sec
+        {
+                    if (current_pos < 10.0f) {
+                        current_pos = 0.0f; 
+                        PauseMusicStream(music);
+                        SeekMusicStream(music, 0.0f);
+                        PlayMusicStream(music);
+                        }
+                    else SeekMusicStream(music, current_pos - SEEK_TIME);
+        }
+        if (btnAction[5] && !isStop && !isPause) // seek +10sec
+        {
+                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
+                    {
+                        current_pos = 0.0f;
+                        PauseMusicStream(music);
+                        SeekMusicStream(music, 0.0f);
+                        PlayMusicStream(music);
+                        }
+                    else SeekMusicStream(music, current_pos + SEEK_TIME);
+        }
+
+        if (btnAction[0]) { // Stop button
+                StopMusicStream(music);
+                isStop=true;
+                isPlay=false;
+                isPause=false;
+                }
+
+        if (btnAction[1]) { // play button
+                 isStop=false;
+                 isPlay=true;
+                 isPause=false;
+                 PlayMusicStream(music);
+            }
+        
+        if (btnAction[2]) { // pause
+            if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
+            else {
+                ResumeMusicStream(music);
+                isPause=false;
+                isStop=false;
+                isPlay=true;
+            }
+        }
+
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -252,7 +352,7 @@ int main (int argc, char *argv[])
         BeginDrawing();
             ClearBackground(BLANK);
             // Draw Player background
-            DrawTexture(texture, screenWidth/2 - texture.width/2, screenHeight/2 - texture.height/2, WHITE);
+            DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
 
             DrawLine(434,8,434,81,myDARKGRAY);
             DrawLine(367,26,500,26,myDARKGRAY);
@@ -275,51 +375,17 @@ int main (int argc, char *argv[])
             // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
                 float sliderSeek = GetMusicTimePlayed(music)/songLength;
-                // define TOGGLE style
-                GuiSetStyle(SLIDER, BORDER_COLOR_NORMAL,0x848285FF);
-                GuiSetStyle(SLIDER, BORDER_COLOR_FOCUSED,0x848285FF);
-                GuiSetStyle(SLIDER, BORDER_COLOR_PRESSED,0x848285FF);
-                GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
-                GuiSetStyle(SLIDER, BASE_COLOR_FOCUSED,0x00FF01FF);
-                GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF01FF);
-                GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF01FF);
-                GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF01FF);
-                GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF01FF);
-                GuiSetStyle(SLIDER, BORDER_WIDTH,0);
+
                 if (isStop < GuiSlider((Rectangle){10,screenHeight-37,screenWidth-20,14},"",NULL, &sliderSeek,0,1.0f)) {
                     SeekMusicStream(music, sliderSeek * songLength);
                 }
 
-                GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-                // define button style
-                GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
-                GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
-                GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
-                GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
-                GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
-                GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
-            
-             // seek -10sec farlo con bottoni customizzati nello stile mod4win ci sono esempi in giro..
-                // intanto mi server per posizionamento e dimensione
-                if (GuiButton((Rectangle){8,screenHeight-53,48,24}, "-10s.") && !isStop) {
-                    if (current_pos < 10.0f) {
-                        current_pos = 0.0f; 
-                        SeekMusicStream(music, 0.0f);
-                        }
-                    else SeekMusicStream(music, current_pos - SEEK_TIME);
-                }
-            // seek + 10seek
-                if (GuiButton((Rectangle){screenWidth-54,screenHeight-53,48,24}, "+10s.") && ! isStop) {
-                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
-                    {
-                        current_pos = 0.0f;
-                        SeekMusicStream(music, 0.0f);
-                        }
-                    else SeekMusicStream(music, current_pos + SEEK_TIME);
-                }
+             // Draw buttons bar
+                for (int i = 0; i < NUM_BUTTONS; ++i)
+                    DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
 
             // tempo attuale brano e durata totale brano
-            DrawTextEx(font,"Hour  Min    Sec",(Vector2){18,42},16,0, myDARKGREEN);
+            DrawTextEx(font,"Hour   Min    Sec",(Vector2){16,42},16,0, myDARKGREEN);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
@@ -342,7 +408,7 @@ int main (int argc, char *argv[])
 
 
 
-            // Play / Stop /Pause flag
+            // show Play / Stop /Pause status
             DrawTextEx(font,"Play",(Vector2){374,8},16,0, isPlay ? myGREEN : myDARKGREEN);
             DrawTextEx(font,"Stop",(Vector2){374,26},16,0, isStop ? myGREEN : myDARKGREEN);
             DrawTextEx(font,"Pause",(Vector2){374,45},16,0, isPause ? myGREEN : myDARKGREEN);
@@ -371,11 +437,13 @@ int main (int argc, char *argv[])
 
         EndDrawing();
     }
-    UnloadTexture(texture);
+    UnloadTexture(backGround);
     UnloadRenderTexture(target);
     UnloadFont(font);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
     UnloadMusicStream(music); // Unloaad music stream
+    // unload buttons texture 
+    for (int i = 0; i < NUM_BUTTONS; i++) UnloadTexture(btnTexture[i]);
     CloseAudioDevice();
     CloseWindow();
     return 0;
