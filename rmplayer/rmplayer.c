@@ -18,7 +18,7 @@
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.5.1"
+#define TOOL_VERSION            "0.5.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -40,12 +40,12 @@ const int screenHeight = 156;
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR    CLITERAL(Color){ 0, 255, 0,255}      // Green
-#define TEXT_COLOR  CLITERAL(Color){ 0, 128, 0, 255}      // Dark Green /verde bandiera
+#define TEXT_COLOR  CLITERAL(Color){ 34, 139, 34, 255}      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 10, 20, 30, 255 }         // background Black
 #define BORDER_COLOR CLITERAL(Color){ 55, 65, 70, 255}  //grid color
 #define ON_COLOR CLITERAL(Color){ 0, 255, 0, 255}
-#define OFF_COLOR CLITERAL(Color){ 0,80, 0,255}
-#define VIS_COLOR CLITERAL(Color){ 0, 128, 0, 255}
+#define OFF_COLOR CLITERAL(Color){ 0,64, 0,255}
+#define VIS_COLOR CLITERAL(Color){ 0, 255, 0, 255 }
 
 static float exponent = 0.72f;                 // Audio exponentiation value
 static float averageVolume[133] = { 0.0f };   // Average volume history
@@ -92,6 +92,7 @@ int main (int argc, char *argv[])
     //nascondi finestra durante caricamento iniziale
     SetWindowState(FLAG_WINDOW_HIDDEN);
     //SetConfigFlags (FLAG_MSAA_4X_HINT);
+    //SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -356,12 +357,10 @@ int main (int argc, char *argv[])
             // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
                 float sliderSeek = GetMusicTimePlayed(music)/songLength;
-
-                if (isStop < GuiSlider((Rectangle){10,screenHeight-37,screenWidth-20,14},"",NULL, &sliderSeek,0,1.0f)) {
+                if (isStop < GuiSliderBar((Rectangle){10,screenHeight-37,screenWidth-20,14},NULL,NULL, &sliderSeek,0,1.0f))
                     SeekMusicStream(music, sliderSeek * songLength);
-                }
 
-             // Draw buttons bar
+            // Draw buttons bar
                 for (int i = 0; i < NUM_BUTTONS; ++i)
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
 
@@ -381,8 +380,8 @@ int main (int argc, char *argv[])
 
 
 
-            // una specie di visualizer : giusto per vivacizzare....
-            for (int i = 0; i < 133; i++) //cambiare questo valore anche nelle varbi
+            // a sort of visualizer : giusto per vivacizzare....
+            for (int i = 0; i < 133; ++i) //cambiare questo valore anche nelle varbi
             {
                 DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, VIS_COLOR);
             }
