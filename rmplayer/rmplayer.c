@@ -10,16 +10,16 @@
 ********************************************************************************************
 * 
 * array di brani no? si?
-* funzione preview
-* visualizer
 * libreria file mp3 
 * random / repeat once / all
+* bottoni custom stile mode4win senza usare guibutton
+* esempio raylib process image per capire su quale "bottone" disegnato e'il mouse 
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.4.3"
+#define TOOL_VERSION            "0.4.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -68,7 +68,7 @@ const int screenHeight = 156;
 
 static float exponent = 0.72f;                 // Audio exponentiation value
 static float averageVolume[133] = { 0.0f };   // Average volume history
-
+#define SEEK_TIME 10.0f
 
 // 'fake' background
 void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color)  
@@ -135,6 +135,7 @@ int main (int argc, char *argv[])
     //PlayMusicStream(music);
     
     float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
+    float current_pos = 0.0f;
     bool isPlay = false;
     bool isStop = true;
     bool isPause = false;  
@@ -159,6 +160,8 @@ int main (int argc, char *argv[])
 
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
+
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
         
         // Restart music playing (stop and play)
@@ -172,10 +175,10 @@ int main (int argc, char *argv[])
                 isPause=false;
             }
             else {
-             isStop=false;
-             isPlay=true;
-             isPause=false;
-             PlayMusicStream(music);
+                 isStop=false;
+                 isPlay=true;
+                 isPause=false;
+                 PlayMusicStream(music);
             }
             
         }
@@ -183,14 +186,7 @@ int main (int argc, char *argv[])
         // Pause/Resume music playing
         if (IsKeyPressed(KEY_P))
         {
-           
-            if (!isPause) { 
-                PauseMusicStream(music);
-                isPause = true;
-                isPlay = false;
-                isStop = false;
-            }
-
+            if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
             else {
                 ResumeMusicStream(music);
                 isPause=false;
@@ -241,15 +237,10 @@ int main (int argc, char *argv[])
             if (isMute) {
                 prev_volume = volume;
                 volume = 0.0f;
-
-            }
+                }
             else volume = prev_volume;
-
         SetMusicVolume(music, volume);
         }
-
-
-        //----------------------------------------------------------------------------------
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -263,24 +254,23 @@ int main (int argc, char *argv[])
             // Draw Player background
             DrawTexture(texture, screenWidth/2 - texture.width/2, screenHeight/2 - texture.height/2, WHITE);
 
-            
             DrawLine(434,8,434,81,myDARKGRAY);
             DrawLine(367,26,500,26,myDARKGRAY);
             DrawLine(367,45,500,45,myDARKGRAY);
             DrawLine(367,64,500,64,myDARKGRAY);
             
-            //volume
+            //volume slider
             DrawRectangle(507,12,25,99, myBLACK);
-            DrawRectangle(508,(int)104-(volume*94),23,6,myGREEN);
+            DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,myGREEN);
+
             DrawTextEx(font,"VOL",(Vector2){509,8},16,0, myDARKGREEN);
             DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,myDARKGREEN);
 
             // pan slider
             DrawRectangle(367, 89, 132, 21, myBLACK);
-            DrawRectangle((int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18,myGREEN);
-            DrawTextEx(font,"Left                 Right",(Vector2){370,90},16,0, myDARKGREEN);
-            //DrawTextEx(font,"Right",(Vector2){464,86},16,0, myLIME);
-
+            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,myGREEN);
+            DrawTextEx(font,"Left",(Vector2){370,90},16,0, myDARKGREEN);
+            DrawTextEx(font,"Right",(Vector2){464,90},16,0, myDARKGREEN);
 
             // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
@@ -296,10 +286,39 @@ int main (int argc, char *argv[])
                 GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF01FF);
                 GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF01FF);
                 GuiSetStyle(SLIDER, BORDER_WIDTH,0);
-                if (!isPlay < GuiSlider((Rectangle){10,screenHeight-37,screenWidth-20,14},"",NULL, &sliderSeek,0,1.0f))
+                if (isStop < GuiSlider((Rectangle){10,screenHeight-37,screenWidth-20,14},"",NULL, &sliderSeek,0,1.0f)) {
                     SeekMusicStream(music, sliderSeek * songLength);
+                }
 
-            // tempo da inizio brano e durata totale
+                GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+                // define button style
+                GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
+                GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
+                GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
+                GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
+                GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
+                GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
+            
+             // seek -10sec farlo con bottoni customizzati nello stile mod4win ci sono esempi in giro..
+                // intanto mi server per posizionamento e dimensione
+                if (GuiButton((Rectangle){8,screenHeight-53,48,24}, "-10s.") && !isStop) {
+                    if (current_pos < 10.0f) {
+                        current_pos = 0.0f; 
+                        SeekMusicStream(music, 0.0f);
+                        }
+                    else SeekMusicStream(music, current_pos - SEEK_TIME);
+                }
+            // seek + 10seek
+                if (GuiButton((Rectangle){screenWidth-54,screenHeight-53,48,24}, "+10s.") && ! isStop) {
+                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
+                    {
+                        current_pos = 0.0f;
+                        SeekMusicStream(music, 0.0f);
+                        }
+                    else SeekMusicStream(music, current_pos + SEEK_TIME);
+                }
+
+            // tempo attuale brano e durata totale brano
             DrawTextEx(font,"Hour  Min    Sec",(Vector2){18,42},16,0, myDARKGREEN);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
