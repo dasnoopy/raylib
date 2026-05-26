@@ -17,7 +17,7 @@
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.5.4"
+#define TOOL_VERSION            "0.5.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -47,7 +47,7 @@ const int screenHeight = 156;
 #define VIS_COLOR CLITERAL(Color){ 0, 255, 0, 255 }
 
 static float exponent = 0.72f;                 // Audio exponentiation value
-static float averageVolume[133] = { 0.0f };   // Average volume history
+static float averageVolume[134] = { 0.0f };   // Average volume history
 
 #define NUM_BUTTONS 7
 #define SEEK_TIME 10.0f
@@ -81,9 +81,9 @@ void ProcessAudio(void *buffer, unsigned int frames)
     }
 
     // Moving history to the left
-    for (int i = 0; i < 132; i++) averageVolume[i] = averageVolume[i + 1];
+    for (int i = 0; i < 133; i++) averageVolume[i] = averageVolume[i + 1];
 
-    averageVolume[132] = average;         // Adding last average value
+    averageVolume[133] = average;         // Adding last average value
 }
 
 int main (int argc, char *argv[])
@@ -199,33 +199,6 @@ int main (int argc, char *argv[])
             srcRect[i].y = btnState[i]*frameHeight;
         }
 
-        // Restart music playing (stop and play)
-        // if (IsKeyPressed(KEY_SPACE))
-        // {
-
-        //     if (!isStop) {
-        //         StopMusicStream(music);
-        //         isStop=true;
-        //         isPlay=false;
-        //         isPause=false;
-        //     }
-        //     else {
-        //          isStop=false;
-        //          isPlay=true;
-        //          isPause=false;
-        //          PlayMusicStream(music);
-        //     }
-        // }
-
-        // // Pause/Resume music playing
-        // if (IsKeyPressed(KEY_P))
-        // {
-        //     if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
-        //     else {
-        //         ResumeMusicStream(music), isPause=false, isStop=false, isPlay=true;
-        //     }
-        // }
-
         // Set audio pan
         if (IsKeyPressed(KEY_LEFT))
         {
@@ -273,8 +246,6 @@ int main (int argc, char *argv[])
         SetMusicVolume(music, volume);
         }
 
-
-
         if (btnAction[0]) { // Stop button
                 ResumeMusicStream(music);
                 StopMusicStream(music);
@@ -285,7 +256,6 @@ int main (int argc, char *argv[])
                 }
 
         if (btnAction[1] && !isPause ) { // play button
-
                 StopMusicStream(music);
                 PlayMusicStream(music);
                 UpdateMusicStream(music);
@@ -297,7 +267,6 @@ int main (int argc, char *argv[])
         if (btnAction[2] && isPlay) { // pause
         {
             isPause = !isPause;
-
             if (isPause) PauseMusicStream(music);
             else ResumeMusicStream(music);
         }
@@ -334,6 +303,22 @@ int main (int argc, char *argv[])
         current_pos = GetMusicTimePlayed(music); //just to simplify some checks
 
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
+
+        if (isStop) {
+            btnState[0] = 1;
+            srcRect[0].y = btnState[0]*frameHeight;   
+            }
+
+        if (isPlay) {
+            btnState[1] = 1;
+            srcRect[1].y = btnState[1]*frameHeight;   
+            }
+
+        if (isPause) {
+            btnState[2] = 1;
+            srcRect[2].y = btnState[2]*frameHeight;   
+            }
+
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -354,7 +339,6 @@ int main (int argc, char *argv[])
             //volume slider
             DrawRectangle(507,12,25,99, BG_COLOR);
             DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,FG_COLOR);
-
             DrawTextEx(font,"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
             DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
 
@@ -367,13 +351,13 @@ int main (int argc, char *argv[])
             // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
                 float sliderSeek = GetMusicTimePlayed(music)/songLength;
-                if (isStop < GuiSliderBar((Rectangle){10,screenHeight-37,screenWidth-20,14},NULL,NULL, &sliderSeek,0,1.0f))
+                if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &sliderSeek,0,1.0f))
                     SeekMusicStream(music, sliderSeek * songLength);
 
             // Draw buttons bar
-                for (int i = 0; i < NUM_BUTTONS; ++i)
+                for (int i = 0; i < NUM_BUTTONS; ++i) {
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
-
+                }
             // tempo attuale brano e durata totale brano
             DrawTextEx(font,"Hour   Min    Sec",(Vector2){10,42},16,0, TEXT_COLOR);
             char timeStr[32];
@@ -392,9 +376,9 @@ int main (int argc, char *argv[])
 
             // a sort of visualizer : giusto per vivacizzare....
             //float dt = GetFrameTime();
-            for (int i = 0; i < 133; ++i) //cambiare questo valore anche nelle varbi
+            for (int i = 0; i < 134; ++i) //cambiare questo valore anche nelle varbi
             {
-                DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, VIS_COLOR);
+                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
             }
 
 
