@@ -12,13 +12,12 @@
 * array di brani no? si?
 * libreria file mp3 
 * random / repeat once / all
-* ricontrollare logicaa bottoni plaay stop pause : tengo barra e [p]ause?
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.5.2"
+#define TOOL_VERSION            "0.5.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -123,7 +122,7 @@ int main (int argc, char *argv[])
     // init Audio
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
-    Music music = LoadMusicStream("/home/andrea/Music/test.mp3");
+    Music music = LoadMusicStream("/home/public/Music/test.mp3");
     
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -157,8 +156,8 @@ int main (int argc, char *argv[])
 
     float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
     float current_pos = 0.0f;
-    bool isPlay = true;
-    bool isStop = !isPlay;
+    bool isPlay = false;
+    bool isStop = true;
     bool isPause = false;  
     bool isMute = false;
     bool isPan = false;
@@ -183,12 +182,23 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
-        // Get normalized time played for current music stream
-        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
-        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
 
-        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
         
+        // rileva e memorizza stato per ogni bottone della toolbar
+        for (int i = 0; i < NUM_BUTTONS; ++i)
+        {
+            btnAction[i] = false;
+            // Check button state (base on mouse position and mouse action)
+            if (CheckCollisionPointRec(mousePos, btnRect[i])) {
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) btnState[i] = 2;
+                else btnState[i] = 1;
+                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) btnAction[i] = true;
+            }
+            else btnState[i] = 0;
+            // Calculate button frame rectangle to draw depending on button state
+            srcRect[i].y = btnState[i]*frameHeight;
+        }
+
         // Restart music playing (stop and play)
         // if (IsKeyPressed(KEY_SPACE))
         // {
@@ -263,67 +273,67 @@ int main (int argc, char *argv[])
         SetMusicVolume(music, volume);
         }
 
-        // rileva e memorizza stato per ogni bottone della toolbar
-        for (int i = 0; i < NUM_BUTTONS; ++i)
-        {
-            btnAction[i] = false;
-            // Check button state (base on mouse position and mouse action)
-            if (CheckCollisionPointRec(mousePos, btnRect[i])) {
-                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) btnState[i] = 2;
-                else btnState[i] = 1;
-                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) btnAction[i] = true;
-            }
-            else btnState[i] = 0;
-            // Calculate button frame rectangle to draw depending on button state
-            srcRect[i].y = btnState[i]*frameHeight;
-        }
+
 
         if (btnAction[0]) { // Stop button
+                ResumeMusicStream(music);
                 StopMusicStream(music);
+                UpdateMusicStream(music);
                 isStop=true;
                 isPlay=false;
                 isPause=false;
                 }
 
-        if (btnAction[1]) { // play button
-                 isStop=false;
-                 isPlay=true;
-                 isPause=false;
-                 PlayMusicStream(music);
-            }
-        
-        if (btnAction[2]) { // pause
-            if (!isPause) PauseMusicStream(music), isPause = true, isPlay = false, isStop = false;
-            else {
-                ResumeMusicStream(music);
-                isPause=false;
+        if (btnAction[1] && !isPause ) { // play button
+
+                StopMusicStream(music);
+                PlayMusicStream(music);
+                UpdateMusicStream(music);
                 isStop=false;
                 isPlay=true;
-            }
+                isPause=false;
+        }
+        
+        if (btnAction[2] && isPlay) { // pause
+        {
+            isPause = !isPause;
+
+            if (isPause) PauseMusicStream(music);
+            else ResumeMusicStream(music);
+        }
         }
 
-        if (btnAction[4] && !isStop && !isPause) // seek -10sec
+        if (btnAction[4] && isPlay) // seek -10sec
         {
                     if (current_pos < 10.0f) {
                         current_pos = 0.0f; 
-                        PauseMusicStream(music);
                         SeekMusicStream(music, 0.0f);
-                        PlayMusicStream(music);
-                        }
-                    else SeekMusicStream(music, current_pos - SEEK_TIME);
+                        UpdateMusicStream(music);
+                    }
+                    else {
+                        SeekMusicStream(music, current_pos - SEEK_TIME);
+                        UpdateMusicStream(music);
+                    }
         }
-        if (btnAction[5] && !isStop && !isPause) // seek +10sec
+        if (btnAction[5] && isPlay) // seek +10sec
         {
                     if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
                     {
                         current_pos = 0.0f;
-                        PauseMusicStream(music);
                         SeekMusicStream(music, 0.0f);
-                        PlayMusicStream(music);
-                        }
-                    else SeekMusicStream(music, current_pos + SEEK_TIME);
+                        UpdateMusicStream(music);
+                    }
+                    else {
+                        SeekMusicStream(music, current_pos + SEEK_TIME);
+                        UpdateMusicStream(music);
+                    }
         }
 
+        // Get normalized time played for current music stream
+        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
+
+        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -365,13 +375,13 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
 
             // tempo attuale brano e durata totale brano
-            DrawTextEx(font,"Hour   Min    Sec",(Vector2){16,42},16,0, TEXT_COLOR);
+            DrawTextEx(font,"Hour   Min    Sec",(Vector2){10,42},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
-            DrawTextEx(font,timeStr,(Vector2){16,52},32,0, FG_COLOR);
+            DrawTextEx(font,timeStr,(Vector2){10,52},32,0, FG_COLOR);
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
@@ -381,6 +391,7 @@ int main (int argc, char *argv[])
 
 
             // a sort of visualizer : giusto per vivacizzare....
+            //float dt = GetFrameTime();
             for (int i = 0; i < 133; ++i) //cambiare questo valore anche nelle varbi
             {
                 DrawLine(225 + i, 79 - (int)(averageVolume[i]*32), 225 + i, 79, VIS_COLOR);
