@@ -13,12 +13,15 @@
 * repeat once / all
 * alla fine di un brano passa al successivo
 * mostra elenco selezionaa file
-* 
+* info mp3 daati bitrate etc
+* tag mp3?
+*
+* aavanzamanento prossima canzone!!! 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.6.5"
+#define TOOL_VERSION            "0.7.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -40,15 +43,15 @@ const int screenHeight = 156;
 
 
 // ARDUINO Matrix tool colors (light)
-#define FG_COLOR    CLITERAL(Color){ 0, 255, 0,255}      // Green
-#define TEXT_COLOR  CLITERAL(Color){ 34, 139, 34, 255}      // Dark Green /verde bandiera
+#define FG_COLOR    CLITERAL(Color){ 0, 255, 128,255}      // Green
+#define TEXT_COLOR  CLITERAL(Color){ 0, 139, 34, 255}      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 10, 20, 30, 255 }         // background Black
 #define BORDER_COLOR CLITERAL(Color){ 55, 65, 70, 255}  //grid color
 #define ON_COLOR CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR CLITERAL(Color){ 0,64, 0,255}
-#define VIS_COLOR CLITERAL(Color){ 0, 255, 0, 255 }
+#define VIS_COLOR CLITERAL(Color){ 0, 255, 128, 255 }
 
-static float exponent = 0.72f;                 // Audio exponentiation value
+static float exponent = 0.88f;                 // Audio exponentiation value
 static float averageVolume[134] = { 0.0f };   // Average volume history
 
 #define NUM_BUTTONS 7
@@ -64,6 +67,7 @@ void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color
 }
 Music music;
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
+float timeLength = 0.0f;
 float current_pos = 0.0f;
 bool isPlay = false;
 bool isStop = true;
@@ -76,6 +80,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.0f;
 
 // Music library
+const char *dirPath = "/home/public/Music/LoungeHouseDeep";
 char musicFiles[2048][512];
 int  musicFileCount = 0;
 int  current_play = 0;
@@ -130,20 +135,18 @@ void ProcessAudio(void *buffer, unsigned int frames)
 // funzione per creare stringa di tot spazi (o caraattere a piacimento)
 char *creaSPAZI(int N) {
     if (N <= 0) return NULL;
-     char *str = malloc(N);  
+     char *str = malloc(N + 1);  
     if (str == NULL) return NULL;
     memset(str, ' ', N);
+    str[N] = '\0';
     return str;
 }
 
 int main (int argc, char *argv[])
 {
-    //const char *dirPath = (argc == 1) ? GetApplicationDirectory() : argv[1];
-    const char *dirPath = "/home/public/Music/LoungeHouseDeep";
     //nascondi finestra durante caricamento iniziale
     SetWindowState(FLAG_WINDOW_HIDDEN);
-    //SetConfigFlags (FLAG_MSAA_4X_HINT);
-    //SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
+    SetConfigFlags (FLAG_MSAA_4X_HINT);
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -167,20 +170,11 @@ int main (int argc, char *argv[])
 
     // define TOGGLE style
     GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
-    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF00FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF00FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF00FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF00FF);
+    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF80FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF80FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF80FF);
+    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF80FF);
     GuiSetStyle(SLIDER, BORDER_WIDTH,0);
-
-    // init Audio
-    InitAudioDevice();
-    AttachAudioMixedProcessor(ProcessAudio);
-
-    LoadMusicFiles(dirPath);
-    if (musicFileCount == 0) return 1;
-    // load first song
-    LoadMusicByIndex(current_play);
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -212,6 +206,15 @@ int main (int argc, char *argv[])
     int btnState[NUM_BUTTONS] = { 0 };               // Button state: 0-NORMAL, 1-MOUSE_HOVER, 2-PRESSED
     bool btnAction[NUM_BUTTONS] = { false };         // Button action should be activated
 
+    // init Audio
+    InitAudioDevice();
+    AttachAudioMixedProcessor(ProcessAudio);
+    LoadMusicFiles(dirPath);
+    if (musicFileCount == 0) return 1;
+    // load first song
+    LoadMusicByIndex(current_play);
+    // randomize initial song
+    // LoadMusicByIndex(GetRandomValue(0,musicFileCount));
 
     if (isPlay) PlayMusicStream(music);  // autoplay at start
     SetMusicPan(music, pan);
@@ -279,11 +282,7 @@ int main (int argc, char *argv[])
             pan = 0.0f;
             SetMusicPan(music, pan);
         }
-        else if (IsKeyPressed(KEY_S))
-        {
-            isShuffle = !isShuffle;
-
-        }
+        else if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
 
         // Set audio volume
         if (IsKeyDown(KEY_DOWN))
@@ -362,7 +361,7 @@ int main (int argc, char *argv[])
                     }
         }
 
-        if (btnAction[3]) { // Previous song : no shuffle on previous sonf
+        if (btnAction[3]) { // Previous song : no shuffle on previous song
 
                 current_play--;
                 if (current_play<=0) current_play=0;
@@ -380,7 +379,7 @@ int main (int argc, char *argv[])
         if (btnAction[6]) { // Next song based on SHUFFLE setting
 
             if (isShuffle) {
-                int shuffle_index = rand() % musicFileCount;
+                int shuffle_index = GetRandomValue(0,musicFileCount);
                 if (musicFileCount > 1 && shuffle_index == current_play)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
                 current_play = shuffle_index;
@@ -401,6 +400,7 @@ int main (int argc, char *argv[])
 
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        timeLength = GetMusicTimeLength(music);
         current_pos = GetMusicTimePlayed(music); //just to simplify some checks
 
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
@@ -422,6 +422,24 @@ int main (int argc, char *argv[])
             }
 
 
+        // auto move on next song
+        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
+            {
+                StopMusicStream(music);
+                UnloadMusicStream(music);
+                    if (isShuffle) {
+                        int shuffle_index = GetRandomValue(0,musicFileCount);
+                        if (musicFileCount > 1 && shuffle_index == current_play)
+                            shuffle_index = (shuffle_index + 1) % musicFileCount;
+                        current_play = shuffle_index;
+                    } else {
+                        current_play++;
+                        if (current_play >= musicFileCount) current_play = 0;
+                    }
+                selectedFile = current_play;
+                LoadMusicByIndex(current_play);
+                PlayMusicStream(music);
+            }
 
 
         //----------------------------------------------------------------------------------
@@ -435,7 +453,7 @@ int main (int argc, char *argv[])
             ClearBackground(BLANK);
             // Draw Player background
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
-
+            //DrawRectangle(10.10.200.200.FG_COLOR);
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
             DrawLine(367,45,500,45,BORDER_COLOR);
