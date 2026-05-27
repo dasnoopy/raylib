@@ -9,15 +9,16 @@
 *
 ********************************************************************************************
 * 
-* array di brani no? si?
-* libreria file mp3 
+
 * random / repeat once / all
+* alla fine di un brano passa al successivo
+* mostra elenco selezionaa file
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.5.5"
+#define TOOL_VERSION            "0.6.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -27,6 +28,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <dirent.h>
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
@@ -60,6 +62,43 @@ void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color
   int segs = 6; // non segments
   DrawRectangleRounded ( rect, radius, segs, color );
 }
+Music music;
+float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
+float current_pos = 0.0f;
+bool isPlay = false;
+bool isStop = true;
+bool isPause = false;  
+bool isMute = false;
+bool isPan = false;
+float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
+float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
+float prev_volume = 0.0f;
+
+// Music library
+char musicFiles[2048][512];
+int  musicFileCount = 0;
+int  current_play = 0;
+
+void LoadMusicFiles(const char *path) {
+    DIR *dp = opendir(path);
+    if (!dp) return;
+    struct dirent *entry;
+    while ((entry = readdir(dp))) {
+        if (entry->d_type == DT_REG &&
+           (strstr(entry->d_name, ".mp3")))  {
+            snprintf(musicFiles[musicFileCount],
+                     sizeof(musicFiles[musicFileCount]),
+                     "%s/%s", path, entry->d_name);
+            musicFileCount++;
+        }
+    }
+    closedir(dp);
+}
+void LoadMusicByIndex(int idx) {
+    if (idx < 0 || idx >= musicFileCount) return;
+    music = LoadMusicStream(musicFiles[idx]);
+    current_play = idx;
+}
 
 //------------------------------------------------------------------------------------
 // Audio processing function
@@ -86,8 +125,19 @@ void ProcessAudio(void *buffer, unsigned int frames)
     averageVolume[133] = average;         // Adding last average value
 }
 
+// funzione per creare stringa di tot spazi (o caraattere a piacimento)
+char *creaSPAZI(int N) {
+    if (N <= 0) return NULL;
+     char *str = malloc(N);  
+    if (str == NULL) return NULL;
+    memset(str, ' ', N);
+    return str;
+}
+
 int main (int argc, char *argv[])
 {
+    //const char *dirPath = (argc == 1) ? GetApplicationDirectory() : argv[1];
+    const char *dirPath = "/home/public/Music/LoungeHouseDeep";
     //nascondi finestra durante caricamento iniziale
     SetWindowState(FLAG_WINDOW_HIDDEN);
     //SetConfigFlags (FLAG_MSAA_4X_HINT);
@@ -107,6 +157,8 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    Font fontx32 = LoadFontEx("assets/AcerMono.ttf", 32, 0, 0);
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
@@ -122,8 +174,12 @@ int main (int argc, char *argv[])
     // init Audio
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
-    Music music = LoadMusicStream("/home/public/Music/test.mp3");
-    
+
+    LoadMusicFiles(dirPath);
+    if (musicFileCount == 0) return 1;
+    // load first song
+    LoadMusicByIndex(current_play);
+
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
     btnTexture[0] = LoadTexture("assets/btnStop.png"); // Load button texture for Stop
@@ -154,16 +210,6 @@ int main (int argc, char *argv[])
     int btnState[NUM_BUTTONS] = { 0 };               // Button state: 0-NORMAL, 1-MOUSE_HOVER, 2-PRESSED
     bool btnAction[NUM_BUTTONS] = { false };         // Button action should be activated
 
-    float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
-    float current_pos = 0.0f;
-    bool isPlay = false;
-    bool isStop = true;
-    bool isPause = false;  
-    bool isMute = false;
-    bool isPan = false;
-    float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
-    float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
-    float prev_volume = volume;
 
     if (isPlay) PlayMusicStream(music);  // autoplay at start
     SetMusicPan(music, pan);
@@ -175,15 +221,25 @@ int main (int argc, char *argv[])
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
-    while (!WindowShouldClose())
-    {
+    // variables for title scrolling
+    int framesCounter = 0;
+
+ while (!WindowShouldClose())
+{
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
+
+        // manage title scrolling
+        char *titleStr = malloc(2048);
+        char *spazi = creaSPAZI(26);
+         strcpy(titleStr, spazi);
+        strcat(titleStr, GetFileNameWithoutExt(musicFiles[current_play]));
+        int titleLen=strlen(titleStr);
+
         Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
 
-        
         // rileva e memorizza stato per ogni bottone della toolbar
         for (int i = 0; i < NUM_BUTTONS; ++i)
         {
@@ -249,7 +305,7 @@ int main (int argc, char *argv[])
         if (btnAction[0]) { // Stop button
                 ResumeMusicStream(music);
                 StopMusicStream(music);
-                UpdateMusicStream(music);
+                //UpdateMusicStream(music);
                 isStop=true;
                 isPlay=false;
                 isPause=false;
@@ -258,7 +314,7 @@ int main (int argc, char *argv[])
         if (btnAction[1] && !isPause ) { // play button
                 StopMusicStream(music);
                 PlayMusicStream(music);
-                UpdateMusicStream(music);
+                //UpdateMusicStream(music);
                 isStop=false;
                 isPlay=true;
                 isPause=false;
@@ -277,11 +333,11 @@ int main (int argc, char *argv[])
                     if (current_pos < 10.0f) {
                         current_pos = 0.0f; 
                         SeekMusicStream(music, 0.0f);
-                        UpdateMusicStream(music);
+                       // UpdateMusicStream(music);
                     }
                     else {
                         SeekMusicStream(music, current_pos - SEEK_TIME);
-                        UpdateMusicStream(music);
+                        //UpdateMusicStream(music);
                     }
         }
         if (btnAction[5] && isPlay) // seek +10sec
@@ -290,13 +346,41 @@ int main (int argc, char *argv[])
                     {
                         current_pos = 0.0f;
                         SeekMusicStream(music, 0.0f);
-                        UpdateMusicStream(music);
+                        //UpdateMusicStream(music);
                     }
                     else {
                         SeekMusicStream(music, current_pos + SEEK_TIME);
-                        UpdateMusicStream(music);
+                        //UpdateMusicStream(music);
                     }
         }
+
+        if (btnAction[3]) { // Previous song
+
+                current_play--;
+                if (current_play<=0) current_play=0;
+                StopMusicStream(music);
+                LoadMusicByIndex(current_play);
+                PlayMusicStream(music);
+                //UpdateMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+                framesCounter=0;
+        }
+
+        if (btnAction[6]) { // Next song
+                current_play++;
+                if ( current_play >= musicFileCount ) current_play=0;
+                StopMusicStream(music);
+                LoadMusicByIndex(current_play);
+                PlayMusicStream(music);
+                //UpdateMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+                framesCounter=0;
+            }
+
 
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
@@ -304,6 +388,9 @@ int main (int argc, char *argv[])
 
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
+
+
+        // set button status in stop, play, pause
         if (isStop) {
             btnState[0] = 1;
             srcRect[0].y = btnState[0]*frameHeight;   
@@ -318,6 +405,9 @@ int main (int argc, char *argv[])
             btnState[2] = 1;
             srcRect[2].y = btnState[2]*frameHeight;   
             }
+
+
+
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -359,13 +449,13 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            DrawTextEx(font,"Hour   Min    Sec",(Vector2){10,42},16,0, TEXT_COLOR);
+            DrawTextEx(font,"Hour   Min    Sec",(Vector2){10,41},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
-            DrawTextEx(font,timeStr,(Vector2){10,52},32,0, FG_COLOR);
+            DrawTextEx(fontx32,timeStr,(Vector2){10,53},32,0, FG_COLOR);
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
@@ -381,8 +471,6 @@ int main (int argc, char *argv[])
                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
             }
 
-
-
             // show Play / Stop /Pause status
             DrawTextEx(font,"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
             DrawTextEx(font,"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
@@ -396,25 +484,35 @@ int main (int argc, char *argv[])
             // Repeat flag
             DrawTextEx(font,"Repeat",(Vector2){436,64},16,0, OFF_COLOR);
 
-                  // song of songs
-            DrawTextEx(font,"Titolo della canzone.mp3",(Vector2){16,4},32,0, FG_COLOR);
-            
-            DrawTextEx(font,"0001 ",(Vector2){136,42},16,0, TEXT_COLOR);
-            DrawTextEx(font,"of 0001",(Vector2){168,42},16,0, TEXT_COLOR);
+            {
+                float dt = GetFrameTime()*5;
+                if (titleLen > 52) {
+                    DrawTextEx(fontx32,TextSubtext(titleStr,framesCounter * dt ,26),(Vector2){10,6},32,0, FG_COLOR);
+                    framesCounter++;
+                    if (framesCounter*dt > titleLen) framesCounter=0;
+                }
+                else DrawTextEx(fontx32,GetFileNameWithoutExt(musicFiles[current_play]),(Vector2){10,6},32,0, FG_COLOR);
+            }
 
+            // song of songs
+            DrawTextEx(font,TextFormat("%04d ",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
+            DrawTextEx(font,TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
 
-
-
-
+            //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
             DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,BLACK);
 
+
         EndDrawing();
+        
+        free(spazi);
+        free(titleStr);
     }
     UnloadTexture(backGround);
     UnloadRenderTexture(target);
     UnloadFont(font);
+    UnloadFont(fontx32);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
     UnloadMusicStream(music); // Unloaad music stream
     // unload buttons texture 
@@ -423,3 +521,4 @@ int main (int argc, char *argv[])
     CloseWindow();
     return 0;
 }
+
