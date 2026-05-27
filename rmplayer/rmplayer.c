@@ -9,13 +9,16 @@
 * 
 * repeat once / all
 * mostra elenco selezionaa file
-* info mp3 daati bitrate etc
-* tag mp3?
+* tag mp3 id3v2?
 * desktop file con relativa icona
-* salvare config :  autoplay start, shuffle at start, colori, folder music
-* recursice load file in music subfolder
+* salvare config :  autoplay si no,  shuffle at start, colori, folder music
+* recursive load file in music subfolder
 * test con tutta la libreria
-* 
+* nella status bar:
+* INFO:     > Sample rate:   44100 Hz
+INFO:     > Sample size:   32 bits
+INFO:     > Channels:      2 (Stereo)
+INFO:     > Total frames:  17006894
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
@@ -41,9 +44,9 @@ const int screenWidth = 540;
 const int screenHeight = 156;
 
 // some custom colors
-#define FG_COLOR      CLITERAL(Color){ 180, 215, 225,255}      // Green
+#define FG_COLOR      CLITERAL(Color){ 120,190,190,255 }      // Green
 #define TEXT_COLOR    CLITERAL(Color){ 90, 125, 135, 255}      // Dark Green /verde bandiera
-#define BORDER_COLOR  CLITERAL(Color){ 132, 130, 133, 255}  //grid color
+#define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     TEXT_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
@@ -80,7 +83,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.0f;
 
 // Music library
-const char *dirPath = "/home/public/Music/LoungeHouseDeep";
+const char *dirPath = "/home/andrea/Music/Anni90";
 char musicFiles[2048][512];
 int  musicFileCount = 0;
 int  current_play = 0;
@@ -263,14 +266,14 @@ int main (int argc, char *argv[])
         }
 
         // Set audio pan
-        if (IsKeyPressed(KEY_LEFT))
+        if (IsKeyDown(KEY_LEFT))
         {
             isPan = true;
             pan -= 0.02f;
             if (pan < -1.0f) pan = -1.0f;
             SetMusicPan(music, pan);
         }
-        else if (IsKeyPressed(KEY_RIGHT))
+        else if (IsKeyDown(KEY_RIGHT))
         {
             isPan = true;
             pan += 0.02f;
@@ -424,7 +427,7 @@ int main (int argc, char *argv[])
             }
 
 
-        // auto move on next song and randomize played son if shuffle is enabled
+        // auto move on next song and randomize played song if shuffle is enabled
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
                 StopMusicStream(music);
@@ -456,7 +459,7 @@ int main (int argc, char *argv[])
             ClearBackground(BLANK);
             // Draw Player background
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
-
+            // grid flaags
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
             DrawLine(367,45,500,45,BORDER_COLOR);

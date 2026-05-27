@@ -20,6 +20,9 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 _PixelArt Editor_
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
+_raylibMusicPlayer (a MOD4WIN clone)_
+![rmplayer](https://raw.github.com/dasnoopy/raylib/main/screenshot/rmplayer.png)
+
 _Dotchar editor_
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
