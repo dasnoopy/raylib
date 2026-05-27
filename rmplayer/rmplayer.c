@@ -1,26 +1,26 @@
 /*******************************************************************************************
 *
-* 
-*   raylib MPlaayer
-*   Small utility to plaay mp3 files
-*   A simple app to learn C using raylib library
-
+*   raylib MPlayer (a sort of MOD4WIN revival)
+*   Small utility to play mp3 files based on Raylib
+*   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************************
 * 
-
 * repeat once / all
 * mostra elenco selezionaa file
 * info mp3 daati bitrate etc
 * tag mp3?
-* 
+* desktop file con relativa icona
 * salvare config :  autoplay start, shuffle at start, colori, folder music
+* recursice load file in music subfolder
+* test con tutta la libreria
+* 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.7.5"
+#define TOOL_VERSION            "0.7.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -43,11 +43,13 @@ const int screenHeight = 156;
 // some custom colors
 #define FG_COLOR      CLITERAL(Color){ 180, 215, 225,255}      // Green
 #define TEXT_COLOR    CLITERAL(Color){ 90, 125, 135, 255}      // Dark Green /verde bandiera
-#define BG_COLOR      CLITERAL(Color){ 10, 20, 30, 255 }         // background Black
-#define BORDER_COLOR  CLITERAL(Color){ 55, 65, 70, 255}  //grid color
+#define BORDER_COLOR  CLITERAL(Color){ 132, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     TEXT_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
+#define SLI_COLOR     0x5A7D87FF // slider color
+#define SLI_BG_COLOR  0x0A141EFF // slider background color
+
 
 static float exponent = 0.88f;                 // Audio exponentiation value
 static float averageVolume[134] = { 0.0f };   // Average volume history
@@ -90,7 +92,8 @@ void LoadMusicFiles(const char *path) {
     struct dirent *entry;
     while ((entry = readdir(dp))) {
         if (entry->d_type == DT_REG &&
-           (strstr(entry->d_name, ".mp3")))  {
+           (strstr(entry->d_name, ".mp3") ||
+            strstr(entry->d_name, ".ogg"))) {
             snprintf(musicFiles[musicFileCount],
                      sizeof(musicFiles[musicFileCount]),
                      "%s/%s", path, entry->d_name);
@@ -144,7 +147,7 @@ int main (int argc, char *argv[])
 {
     //nascondi finestra durante caricamento iniziale
     SetWindowState(FLAG_WINDOW_HIDDEN);
-    SetConfigFlags (FLAG_MSAA_4X_HINT);
+    //SetConfigFlags (FLAG_MSAA_4X_HINT); // occhio che sdoppi ale linee e sfalsa un po i colori
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -167,11 +170,11 @@ int main (int argc, char *argv[])
     GuiSetIconScale(1);
 
     // define TOGGLE style
-    GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,0x0A141EFF);
-    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,0x00FF80FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,0x00FF80FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,0x00FF80FF);
-    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,0x00FF80FF);
+    GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,SLI_BG_COLOR); // slider background color
+    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,SLI_COLOR); // slider fg color
+    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,SLI_COLOR);
+    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,SLI_COLOR);
+    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,SLI_COLOR);
     GuiSetStyle(SLIDER, BORDER_WIDTH,0);
 
     // Load texture for toolbar buttons
@@ -378,6 +381,7 @@ int main (int argc, char *argv[])
 
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
+                if (shuffle_index == musicFileCount) --shuffle_index;
                 if (musicFileCount > 1 && shuffle_index == current_play)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
                 current_play = shuffle_index;
@@ -420,13 +424,14 @@ int main (int argc, char *argv[])
             }
 
 
-        // auto move on next song
+        // auto move on next song and randomize played son if shuffle is enabled
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                     if (isShuffle) {
                         int shuffle_index = GetRandomValue(0,musicFileCount);
+                        if (shuffle_index == musicFileCount) --shuffle_index;
                         if (musicFileCount > 1 && shuffle_index == current_play)
                             shuffle_index = (shuffle_index + 1) % musicFileCount;
                         current_play = shuffle_index;
@@ -458,13 +463,11 @@ int main (int argc, char *argv[])
             DrawLine(367,64,500,64,BORDER_COLOR);
             
             //volume slider
-            DrawRectangle(507,12,25,99, BG_COLOR);
             DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,FG_COLOR);
             DrawTextEx(font,"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
             DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
 
             // pan slider
-            DrawRectangle(367, 89, 132, 21, BG_COLOR);
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,FG_COLOR);
             DrawTextEx(font,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
             DrawTextEx(font,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
@@ -510,11 +513,12 @@ int main (int argc, char *argv[])
             // Shuffle flag
             DrawTextEx(font,"Shuffle",(Vector2){370,64},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
             // Mute flag
-            DrawTextEx(font,"Mute",(Vector2){436,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
+            DrawTextEx(font,"Mute",(Vector2){438,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
             // PAN flag
-            DrawTextEx(font,"(< PAN >)",(Vector2){436,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(font,"(< PAN >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
             // Repeat flag
-            DrawTextEx(font,"Repeat",(Vector2){436,64},16,0, OFF_COLOR);
+            DrawTextEx(font,"Repeat 1",(Vector2){438,45},16,0, OFF_COLOR);
+            DrawTextEx(font,"Repeat All",(Vector2){438,64},16,0, OFF_COLOR);
 
             {
                 float dt = GetFrameTime()*5;
