@@ -10,7 +10,7 @@
 ********************************************************************************************
 * 
 
-* random / repeat once / all
+* repeat once / all
 * alla fine di un brano passa al successivo
 * mostra elenco selezionaa file
 * 
@@ -18,7 +18,7 @@
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.6.2"
+#define TOOL_VERSION            "0.6.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -70,6 +70,7 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
+bool isShuffle = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.0f;
@@ -78,6 +79,7 @@ float prev_volume = 0.0f;
 char musicFiles[2048][512];
 int  musicFileCount = 0;
 int  current_play = 0;
+int selectedFile = -1;
 
 void LoadMusicFiles(const char *path) {
     DIR *dp = opendir(path);
@@ -223,6 +225,7 @@ int main (int argc, char *argv[])
 
     // variables for title scrolling
     int framesCounter = 0;
+    selectedFile = current_play;
 
  while (!WindowShouldClose())
 {
@@ -275,6 +278,11 @@ int main (int argc, char *argv[])
             isPan = false;
             pan = 0.0f;
             SetMusicPan(music, pan);
+        }
+        else if (IsKeyPressed(KEY_S))
+        {
+            isShuffle = !isShuffle;
+
         }
 
         // Set audio volume
@@ -354,10 +362,11 @@ int main (int argc, char *argv[])
                     }
         }
 
-        if (btnAction[3]) { // Previous song
+        if (btnAction[3]) { // Previous song : no shuffle on previous sonf
 
                 current_play--;
                 if (current_play<=0) current_play=0;
+                selectedFile = current_play;
                 StopMusicStream(music);
                 LoadMusicByIndex(current_play);
                 PlayMusicStream(music);
@@ -368,9 +377,18 @@ int main (int argc, char *argv[])
                 framesCounter=0;
         }
 
-        if (btnAction[6]) { // Next song
+        if (btnAction[6]) { // Next song based on SHUFFLE setting
+
+            if (isShuffle) {
+                int shuffle_index = rand() % musicFileCount;
+                if (musicFileCount > 1 && shuffle_index == current_play)
+                    shuffle_index = (shuffle_index + 1) % musicFileCount;
+                current_play = shuffle_index;
+            } else {
                 current_play++;
-                if ( current_play >= musicFileCount ) current_play=0;
+                if (current_play >= musicFileCount) current_play = 0;
+            }
+                selectedFile = current_play;
                 StopMusicStream(music);
                 LoadMusicByIndex(current_play);
                 PlayMusicStream(music);
@@ -381,14 +399,11 @@ int main (int argc, char *argv[])
                 framesCounter=0;
             }
 
-
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         current_pos = GetMusicTimePlayed(music); //just to simplify some checks
 
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
-
-
 
         // set button status in stop, play, pause
         if (isStop) {
@@ -476,7 +491,7 @@ int main (int argc, char *argv[])
             DrawTextEx(font,"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
             DrawTextEx(font,"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
             // Shuffle flag
-            DrawTextEx(font,"Shuffle",(Vector2){370,64},16,0, OFF_COLOR);
+            DrawTextEx(font,"Shuffle",(Vector2){370,64},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
             // Mute flag
             DrawTextEx(font,"Mute",(Vector2){436,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
             // PAN flag
