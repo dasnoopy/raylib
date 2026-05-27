@@ -158,7 +158,7 @@ void drawLetter(int col,int row,int ASCII_CODE,Color color)
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH -1; i>-1 ; i--) {
                 //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? color : BLANK);
+                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? color : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;

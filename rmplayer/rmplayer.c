@@ -11,17 +11,16 @@
 * 
 
 * repeat once / all
-* alla fine di un brano passa al successivo
 * mostra elenco selezionaa file
 * info mp3 daati bitrate etc
 * tag mp3?
-*
-* aavanzamanento prossima canzone!!! 
+* 
+* salvare config :  autoplay start, shuffle at start, colori, folder music
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.7.2"
+#define TOOL_VERSION            "0.7.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -41,15 +40,14 @@
 const int screenWidth = 540;
 const int screenHeight = 156;
 
-
-// ARDUINO Matrix tool colors (light)
-#define FG_COLOR    CLITERAL(Color){ 0, 255, 128,255}      // Green
-#define TEXT_COLOR  CLITERAL(Color){ 0, 139, 34, 255}      // Dark Green /verde bandiera
+// some custom colors
+#define FG_COLOR      CLITERAL(Color){ 180, 215, 225,255}      // Green
+#define TEXT_COLOR    CLITERAL(Color){ 90, 125, 135, 255}      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 10, 20, 30, 255 }         // background Black
-#define BORDER_COLOR CLITERAL(Color){ 55, 65, 70, 255}  //grid color
-#define ON_COLOR CLITERAL(Color){ 0, 255, 0, 255}
-#define OFF_COLOR CLITERAL(Color){ 0,64, 0,255}
-#define VIS_COLOR CLITERAL(Color){ 0, 255, 128, 255 }
+#define BORDER_COLOR  CLITERAL(Color){ 55, 65, 70, 255}  //grid color
+#define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
+#define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
+#define VIS_COLOR     TEXT_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
 
 static float exponent = 0.88f;                 // Audio exponentiation value
 static float averageVolume[134] = { 0.0f };   // Average volume history
@@ -162,7 +160,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    Font fontx32 = LoadFontEx("assets/AcerMono.ttf", 32, 0, 0);
+    Font fontx32 = LoadFontEx("assets/EuroPCMono.ttf", 32, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
@@ -211,7 +209,7 @@ int main (int argc, char *argv[])
     AttachAudioMixedProcessor(ProcessAudio);
     LoadMusicFiles(dirPath);
     if (musicFileCount == 0) return 1;
-    // load first song
+    // load always first song in the list
     LoadMusicByIndex(current_play);
     // randomize initial song
     // LoadMusicByIndex(GetRandomValue(0,musicFileCount));
@@ -239,7 +237,7 @@ int main (int argc, char *argv[])
         // manage title scrolling
         char *titleStr = malloc(2048);
         char *spazi = creaSPAZI(26);
-         strcpy(titleStr, spazi);
+        strcpy(titleStr, spazi);
         strcat(titleStr, GetFileNameWithoutExt(musicFiles[current_play]));
         int titleLen=strlen(titleStr);
 
@@ -453,7 +451,7 @@ int main (int argc, char *argv[])
             ClearBackground(BLANK);
             // Draw Player background
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
-            //DrawRectangle(10.10.200.200.FG_COLOR);
+
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
             DrawLine(367,45,500,45,BORDER_COLOR);
@@ -479,6 +477,7 @@ int main (int argc, char *argv[])
 
             // Draw buttons bar
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
+                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, FG_COLOR);
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
