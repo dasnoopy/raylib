@@ -23,12 +23,13 @@ _PixelArt Editor_
 _raylibMusicPlayer (a MOD4WIN clone)_
 ![rmplayer](https://raw.github.com/dasnoopy/raylib/main/screenshot/rmplayer.png)
 
+_System info monitor_
+![rsysmon](https://raw.github.com/dasnoopy/raylib/main/screenshot/rsysmon.png)
+
 _Dotchar editor_
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
 _5 Band resistor calculator_
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
-_System info monitor_
-![rsysmon](https://raw.github.com/dasnoopy/raylib/main/screenshot/rsysmon.png)
 
