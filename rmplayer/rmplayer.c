@@ -19,11 +19,12 @@
 INFO:     > Sample size:   32 bits
 INFO:     > Channels:      2 (Stereo)
 INFO:     > Total frames:  17006894
+
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.7.6"
+#define TOOL_VERSION            "0.7.9"
 
 #include <stdio.h>
 #include <time.h>
@@ -44,13 +45,13 @@ const int screenWidth = 540;
 const int screenHeight = 156;
 
 // some custom colors
-#define FG_COLOR      CLITERAL(Color){ 120,190,190,255 }      // Green
-#define TEXT_COLOR    CLITERAL(Color){ 90, 125, 135, 255}      // Dark Green /verde bandiera
+#define FG_COLOR      CLITERAL(Color){ 0, 255, 128, 255 }       // Green
+#define TEXT_COLOR    CLITERAL(Color){ 128,128, 128, 255 }      // Dark Green /verde bandiera
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
-#define VIS_COLOR     TEXT_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x5A7D87FF // slider color
+#define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
+#define SLI_COLOR     0x808080FF // slider color
 #define SLI_BG_COLOR  0x0A141EFF // slider background color
 
 
@@ -70,14 +71,13 @@ void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color
 }
 Music music;
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
-float timeLength = 0.0f;
 float current_pos = 0.0f;
 bool isPlay = false;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = false;
+bool isShuffle = true;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.0f;
@@ -87,7 +87,7 @@ const char *dirPath = "/home/andrea/Music/Anni90";
 char musicFiles[2048][512];
 int  musicFileCount = 0;
 int  current_play = 0;
-int selectedFile = -1;
+int  selectedFile = -1;
 
 void LoadMusicFiles(const char *path) {
     DIR *dp = opendir(path);
@@ -136,16 +136,6 @@ void ProcessAudio(void *buffer, unsigned int frames)
     averageVolume[133] = average;         // Adding last average value
 }
 
-// funzione per creare stringa di tot spazi (o caraattere a piacimento)
-char *creaSPAZI(int N) {
-    if (N <= 0) return NULL;
-     char *str = malloc(N + 1);  
-    if (str == NULL) return NULL;
-    memset(str, ' ', N);
-    str[N] = '\0';
-    return str;
-}
-
 int main (int argc, char *argv[])
 {
     //nascondi finestra durante caricamento iniziale
@@ -178,6 +168,8 @@ int main (int argc, char *argv[])
     GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,SLI_COLOR);
     GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,SLI_COLOR);
     GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,SLI_COLOR);
+    GuiSetStyle(SLIDER, SLIDER_WIDTH, 24);
+    GuiSetStyle(SLIDER, SLIDER_PADDING, 1);
     GuiSetStyle(SLIDER, BORDER_WIDTH,0);
 
     // Load texture for toolbar buttons
@@ -215,10 +207,11 @@ int main (int argc, char *argv[])
     AttachAudioMixedProcessor(ProcessAudio);
     LoadMusicFiles(dirPath);
     if (musicFileCount == 0) return 1;
-    // load always first song in the list
-    LoadMusicByIndex(current_play);
-    // randomize initial song
-    // LoadMusicByIndex(GetRandomValue(0,musicFileCount));
+
+
+    // randomize initial song or not
+    if (isShuffle) LoadMusicByIndex(GetRandomValue(0,musicFileCount));
+    else LoadMusicByIndex(current_play);
 
     if (isPlay) PlayMusicStream(music);  // autoplay at start
     SetMusicPan(music, pan);
@@ -230,22 +223,34 @@ int main (int argc, char *argv[])
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
-    // variables for title scrolling
-    int framesCounter = 0;
+    // variables 
     selectedFile = current_play;
+
+
+
+    Rectangle displayArea = { 9, 6, 349,29 };
+
+    float x = displayArea.x ;
+    float speed = 60.0f;
+    // create title with space prefix
+    char *titleStr = malloc(2048);
 
  while (!WindowShouldClose())
 {
+        strcpy(titleStr, GetFileNameWithoutExt(musicFiles[current_play]));
+        Vector2 titleSize = MeasureTextEx(fontx32, titleStr, 32, 0);
+        float titleWidth = titleSize.x;
+        bool needScroll = titleWidth > displayArea.width;
+
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
-
-        // manage title scrolling
-        char *titleStr = malloc(2048);
-        char *spazi = creaSPAZI(26);
-        strcpy(titleStr, spazi);
-        strcat(titleStr, GetFileNameWithoutExt(musicFiles[current_play]));
-        int titleLen=strlen(titleStr);
+        // set scroll text speed
+        float dt = GetFrameTime();
+        if (needScroll) {
+            x -= speed * dt;
+            if (x <= displayArea.x - titleWidth) x += titleWidth + displayArea.width;
+        }
 
         Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
@@ -377,7 +382,7 @@ int main (int argc, char *argv[])
                 isStop=false;
                 isPlay=true;
                 isPause=false;
-                framesCounter=0;
+                 x = displayArea.x;
         }
 
         if (btnAction[6]) { // Next song based on SHUFFLE setting
@@ -400,15 +405,13 @@ int main (int argc, char *argv[])
                 isStop=false;
                 isPlay=true;
                 isPause=false;
-                framesCounter=0;
+                x = displayArea.x;
             }
 
         // Get normalized time played for current music stream
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
-        timeLength = GetMusicTimeLength(music);
-        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
-
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
+        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
 
         // set button status in stop, play, pause
         if (isStop) {
@@ -475,11 +478,10 @@ int main (int argc, char *argv[])
             DrawTextEx(font,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
             DrawTextEx(font,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
-            // seek slider bar    
-                float songLength = GetMusicTimeLength(music);
-                float sliderSeek = GetMusicTimePlayed(music)/songLength;
-                if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &sliderSeek,0,1.0f))
-                    SeekMusicStream(music, sliderSeek * songLength);
+            BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
+                if (needScroll) DrawTextEx(fontx32, titleStr, (Vector2){ x, displayArea.y }, 32, 0, FG_COLOR);
+                else DrawTextEx(fontx32, titleStr, (Vector2){ displayArea.x, displayArea.y}, 32,0, FG_COLOR);
+            EndScissorMode();
 
             // Draw buttons bar
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
@@ -500,14 +502,9 @@ int main (int argc, char *argv[])
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
             DrawTextEx(font,timeStr,(Vector2){160,64},16,0, FG_COLOR);
 
-
-
             // a sort of visualizer : giusto per vivacizzare....
-            //float dt = GetFrameTime();
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nelle varbi
-            {
                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
-            }
 
             // show Play / Stop /Pause status
             DrawTextEx(font,"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
@@ -523,31 +520,24 @@ int main (int argc, char *argv[])
             DrawTextEx(font,"Repeat 1",(Vector2){438,45},16,0, OFF_COLOR);
             DrawTextEx(font,"Repeat All",(Vector2){438,64},16,0, OFF_COLOR);
 
-            {
-                float dt = GetFrameTime()*5;
-                if (titleLen > 52) {
-                    DrawTextEx(fontx32,TextSubtext(titleStr,framesCounter * dt ,26),(Vector2){10,6},32,0, FG_COLOR);
-                    framesCounter++;
-                    if (framesCounter*dt > titleLen) framesCounter=0;
-                }
-                else DrawTextEx(fontx32,GetFileNameWithoutExt(musicFiles[current_play]),(Vector2){10,6},32,0, FG_COLOR);
-            }
-
             // song of songs
             DrawTextEx(font,TextFormat("%04d ",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
             DrawTextEx(font,TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
+
+            // // seek slider bar    
+                float songLength = GetMusicTimeLength(music);
+                float sliderSeek = GetMusicTimePlayed(music)/songLength;
+                if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &sliderSeek,0,1.0f))
+                    SeekMusicStream(music, sliderSeek * songLength);
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
             DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,BLACK);
-
-
         EndDrawing();
-        
-        free(spazi);
-        free(titleStr);
     }
+
+    free(titleStr);        
     UnloadTexture(backGround);
     UnloadRenderTexture(target);
     UnloadFont(font);
