@@ -7,18 +7,17 @@
 *
 ********************************************************************************************
 * 
-* repeat all funziona repeat1 ...?? vabbe
-* scan 10 sec all songs
+
 * mostra elenco seleziona file
 * salvare config :  autoplay si no,  shuffle at start, colori, folder music
 * search files
 * pick color window
-* repeat song
+
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.8.5"
+#define TOOL_VERSION            "0.8.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -82,9 +81,10 @@ float prev_volume = 0.0f;
 const char *musicDir = "/home/andrea/Music";
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
-int  musicFileCount = 0;
-int  current_play = 0;
-int  selectedFile = -1;
+int musicFileCount = 0;
+int current_play = 0;
+int prev_play = 0;
+int selectedFile = -1;
 
 
 static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
@@ -471,6 +471,7 @@ int main (int argc, char *argv[])
         // auto move on next song (or repeat song if it's ON) and randomize played song if shuffle is enabled
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
+                prev_play = current_play;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                     if (isShuffle) {
@@ -483,6 +484,8 @@ int main (int argc, char *argv[])
                         current_play++;
                         if (current_play >= musicFileCount) current_play = 0;
                     }
+                    if (isRepeat) current_play = prev_play;
+
                 selectedFile = current_play;
                 LoadMusicByIndex(current_play,musicFiles);
                 PlayMusicStream(music);
