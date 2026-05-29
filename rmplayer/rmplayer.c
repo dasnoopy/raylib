@@ -7,17 +7,29 @@
 *
 ********************************************************************************************
 * 
-
+* salvare config :  
+*   autoplay si no,
+*   shuffle at start,
+*   mute
+*   repeat
+*   volume
+*   pan
+*   colors,
+*   folder music
+*  windows position
+* 
+* info hz, bitrate channel.. si vedono nei log perche non posso beccarli at runtime?
 * mostra elenco seleziona file
-* salvare config :  autoplay si no,  shuffle at start, colori, folder music
 * search files
 * pick color window
-
+* gestion errori probelmi apertura file... eg se cambio nome ad un file mpq quando il programma
+* gestione errore se tag mp3 hanno problemi
 *******************************************************************************************/
 
-#define TOOL_NAME               "Mod4win Reborn"
-#define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.8.6"
+#define TOOL_NAME               "Raylib Music Player"
+#define TOOL_SHORT_NAME         "rmplayer"
+#define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
+#define TOOL_VERSION            "0.8.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -40,15 +52,15 @@ const int screenWidth = 540;
 const int screenHeight = 156;
 
 // some custom colors
-#define FG_COLOR      CLITERAL(Color){ 96, 214, 214, 255 }       // Green
-#define TEXT_COLOR    CLITERAL(Color){ 100, 110, 120, 255 }      // Dark Green /verde bandiera
-#define BG_COLOR  CLITERAL(Color){ 30, 40, 50, 255 }
+#define FG_COLOR      CLITERAL(Color){ 0x5D, 0x99, 0xCB, 0xFF }       // Green
+#define TEXT_COLOR    CLITERAL(Color){ 0x50, 0x60, 0x70, 0xFF }      // Dark Green /verde bandiera
+#define BG_COLOR      CLITERAL(Color){ 0x29, 0x23, 0x4F, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x60D6D6FF // slider color
-#define SLI_BG_COLOR  0x1E2832FF // slider background color
+#define SLI_COLOR     0x8A559DFF // slider color
+#define SLI_BG_COLOR  0x29234FFF // slider background color
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -134,16 +146,13 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     //get ID3 tags
     struct id3_file *file;
     struct id3_tag *tag;
-
     file = id3_file_open(files.paths[idx], ID3_FILE_MODE_READONLY);
-    tag = id3_file_tag(file);
+    
+    if (!file) {
+        fprintf(stderr, "Errore apertura file\n");
+    }
 
-        if (!tag) {
-        strcpy(titleStr, GetFileNameWithoutExt(files.paths[idx]));
-        fprintf(stderr, "Nessun tag ID3 trovato\n");
-        id3_file_close(file);
-        }
-        else {
+    tag = id3_file_tag(file);
             getID3tags(tag, "TIT2", "Title");
             strcpy(titleStr, ID3tag );
             //separator
@@ -153,7 +162,7 @@ void LoadMusicByIndex(int idx, FilePathList files) {
             // getID3tags(tag, "TALB", "Album");
             // strcat(titleStr, ID3tag );
             id3_file_close(file);
-        }
+
 }
 
 //------------------------------------------------------------------------------------
@@ -178,26 +187,46 @@ void ProcessAudio(void *buffer, unsigned int frames)
 
 int main (int argc, char *argv[])
 {
+    // Possible window flags
+    /*
+    FLAG_VSYNC_HINT
+    FLAG_FULLSCREEN_MODE    -> not working properly -> wrong scaling!
+    FLAG_WINDOW_RESIZABLE
+    FLAG_WINDOW_UNDECORATED
+    FLAG_WINDOW_TRANSPARENT
+    FLAG_WINDOW_HIDDEN
+    FLAG_WINDOW_MINIMIZED   -> Not supported on window creation
+    FLAG_WINDOW_MAXIMIZED   -> Not supported on window creation
+    FLAG_WINDOW_UNFOCUSED
+    FLAG_WINDOW_TOPMOST
+    FLAG_WINDOW_HIGHDPI     -> errors after minimize-resize, fb size is recalculated
+    FLAG_WINDOW_ALWAYS_RUN
+    FLAG_MSAA_4X_HINT
+    */
+
+    // Set configuration flags for window creation
     //nascondi finestra durante caricamento iniziale
-    SetWindowState(FLAG_WINDOW_HIDDEN);
-    //SetConfigFlags (FLAG_MSAA_4X_HINT); // occhio che sdoppi ale linee e sfalsa un po i colori
-    SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
+    SetConfigFlags(FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
-    Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
-    Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-    UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+    //SetConfigFlags (FLAG_MSAA_4X_HINT); // occhio che sdoppi ale linee e sfalsa un po i colori
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetWindowState(FLAG_WINDOW_UNDECORATED);
-    SetWindowState(FLAG_WINDOW_TOPMOST);
+
+
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+
+    Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
+    Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    //SetTextureFilter(backGround, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
+    UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
     Font fontx32 = LoadFontEx("assets/IBM_Model3.ttf", 32, 0, 0);
-    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    //SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
@@ -251,7 +280,7 @@ int main (int argc, char *argv[])
     // randomize initial song or not
     if (isShuffle) LoadMusicByIndex(GetRandomValue(0,musicFileCount),musicFiles);
     else LoadMusicByIndex(current_play,musicFiles);
-
+    // auto start song on open
     if (isPlay) PlayMusicStream(music);  // autoplay at start
     
     // set initial volume and panning
@@ -263,25 +292,25 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 6, 349,29 };
+    Rectangle displayArea = { 9, 6, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
-
  while (!WindowShouldClose())
 {
-        //strcpy(titleStr, GetFileNameWithoutExt(musicFiles.paths[current_play]));
-        Vector2 titleSize = MeasureTextEx(fontx32, titleStr, 32, 0);
-        float titleWidth = titleSize.x;
-        bool needScroll = titleWidth > displayArea.width;
+
 
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
+    
         // set scroll text speed
+        Vector2 titleSize = MeasureTextEx(fontx32, titleStr, 32, 0);
+        float titleWidth = titleSize.x;
+        bool needScroll = titleWidth > displayArea.width;
         float dt = GetFrameTime();
         if (needScroll) {
             titleX -= speed * dt;
@@ -409,8 +438,10 @@ int main (int argc, char *argv[])
                     }
         }
 
-        if (btnAction[3]) { // Previous song : no shuffle on previous song
-                current_play--;
+        if (btnAction[3]) { // Previous song : no shuffle on previous song but
+                            // play previous song
+                if (isShuffle) current_play = prev_play;
+                else current_play--;
                 if (current_play<=0) current_play=0;
                 selectedFile = current_play;
                 StopMusicStream(music);
@@ -424,7 +455,7 @@ int main (int argc, char *argv[])
         }
 
         if (btnAction[6]) { // Next song based on SHUFFLE setting
-
+            prev_play = current_play; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
                 if (shuffle_index == musicFileCount) --shuffle_index;
