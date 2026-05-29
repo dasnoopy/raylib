@@ -10,15 +10,15 @@
 * repeat all funziona repeat1 ...?? vabbe
 * scan 10 sec all songs
 * mostra elenco seleziona file
-* tag mp3 id3v2?  meglio 
-* desktop file con relativa icona
 * salvare config :  autoplay si no,  shuffle at start, colori, folder music
-*
+* search files
+* pick color window
+* repeat song
 *******************************************************************************************/
 
 #define TOOL_NAME               "Mod4win Reborn"
 #define TOOL_SHORT_NAME         "rMPlayer"
-#define TOOL_VERSION            "0.8.1"
+#define TOOL_VERSION            "0.8.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -27,6 +27,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <id3tag.h>  
+
+// gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
+
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
@@ -37,30 +41,25 @@ const int screenWidth = 540;
 const int screenHeight = 156;
 
 // some custom colors
-#define FG_COLOR      CLITERAL(Color){ 0, 255, 0, 255 }       // Green
-#define TEXT_COLOR    CLITERAL(Color){ 0,128, 0, 255 }      // Dark Green /verde bandiera
+#define FG_COLOR      CLITERAL(Color){ 96, 214, 214, 255 }       // Green
+#define TEXT_COLOR    CLITERAL(Color){ 100, 110, 120, 255 }      // Dark Green /verde bandiera
+#define BG_COLOR  CLITERAL(Color){ 30, 40, 50, 255 }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x008000FF // slider color
-#define SLI_BG_COLOR  0x0A141EFF // slider background color
+#define SLI_COLOR     0x60D6D6FF // slider color
+#define SLI_BG_COLOR  0x1E2832FF // slider background color
 
-
+// visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
 static float averageVolume[134] = { 0.0f };   // Average volume history
 
+// Texture variables
 #define NUM_BUTTONS 7
 #define SEEK_TIME 10.0f
 #define NUM_FRAMES  3       // Number of frames (rectangles) for the button sprite texture
 
-// 'fake' background
-void drawRectangleRounded (int x, int y, int w, int h, float radius, Color color)  
-{
-  Rectangle  rect = { x, y, w, h};   // toplx, toply, width, height
-  int segs = 6; // non segments
-  DrawRectangleRounded ( rect, radius, segs, color );
-}
 Music music;
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float current_pos = 0.0f;
@@ -69,8 +68,8 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = true;
-bool isScan = false;
+bool isShuffle = false;
+bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.0f;
@@ -80,10 +79,44 @@ float prev_volume = 0.0f;
 #define MAX_FILEPATH_SIZE       1024
 #define FILE_FILTER             ".mp3;.ogg"
 
-const char *dirPath = "/home/andrea/Music";
+const char *musicDir = "/home/andrea/Music";
+char ID3tag[1024] = { '\0' };
+char titleStr[1024] = { '\0' };
 int  musicFileCount = 0;
 int  current_play = 0;
 int  selectedFile = -1;
+
+
+static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
+{
+    struct id3_frame *frame;
+    union id3_field *field;
+    id3_ucs4_t const *ucs4;
+    id3_utf8_t *utf8;
+
+    frame = id3_tag_findframe(tag, id, 0);
+    if (!frame) {
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <not present>", label);
+        return;
+    }
+
+    // Nei frame di testo il campo 1 contiene il testo
+    field = &frame->fields[1];
+    ucs4 = id3_field_getstrings(field, 0);
+    if (!ucs4) {
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        return;
+    }
+    utf8 = id3_ucs4_utf8duplicate(ucs4);
+    if (!utf8) {
+        snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
+        return;
+    }
+    //snprintf(ID3tag, sizeof(ID3tag), "%s: %s, ", label, utf8);
+    snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
+    free(utf8);
+}
+
 
 // Funzione che restituisce un FilePathList dei file in basePath con estensioni filter
 FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
@@ -97,6 +130,30 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     if (idx < 0 || idx >= musicFileCount) return;
     music = LoadMusicStream(files.paths[idx]);
     current_play = idx;
+    
+    //get ID3 tags
+    struct id3_file *file;
+    struct id3_tag *tag;
+
+    file = id3_file_open(files.paths[idx], ID3_FILE_MODE_READONLY);
+    tag = id3_file_tag(file);
+
+        if (!tag) {
+        strcpy(titleStr, GetFileNameWithoutExt(files.paths[idx]));
+        fprintf(stderr, "Nessun tag ID3 trovato\n");
+        id3_file_close(file);
+        }
+        else {
+            getID3tags(tag, "TIT2", "Title");
+            strcpy(titleStr, ID3tag );
+            //separator
+            strcat (titleStr, " / ");
+            getID3tags(tag, "TPE1", "Artist");
+            strcat(titleStr, ID3tag );
+            // getID3tags(tag, "TALB", "Album");
+            // strcat(titleStr, ID3tag );
+            id3_file_close(file);
+        }
 }
 
 //------------------------------------------------------------------------------------
@@ -106,20 +163,16 @@ void ProcessAudio(void *buffer, unsigned int frames)
 {
     float *samples = (float *)buffer;   // Samples internally stored as <float>s
     float average = 0.0f;               // Temporary average volume
-
     for (unsigned int frame = 0; frame < frames; frame++)
     {
         float *left = &samples[frame*2 + 0], *right = &samples[frame*2 + 1];
-
         *left = powf(fabsf(*left), exponent)*( (*left < 0.0f)? -1.0f : 1.0f );
         *right = powf(fabsf(*right), exponent)*( (*right < 0.0f)? -1.0f : 1.0f );
-
         average += fabsf(*left)/frames;   // accumulating average volume
         average += fabsf(*right)/frames;
     }
     // Moving history to the left
     for (int i = 0; i < 133; i++) averageVolume[i] = averageVolume[i + 1];
-
     averageVolume[133] = average;         // Adding last average value
 }
 
@@ -136,14 +189,14 @@ int main (int argc, char *argv[])
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
     SetWindowState(FLAG_WINDOW_UNDECORATED);
-    //SetWindowState(FLAG_WINDOW_TOPMOST);
+    SetWindowState(FLAG_WINDOW_TOPMOST);
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
     // Set UI style
     // Custom GUI font loading
     Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    Font fontx32 = LoadFontEx("assets/EuroPCMono.ttf", 32, 0, 0);
+    Font fontx32 = LoadFontEx("assets/IBM_Model3.ttf", 32, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
@@ -192,9 +245,9 @@ int main (int argc, char *argv[])
     // init Audio
     InitAudioDevice();
     AttachAudioMixedProcessor(ProcessAudio);
+    
     // Load music files
-    FilePathList musicFiles = GetMusicFromDirectory(dirPath,FILE_FILTER,true);
-
+    FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     // randomize initial song or not
     if (isShuffle) LoadMusicByIndex(GetRandomValue(0,musicFileCount),musicFiles);
     else LoadMusicByIndex(current_play,musicFiles);
@@ -208,12 +261,11 @@ int main (int argc, char *argv[])
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(60);
 
+    // scroll title / id3
     selectedFile = current_play;
     Rectangle displayArea = { 9, 6, 349,29 };
-
     float titleX = displayArea.x ;
     float speed = 60.0f;
-    char *titleStr = malloc(2048);
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -221,7 +273,7 @@ int main (int argc, char *argv[])
 
  while (!WindowShouldClose())
 {
-        strcpy(titleStr, GetFileNameWithoutExt(musicFiles.paths[current_play]));
+        //strcpy(titleStr, GetFileNameWithoutExt(musicFiles.paths[current_play]));
         Vector2 titleSize = MeasureTextEx(fontx32, titleStr, 32, 0);
         float titleWidth = titleSize.x;
         bool needScroll = titleWidth > displayArea.width;
@@ -277,9 +329,9 @@ int main (int argc, char *argv[])
         }
         else if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
        
-        else if (IsKeyPressed(KEY_P))
+        else if (IsKeyPressed(KEY_R))
         {
-            isScan = !isScan;
+            isRepeat = !isRepeat;
          
         }
         // Set audio volume
@@ -416,7 +468,7 @@ int main (int argc, char *argv[])
             }
 
 
-        // auto move on next song and randomize played song if shuffle is enabled
+        // auto move on next song (or repeat song if it's ON) and randomize played song if shuffle is enabled
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
                 StopMusicStream(music);
@@ -447,6 +499,8 @@ int main (int argc, char *argv[])
         BeginDrawing();
             ClearBackground(BLANK);
             // Draw Player background
+            DrawRectangle(0,0,screenWidth,screenHeight,BG_COLOR);
+            //load player texture
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
             // grid flaags
             DrawLine(434,8,434,81,BORDER_COLOR);
@@ -503,7 +557,7 @@ int main (int argc, char *argv[])
             // PAN flag
             DrawTextEx(font,"(< PAN >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
             // scan 10 second of every son in the list
-            DrawTextEx(font,"Scan",(Vector2){438,45},16,0, isScan ? ON_COLOR: OFF_COLOR);
+            DrawTextEx(font,"Repeat",(Vector2){438,45},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
 
 
             // song of songs
@@ -523,7 +577,6 @@ int main (int argc, char *argv[])
         EndDrawing();
     }
 
-    free(titleStr);
     UnloadDirectoryFiles(musicFiles);
     UnloadTexture(backGround);
     UnloadRenderTexture(target);
