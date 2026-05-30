@@ -29,7 +29,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.8.7"
+#define TOOL_VERSION            "0.8.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -51,16 +51,16 @@
 const int screenWidth = 540;
 const int screenHeight = 156;
 
-// some custom colors
-#define FG_COLOR      CLITERAL(Color){ 0x5D, 0x99, 0xCB, 0xFF }       // Green
-#define TEXT_COLOR    CLITERAL(Color){ 0x50, 0x60, 0x70, 0xFF }      // Dark Green /verde bandiera
-#define BG_COLOR      CLITERAL(Color){ 0x29, 0x23, 0x4F, 0xFF }
+// some custom colorsq
+#define FG_COLOR      CLITERAL(Color){ 0x85, 0xD0, 0xD3, 0xFF }       // Green
+#define TEXT_COLOR    CLITERAL(Color){ 0x60, 0x61, 0x61, 0xFF }      // Dark Green /verde bandiera
+#define BG_COLOR      CLITERAL(Color){ 0x0A, 0x14, 0x1E, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x8A559DFF // slider color
-#define SLI_BG_COLOR  0x29234FFF // slider background color
+#define SLI_COLOR     0x0CA1A6FF // slider color
+#define SLI_BG_COLOR  0x0A141EFF // slider background color
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -187,31 +187,13 @@ void ProcessAudio(void *buffer, unsigned int frames)
 
 int main (int argc, char *argv[])
 {
-    // Possible window flags
-    /*
-    FLAG_VSYNC_HINT
-    FLAG_FULLSCREEN_MODE    -> not working properly -> wrong scaling!
-    FLAG_WINDOW_RESIZABLE
-    FLAG_WINDOW_UNDECORATED
-    FLAG_WINDOW_TRANSPARENT
-    FLAG_WINDOW_HIDDEN
-    FLAG_WINDOW_MINIMIZED   -> Not supported on window creation
-    FLAG_WINDOW_MAXIMIZED   -> Not supported on window creation
-    FLAG_WINDOW_UNFOCUSED
-    FLAG_WINDOW_TOPMOST
-    FLAG_WINDOW_HIGHDPI     -> errors after minimize-resize, fb size is recalculated
-    FLAG_WINDOW_ALWAYS_RUN
-    FLAG_MSAA_4X_HINT
-    */
-
     // Set configuration flags for window creation
     //nascondi finestra durante caricamento iniziale
     SetConfigFlags(FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
-    InitWindow(screenWidth, screenHeight, "Mod4win Reborn");
+    InitWindow(screenWidth, screenHeight, "rMPlayer");
     //SetConfigFlags (FLAG_MSAA_4X_HINT); // occhio che sdoppi ale linee e sfalsa un po i colori
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-
 
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
