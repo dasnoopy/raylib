@@ -17,19 +17,24 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
-_PixelArt Editor_
+#### PixelArt Editor  
+
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
-_raylibMusicPlayer (a MOD4WIN clone)_
+#### Raylib MusicPlayer  
+
 ![rmplayer](https://raw.github.com/dasnoopy/raylib/main/screenshot/rmplayer.png)
 
-_System info monitor_
+#### System info monitor  
+
 ![rsysmon](https://raw.github.com/dasnoopy/raylib/main/screenshot/rsysmon.png)
 
-_Dotchar editor_
+#### Dotchar editor  
+
 ![dotchar-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/dotchar-editor.png)
 
-_5 Band resistor calculator_
+#### Band resistor calculator  
+
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
 
