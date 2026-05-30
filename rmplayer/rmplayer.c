@@ -18,18 +18,18 @@
 *   folder music
 *  windows position
 * 
-* info hz, bitrate channel.. si vedono nei log perche non posso beccarli at runtime?
 * mostra elenco seleziona file
 * search files
 * pick color window
 * gestion errori probelmi apertura file... eg se cambio nome ad un file mpq quando il programma
 * gestione errore se tag mp3 hanno problemi
+* 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.8.8"
+#define TOOL_VERSION            "0.9.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -48,18 +48,20 @@
 #include "raygui.h"
 
 // window initial size
-const int screenWidth = 540;
-const int screenHeight = 156;
+int screenX = 32;
+int screenY = 880;
+int screenWidth = 540;
+int screenHeight = 156;
 
 // some custom colorsq
 #define FG_COLOR      CLITERAL(Color){ 0x85, 0xD0, 0xD3, 0xFF }       // Green
 #define TEXT_COLOR    CLITERAL(Color){ 0x60, 0x61, 0x61, 0xFF }      // Dark Green /verde bandiera
-#define BG_COLOR      CLITERAL(Color){ 0x0A, 0x14, 0x1E, 0xFF }
+#define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 #define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x0CA1A6FF // slider color
+#define SLI_COLOR     0x85D0D3FF // slider color
 #define SLI_BG_COLOR  0x0A141EFF // slider background color
 
 // visualizer variables
@@ -70,8 +72,11 @@ static float averageVolume[134] = { 0.0f };   // Average volume history
 #define NUM_BUTTONS 7
 #define SEEK_TIME 10.0f
 #define NUM_FRAMES  3       // Number of frames (rectangles) for the button sprite texture
+#define MAX_FONTS 8
 
+// define stream 
 Music music;
+
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float current_pos = 0.0f;
 bool isPlay = false;
@@ -79,7 +84,7 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = false;
+bool isShuffle = true;
 bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
@@ -97,7 +102,6 @@ int musicFileCount = 0;
 int current_play = 0;
 int prev_play = 0;
 int selectedFile = -1;
-
 
 static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 {
@@ -129,7 +133,6 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     free(utf8);
 }
 
-
 // Funzione che restituisce un FilePathList dei file in basePath con estensioni filter
 FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
     FilePathList files = LoadDirectoryFilesEx(basePath, filter, includeSubdirs);
@@ -153,11 +156,11 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     }
 
     tag = id3_file_tag(file);
-            getID3tags(tag, "TIT2", "Title");
+            getID3tags(tag, "TPE1", "Artist");
             strcpy(titleStr, ID3tag );
             //separator
-            strcat (titleStr, " / ");
-            getID3tags(tag, "TPE1", "Artist");
+            strcat (titleStr, ": ");
+            getID3tags(tag, "TIT2", "Title");
             strcat(titleStr, ID3tag );
             // getID3tags(tag, "TALB", "Album");
             // strcat(titleStr, ID3tag );
@@ -188,13 +191,11 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    //nascondi finestra durante caricamento iniziale
-    SetConfigFlags(FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
+    SetConfigFlags(FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
-    //SetConfigFlags (FLAG_MSAA_4X_HINT); // occhio che sdoppi ale linee e sfalsa un po i colori
     // center window on the screen
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
+    SetWindowPosition(screenX,screenY); 
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -206,10 +207,10 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
-    Font fontx32 = LoadFontEx("assets/IBM_Model3.ttf", 32, 0, 0);
+    Font fonts[MAX_FONTS] = { 0 };
+    fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
+    fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
     //SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
-    GuiSetFont(font);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
@@ -259,15 +260,19 @@ int main (int argc, char *argv[])
     
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
+    
     // randomize initial song or not
-    if (isShuffle) LoadMusicByIndex(GetRandomValue(0,musicFileCount),musicFiles);
+    if (isShuffle) 
+    {
+        current_play = GetRandomValue(0,musicFileCount);
+        LoadMusicByIndex(current_play,musicFiles);
+        prev_play=current_play;
+    }
     else LoadMusicByIndex(current_play,musicFiles);
     // auto start song on open
     if (isPlay) PlayMusicStream(music);  // autoplay at start
     
-    // set initial volume and panning
-    SetMusicPan(music, pan);
-    SetMusicVolume(music, volume);
+
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(60);
@@ -290,12 +295,12 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
     
         // set scroll text speed
-        Vector2 titleSize = MeasureTextEx(fontx32, titleStr, 32, 0);
+        Vector2 titleSize = MeasureTextEx(fonts[0], titleStr, 32, 0);
         float titleWidth = titleSize.x;
         bool needScroll = titleWidth > displayArea.width;
-        float dt = GetFrameTime();
+        float dt = GetFrameTime() ;
         if (needScroll) {
-            titleX -= speed * dt;
+            titleX -= (speed * dt);
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
 
@@ -317,6 +322,19 @@ int main (int argc, char *argv[])
             srcRect[i].y = btnState[i]*frameHeight;
         }
 
+// ***********************************************************
+// * keybindigs
+// * 
+// * cursor up/down : Volume UP / DOWN
+// * cursor left/right : Panning audio left/Right
+// * C : center PAN
+// * M : Mute audio
+// * S : Shuffle playlist on / off
+// * R : repeat song on / off
+// * N : play next song
+// * P : play previous song
+// * Q : leave app
+// ***********************************************************
         // Set audio pan
         if (IsKeyDown(KEY_LEFT))
         {
@@ -340,11 +358,8 @@ int main (int argc, char *argv[])
         }
         else if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
        
-        else if (IsKeyPressed(KEY_R))
-        {
-            isRepeat = !isRepeat;
+        else if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
          
-        }
         // Set audio volume
         else if (IsKeyDown(KEY_DOWN))
         {
@@ -362,12 +377,12 @@ int main (int argc, char *argv[])
         else if (IsKeyPressed(KEY_M)) // MUTE
         {
             isMute = !isMute;
-            if (isMute) {
-                prev_volume = volume;
-                volume = 0.0f;
-                }
-            else volume = prev_volume;
-        SetMusicVolume(music, volume);
+                if (isMute) {
+                    prev_volume = volume;
+                    volume = 0.0f;
+                    }
+                else volume = prev_volume;
+
         }
 
         if (btnAction[0]) { // Stop button
@@ -379,7 +394,7 @@ int main (int argc, char *argv[])
                 isPause=false;
                 }
 
-        if (btnAction[1] && !isPause ) { // play button
+        if ((btnAction[1] || IsKeyPressed(KEY_SPACE))&& !isPause ) { // play button
                 StopMusicStream(music);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
@@ -420,8 +435,7 @@ int main (int argc, char *argv[])
                     }
         }
 
-        if (btnAction[3]) { // Previous song : no shuffle on previous song but
-                            // play previous song
+        if (btnAction[3] || IsKeyPressed(KEY_P)) { // Previous song : no shuffle on previous song
                 if (isShuffle) current_play = prev_play;
                 else current_play--;
                 if (current_play<=0) current_play=0;
@@ -436,7 +450,7 @@ int main (int argc, char *argv[])
                  titleX = displayArea.x;
         }
 
-        if (btnAction[6]) { // Next song based on SHUFFLE setting
+        if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
             prev_play = current_play; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
@@ -450,6 +464,7 @@ int main (int argc, char *argv[])
             }
                 selectedFile = current_play;
                 StopMusicStream(music);
+                UnloadMusicStream(music);
                 LoadMusicByIndex(current_play,musicFiles);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
@@ -463,6 +478,18 @@ int main (int argc, char *argv[])
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
         current_pos = GetMusicTimePlayed(music); //just to simplify some checks
+
+
+        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/OlivettiThin.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/Compis.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
 
         // set button status in stop, play, pause
         if (isStop) {
@@ -503,8 +530,11 @@ int main (int argc, char *argv[])
                 LoadMusicByIndex(current_play,musicFiles);
                 PlayMusicStream(music);
             }
-
-
+    
+        // set initial volume and panning
+        SetMusicPan(music, pan);
+        SetMusicVolume(music, volume);
+    
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -526,17 +556,17 @@ int main (int argc, char *argv[])
             
             //volume slider
             DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,FG_COLOR);
-            DrawTextEx(font,"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
-            DrawTextEx(font,TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
+            DrawTextEx(fonts[1],"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,FG_COLOR);
-            DrawTextEx(font,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
-            DrawTextEx(font,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],"Left",(Vector2){370,90},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-                if (needScroll) DrawTextEx(fontx32, titleStr, (Vector2){ titleX, displayArea.y }, 32, 0, FG_COLOR);
-                else DrawTextEx(fontx32, titleStr, (Vector2){ displayArea.x, displayArea.y}, 32,0, FG_COLOR);
+                if (needScroll) DrawTextEx(fonts[0], titleStr, (Vector2){ titleX, displayArea.y }, 32, 0, FG_COLOR);
+                else DrawTextEx(fonts[0], titleStr, (Vector2){ displayArea.x, displayArea.y}, 32,0, FG_COLOR);
             EndScissorMode();
 
             // Draw buttons bar
@@ -545,40 +575,40 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            DrawTextEx(font,"Hour   Min    Sec",(Vector2){10,41},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],"Hour   Min    Sec",(Vector2){10,41},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
-            DrawTextEx(fontx32,timeStr,(Vector2){10,53},32,0, FG_COLOR);
+            DrawTextEx(fonts[0],timeStr,(Vector2){10,53},32,0, FG_COLOR);
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(font,timeStr,(Vector2){160,64},16,0, FG_COLOR);
+            DrawTextEx(fonts[1],timeStr,(Vector2){160,64},16,0, FG_COLOR);
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nelle varbi
                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
 
             // show Play / Stop /Pause status
-            DrawTextEx(font,"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
-            DrawTextEx(font,"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
-            DrawTextEx(font,"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
             // Shuffle flag
-            DrawTextEx(font,"Shuffle",(Vector2){370,64},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Shuffle",(Vector2){370,64},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
             // Mute flag
-            DrawTextEx(font,"Mute",(Vector2){438,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
+            DrawTextEx(fonts[1],"Mute",(Vector2){438,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
             // PAN flag
-            DrawTextEx(font,"(< PAN >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"(< PAN >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
             // scan 10 second of every son in the list
-            DrawTextEx(font,"Repeat",(Vector2){438,45},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
+            DrawTextEx(fonts[1],"Repeat",(Vector2){438,45},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
 
 
             // song of songs
-            DrawTextEx(font,TextFormat("%04d ",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
-            DrawTextEx(font,TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],TextFormat("%04d ",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
 
             // // seek slider bar    
                 float songLength = GetMusicTimeLength(music);
@@ -589,19 +619,27 @@ int main (int argc, char *argv[])
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("%i Hz", music.stream.sampleRate),182, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),230, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),278, screenHeight-16,10,DARKGRAY);     
+            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,GRAY);
+            //nome file senza percorso : GetFileNameWithoutExt(musicFiles.paths[current_play]));
+
+//TRACELOG(LOG_INFO, "    > Total frames:  %i", music.frameCount);
+    //}
+
         EndDrawing();
     }
 
     UnloadDirectoryFiles(musicFiles);
     UnloadTexture(backGround);
     UnloadRenderTexture(target);
-    UnloadFont(font);
-    UnloadFont(fontx32);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
     UnloadMusicStream(music); // Unloaad music stream
+    // unload fonts
+    for (int i = 0; i < MAX_FONTS; ++i) UnloadFont(fonts[i]);
     // unload buttons texture 
-    for (int i = 0; i < NUM_BUTTONS; i++) UnloadTexture(btnTexture[i]);
+    for (int i = 0; i < NUM_BUTTONS; ++i) UnloadTexture(btnTexture[i]);
     CloseAudioDevice();
     CloseWindow();
     return 0;
