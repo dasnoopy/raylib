@@ -22,12 +22,14 @@
 * gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
 * gestione errore se tag mp3 hanno problemi o mancano
 * 
+* 
+* fare un classico vmeter al posto del visualizer?
 *******************************************************************************************/
 
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.4"
+#define TOOL_VERSION            "0.9.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -54,7 +56,7 @@ int screenX = 32;
 int screenY = 880;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0xAB, 0xDD, 0xA4, 0xFF };      // Green
+Color FG_COLOR = CLITERAL(Color){ 0x95, 0xCF, 0x92, 0xFF };      // Green
 #define TEXT_COLOR    CLITERAL(Color){ 0x70, 0x72, 0x72, 0xFF }      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -192,7 +194,7 @@ int main (int argc, char *argv[])
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     // center window on the screen
     //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetWindowPosition(screenX,screenY);
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight);
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -557,7 +559,7 @@ int main (int argc, char *argv[])
             DrawTextEx(fonts[1],TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,FG_COLOR);
 
             // pan slider
-            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,FG_COLOR);
+            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,FG_COLOR);
             DrawTextEx(fonts[1],"Left",(Vector2){370,90},16,0, TEXT_COLOR);
             DrawTextEx(fonts[1],"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
@@ -579,11 +581,11 @@ int main (int argc, char *argv[])
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
             DrawTextEx(fonts[0],timeStr,(Vector2){10,53},32,0, FG_COLOR);
-            int hours   = (int)GetMusicTimeLength(music) / 3600;
-            int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
-            int seconds = (int)GetMusicTimeLength(music) % 60;
-            snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(fonts[1],timeStr,(Vector2){160,64},16,0, FG_COLOR);
+            int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
+            int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
+            int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
+            snprintf(timeStr,sizeof(timeStr),"-%02d:%02d:%02d", hours, minutes, seconds);
+            DrawTextEx(fonts[1],timeStr,(Vector2){156,64},16,0, FG_COLOR);
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
