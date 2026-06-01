@@ -18,18 +18,20 @@
 *   folder music
 *  windows position
 * 
-* mostra elenco seleziona file
 * search files
 * pick color window
 * gestion errori probelmi apertura file... eg se cambio nome ad un file mpq quando il programma
 * gestione errore se tag mp3 hanno problemi
+* 
+* slider o progressbar 
+* poi nella progressbar se tengo premuto il mouse  non e' il massimo
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.0"
+#define TOOL_VERSION            "0.9.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -41,20 +43,24 @@
 #include <id3tag.h>  
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
-
+// archlinux : pacman -S raylib libid3tag
 
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+
 // window initial size
+#define screenWidth   572
+#define screenHeight  156
+
+// initial window position
 int screenX = 32;
 int screenY = 880;
-int screenWidth = 540;
-int screenHeight = 156;
+
 
 // some custom colorsq
-#define FG_COLOR      CLITERAL(Color){ 0x85, 0xD0, 0xD3, 0xFF }       // Green
+Color FG_COLOR = CLITERAL(Color){ 0x88, 0xC0, 0xD0, 0xFF };      // Green
 #define TEXT_COLOR    CLITERAL(Color){ 0x60, 0x61, 0x61, 0xFF }      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -78,13 +84,13 @@ static float averageVolume[134] = { 0.0f };   // Average volume history
 Music music;
 
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
-float current_pos = 0.0f;
+float currentTime = 0.0f;
 bool isPlay = false;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = true;
+bool isShuffle = false;
 bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
@@ -93,7 +99,7 @@ float prev_volume = 0.0f;
 // Music library
 
 #define MAX_FILEPATH_SIZE       1024
-#define FILE_FILTER             ".mp3;.ogg"
+#define FILE_FILTER      ".mp3;.ogg"
 
 const char *musicDir = "/home/andrea/Music";
 char ID3tag[1024] = { '\0' };
@@ -159,7 +165,7 @@ void LoadMusicByIndex(int idx, FilePathList files) {
             getID3tags(tag, "TPE1", "Artist");
             strcpy(titleStr, ID3tag );
             //separator
-            strcat (titleStr, ": ");
+            strcat (titleStr, " - ");
             getID3tags(tag, "TIT2", "Title");
             strcat(titleStr, ID3tag );
             // getID3tags(tag, "TALB", "Album");
@@ -191,18 +197,18 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     // center window on the screen
     //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetWindowPosition(screenX,screenY); 
+    SetWindowPosition(screenX,screenY);
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
     //SetTextureFilter(backGround, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
-    UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
-
+    //UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+      
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
     // Set UI style
@@ -210,7 +216,6 @@ int main (int argc, char *argv[])
     Font fonts[MAX_FONTS] = { 0 };
     fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
     fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
-    //SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
@@ -234,7 +239,8 @@ int main (int argc, char *argv[])
     btnTexture[5] = LoadTexture("assets/btnPlus.png"); // Load button texture for seek +10 sec
     btnTexture[6] = LoadTexture("assets/btnNext.png"); // Load button texture for next song in the list
     float frameHeight = btnTexture[0].height / NUM_FRAMES; // altezza immagine / nr. FRAMES
-    
+
+
     // Define button position and button size for every texture loaded
     Rectangle btnRect[NUM_BUTTONS] = { 0 };
     Rectangle srcRect[NUM_BUTTONS] = { 0 };
@@ -250,12 +256,13 @@ int main (int argc, char *argv[])
         srcRect[i].width = 49;
         srcRect[i].height = frameHeight;
     }
-
+    
     int btnState[NUM_BUTTONS] = { 0 };               // Button state: 0-NORMAL, 1-MOUSE_HOVER, 2-PRESSED
     bool btnAction[NUM_BUTTONS] = { false };         // Button action should be activated
 
     // init Audio
     InitAudioDevice();
+    SetAudioStreamBufferSizeDefault(4096);
     AttachAudioMixedProcessor(ProcessAudio);
     
     // Load music files
@@ -269,10 +276,9 @@ int main (int argc, char *argv[])
         prev_play=current_play;
     }
     else LoadMusicByIndex(current_play,musicFiles);
+
     // auto start song on open
     if (isPlay) PlayMusicStream(music);  // autoplay at start
-    
-
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     SetTargetFPS(60);
@@ -282,14 +288,15 @@ int main (int argc, char *argv[])
     Rectangle displayArea = { 9, 6, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
+    
+    // colorbar coordinates
+    Rectangle ColorBar = {540,8,25,100};
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
  while (!WindowShouldClose())
 {
-
-
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
@@ -322,6 +329,15 @@ int main (int argc, char *argv[])
             srcRect[i].y = btnState[i]*frameHeight;
         }
 
+         // detect color when mousepos is over colorba
+         if (CheckCollisionPointRec(mousePos, ColorBar) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+
+
+            Color pixelColor = GetImageColor(image,mousePos.x,mousePos.y);
+            FG_COLOR = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
+        }
+
+
 // ***********************************************************
 // * keybindigs
 // * 
@@ -339,14 +355,14 @@ int main (int argc, char *argv[])
         if (IsKeyDown(KEY_LEFT))
         {
             isPan = true;
-            pan -= 0.02f;
+            pan -= 0.01f;
             if (pan < -1.0f) pan = -1.0f;
             SetMusicPan(music, pan);
         }
         else if (IsKeyDown(KEY_RIGHT))
         {
             isPan = true;
-            pan += 0.02f;
+            pan += 0.01f;
             if (pan > 1.0f) pan = 1.0f;
             SetMusicPan(music, pan);
         }
@@ -363,17 +379,18 @@ int main (int argc, char *argv[])
         // Set audio volume
         else if (IsKeyDown(KEY_DOWN))
         {
-            volume -= 0.02f;
+            volume -= 0.01f;
             if (volume < 0.0f) volume = 0.0f;
             SetMusicVolume(music, volume);
         }
         else if (IsKeyDown(KEY_UP))
         {
             isMute = false;
-            volume += 0.02f;
+            volume += 0.01f;
             if (volume > 1.0f) volume = 1.0f;
             SetMusicVolume(music, volume);
         }
+        
         else if (IsKeyPressed(KEY_M)) // MUTE
         {
             isMute = !isMute;
@@ -411,26 +428,26 @@ int main (int argc, char *argv[])
 
         if (btnAction[4] && isPlay) // seek -10sec
         {
-                    if (current_pos < 10.0f) {
-                        current_pos = 0.0f; 
+                    if (currentTime < 10.0f) {
+                        currentTime = 0.0f; 
                         SeekMusicStream(music, 0.0f);
                        // UpdateMusicStream(music);
                     }
                     else {
-                        SeekMusicStream(music, current_pos - SEEK_TIME);
+                        SeekMusicStream(music, currentTime - SEEK_TIME);
                         //UpdateMusicStream(music);
                     }
         }
         if (btnAction[5] && isPlay) // seek +10sec
         {
-                    if (current_pos + SEEK_TIME >= GetMusicTimeLength(music)) 
+                    if (currentTime + SEEK_TIME >= GetMusicTimeLength(music)) 
                     {
-                        current_pos = 0.0f;
+                        currentTime = 0.0f;
                         SeekMusicStream(music, 0.0f);
                         //UpdateMusicStream(music);
                     }
                     else {
-                        SeekMusicStream(music, current_pos + SEEK_TIME);
+                        SeekMusicStream(music, currentTime + SEEK_TIME);
                         //UpdateMusicStream(music);
                     }
         }
@@ -474,12 +491,6 @@ int main (int argc, char *argv[])
                 titleX = displayArea.x;
             }
 
-        // Get normalized time played for current music stream
-        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
-        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
-        current_pos = GetMusicTimePlayed(music); //just to simplify some checks
-
-
         if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
@@ -491,7 +502,7 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
 
-        // set button status in stop, play, pause
+        // set toolbar button status in stop, play, pause
         if (isStop) {
             btnState[0] = 1;
             srcRect[0].y = btnState[0]*frameHeight;   
@@ -535,6 +546,12 @@ int main (int argc, char *argv[])
         SetMusicPan(music, pan);
         SetMusicVolume(music, volume);
     
+        // Get normalized time played for current music stream
+        currentTime = GetMusicTimePlayed(music); //just to simplify some checks
+        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
+
+
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
@@ -548,16 +565,20 @@ int main (int argc, char *argv[])
             DrawRectangle(0,0,screenWidth,screenHeight,BG_COLOR);
             //load player texture
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
-            // grid flaags
+            // grid flags
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
             DrawLine(367,45,500,45,BORDER_COLOR);
             DrawLine(367,64,500,64,BORDER_COLOR);
             
+            //color slider
+            //DrawRectangleLinesEx((Rectangle){540,(int)105-(sliderColor*97),25,6},2,BG_COLOR);
+
             //volume slider
-            DrawRectangleLinesEx((Rectangle){508,(int)104-(volume*94),23,6},2,FG_COLOR);
-            DrawTextEx(fonts[1],"VOL",(Vector2){509,8},16,0, TEXT_COLOR);
-            DrawTextEx(fonts[1],TextFormat("%03.f",volume*100),(Vector2){509,94},16,0,TEXT_COLOR);
+            DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,FG_COLOR);
+            DrawTextEx(fonts[1],"Max",(Vector2){508,8},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],"Min",(Vector2){508,94},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,FG_COLOR);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 90, 6, 18},2,FG_COLOR);
@@ -580,7 +601,7 @@ int main (int argc, char *argv[])
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
-            snprintf(timeStr,sizeof(timeStr),"%02d %02d %02d", hour , minute, second);
+            snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
             DrawTextEx(fonts[0],timeStr,(Vector2){10,53},32,0, FG_COLOR);
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = ((int)GetMusicTimeLength(music) / 60) % 60;
@@ -589,32 +610,34 @@ int main (int argc, char *argv[])
             DrawTextEx(fonts[1],timeStr,(Vector2){160,64},16,0, FG_COLOR);
 
             // a sort of visualizer : giusto per vivacizzare....
-            for (int i = 0; i < 134; ++i) //cambiare questo valore anche nelle varbi
+            for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
 
             // show Play / Stop /Pause status
-            DrawTextEx(fonts[1],"Play",(Vector2){370,8},16,0, isPlay ? ON_COLOR : OFF_COLOR);
-            DrawTextEx(fonts[1],"Stop",(Vector2){370,26},16,0, isStop ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Play",(Vector2){370,26},16,0, isPlay ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Stop",(Vector2){370,8},16,0, isStop ? ON_COLOR : OFF_COLOR);
             DrawTextEx(fonts[1],"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
             // Shuffle flag
-            DrawTextEx(fonts[1],"Shuffle",(Vector2){370,64},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"Shuffle",(Vector2){438,8},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
             // Mute flag
-            DrawTextEx(fonts[1],"Mute",(Vector2){438,8},16,0, isMute ? ON_COLOR:OFF_COLOR);
+            DrawTextEx(fonts[1],"Mute",(Vector2){438,45},16,0, isMute ? ON_COLOR:OFF_COLOR);
             // PAN flag
-            DrawTextEx(fonts[1],"(< PAN >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(fonts[1],"(< Pan >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
             // scan 10 second of every son in the list
-            DrawTextEx(fonts[1],"Repeat",(Vector2){438,45},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
+            DrawTextEx(fonts[1],"Repeat",(Vector2){370,64},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
 
 
             // song of songs
-            DrawTextEx(fonts[1],TextFormat("%04d ",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],TextFormat("%04d",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
             DrawTextEx(fonts[1],TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
 
-            // // seek slider bar    
-                float songLength = GetMusicTimeLength(music);
-                float sliderSeek = GetMusicTimePlayed(music)/songLength;
-                if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &sliderSeek,0,1.0f))
-                    SeekMusicStream(music, sliderSeek * songLength);
+            //seek slider bar    
+            float songLength = GetMusicTimeLength(music);
+            if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &timePlayed,0,1.0f))
+            SeekMusicStream(music, timePlayed * songLength);
+
+            // only progressbar
+            //DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, VIS_COLOR);  // riempimento
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
@@ -625,13 +648,13 @@ int main (int argc, char *argv[])
             DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,GRAY);
             //nome file senza percorso : GetFileNameWithoutExt(musicFiles.paths[current_play]));
 
-//TRACELOG(LOG_INFO, "    > Total frames:  %i", music.frameCount);
-    //}
+            //DrawText(TextFormat("ciao: %s", myFG_COLOR),220,60,20,WHITE);
 
         EndDrawing();
     }
 
     UnloadDirectoryFiles(musicFiles);
+    UnloadImage(image);
     UnloadTexture(backGround);
     UnloadRenderTexture(target);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
