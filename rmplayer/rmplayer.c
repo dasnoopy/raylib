@@ -19,19 +19,15 @@
 *  windows position
 * 
 * search files
-* pick color window
-* gestion errori probelmi apertura file... eg se cambio nome ad un file mpq quando il programma
-* gestione errore se tag mp3 hanno problemi
-* 
-* slider o progressbar 
-* poi nella progressbar se tengo premuto il mouse  non e' il massimo
+* gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
+* gestione errore se tag mp3 hanno problemi o mancano
 * 
 *******************************************************************************************/
 
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.3"
+#define TOOL_VERSION            "0.9.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -49,7 +45,6 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-
 // window initial size
 #define screenWidth   572
 #define screenHeight  156
@@ -58,17 +53,13 @@
 int screenX = 32;
 int screenY = 880;
 
-
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x88, 0xC0, 0xD0, 0xFF };      // Green
-#define TEXT_COLOR    CLITERAL(Color){ 0x60, 0x61, 0x61, 0xFF }      // Dark Green /verde bandiera
+Color FG_COLOR = CLITERAL(Color){ 0xAB, 0xDD, 0xA4, 0xFF };      // Green
+#define TEXT_COLOR    CLITERAL(Color){ 0x70, 0x72, 0x72, 0xFF }      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
 #define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
-#define VIS_COLOR     FG_COLOR //CLITERAL(Color){ 0, 255, 128, 255 }
-#define SLI_COLOR     0x85D0D3FF // slider color
-#define SLI_BG_COLOR  0x0A141EFF // slider background color
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -219,16 +210,6 @@ int main (int argc, char *argv[])
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
 
-    // define TOGGLE style
-    GuiSetStyle(SLIDER, BASE_COLOR_NORMAL,SLI_BG_COLOR); // slider background color
-    GuiSetStyle(SLIDER, BASE_COLOR_PRESSED,SLI_COLOR); // slider fg color
-    GuiSetStyle(SLIDER, TEXT_COLOR_NORMAL,SLI_COLOR);
-    GuiSetStyle(SLIDER, TEXT_COLOR_FOCUSED,SLI_COLOR);
-    GuiSetStyle(SLIDER, TEXT_COLOR_PRESSED,SLI_COLOR);
-    GuiSetStyle(SLIDER, SLIDER_WIDTH, 24);
-    GuiSetStyle(SLIDER, SLIDER_PADDING, 1);
-    GuiSetStyle(SLIDER, BORDER_WIDTH,0);
-
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
     btnTexture[0] = LoadTexture("assets/btnStop.png"); // Load button texture for Stop
@@ -331,8 +312,6 @@ int main (int argc, char *argv[])
 
          // detect color when mousepos is over colorba
          if (CheckCollisionPointRec(mousePos, ColorBar) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-
-
             Color pixelColor = GetImageColor(image,mousePos.x,mousePos.y);
             FG_COLOR = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
         }
@@ -570,9 +549,6 @@ int main (int argc, char *argv[])
             DrawLine(367,26,500,26,BORDER_COLOR);
             DrawLine(367,45,500,45,BORDER_COLOR);
             DrawLine(367,64,500,64,BORDER_COLOR);
-            
-            //color slider
-            //DrawRectangleLinesEx((Rectangle){540,(int)105-(sliderColor*97),25,6},2,BG_COLOR);
 
             //volume slider
             DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,FG_COLOR);
@@ -611,7 +587,7 @@ int main (int argc, char *argv[])
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
-                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, VIS_COLOR);
+                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, FG_COLOR);
 
             // show Play / Stop /Pause status
             DrawTextEx(fonts[1],"Play",(Vector2){370,26},16,0, isPlay ? ON_COLOR : OFF_COLOR);
@@ -631,25 +607,17 @@ int main (int argc, char *argv[])
             DrawTextEx(fonts[1],TextFormat("%04d",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
             DrawTextEx(fonts[1],TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
 
-            //seek slider bar    
-            float songLength = GetMusicTimeLength(music);
-            if (isStop < GuiSliderBar((Rectangle){9,screenHeight-38,screenWidth-18,16},NULL,NULL, &timePlayed,0,1.0f))
-            SeekMusicStream(music, timePlayed * songLength);
-
             // only progressbar
-            //DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, VIS_COLOR);  // riempimento
+            DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, FG_COLOR);  // riempimento
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%i Hz", music.stream.sampleRate),182, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),230, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),278, screenHeight-16,10,DARKGRAY);     
+            DrawText(TextFormat("%i Hz", music.stream.sampleRate),190, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),238, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),286, screenHeight-16,10,DARKGRAY);     
             DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,GRAY);
-            //nome file senza percorso : GetFileNameWithoutExt(musicFiles.paths[current_play]));
-
-            //DrawText(TextFormat("ciao: %s", myFG_COLOR),220,60,20,WHITE);
-
+     
         EndDrawing();
     }
 
