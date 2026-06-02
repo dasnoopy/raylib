@@ -56,7 +56,7 @@ int screenX = 32;
 int screenY = 880;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x95, 0xCF, 0x92, 0xFF };      // Green
+Color FG_COLOR = CLITERAL(Color){ 0x85, 0xD0, 0xD3, 0xFF };      // Green
 #define TEXT_COLOR    CLITERAL(Color){ 0x70, 0x72, 0x72, 0xFF }      // Dark Green /verde bandiera
 #define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -87,7 +87,7 @@ bool isShuffle = false;
 bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
-float prev_volume = 0.0f;
+float prev_volume = 0.50f;
 
 // Music library
 
@@ -161,10 +161,11 @@ void LoadMusicByIndex(int idx, FilePathList files) {
             strcat (titleStr, " - ");
             getID3tags(tag, "TIT2", "Title");
             strcat(titleStr, ID3tag );
+            // //separator
+            // strcat (titleStr, " - ");
             // getID3tags(tag, "TALB", "Album");
             // strcat(titleStr, ID3tag );
             id3_file_close(file);
-
 }
 
 //------------------------------------------------------------------------------------
@@ -275,6 +276,9 @@ int main (int argc, char *argv[])
     // colorbar coordinates
     Rectangle ColorBar = {540,8,25,100};
 
+    // Read config from files
+
+
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
@@ -329,8 +333,9 @@ int main (int argc, char *argv[])
 // * S : Shuffle playlist on / off
 // * R : repeat song on / off
 // * N : play next song
-// * P : play previous song
+// * P : play previous song 
 // * Q : leave app
+// * SPACE : restart song from beginning
 // ***********************************************************
         // Set audio pan
         if (IsKeyDown(KEY_LEFT))
@@ -360,16 +365,14 @@ int main (int argc, char *argv[])
         // Set audio volume
         else if (IsKeyDown(KEY_DOWN))
         {
-            volume -= 0.01f;
-            if (volume < 0.0f) volume = 0.0f;
-            SetMusicVolume(music, volume);
+            volume -= (volume > 0.0f) ?0.01f : 0.0f;
+            SetMasterVolume(volume);
         }
         else if (IsKeyDown(KEY_UP))
         {
             isMute = false;
-            volume += 0.01f;
-            if (volume > 1.0f) volume = 1.0f;
-            SetMusicVolume(music, volume);
+            volume += (volume < 1.0f) ? 0.01f : 0.0f;
+            SetMasterVolume(volume);
         }
         
         else if (IsKeyPressed(KEY_M)) // MUTE
@@ -392,7 +395,7 @@ int main (int argc, char *argv[])
                 isPause=false;
                 }
 
-        if ((btnAction[1] || IsKeyPressed(KEY_SPACE))&& !isPause ) { // play button
+        if ((btnAction[1] || IsKeyPressed(KEY_SPACE)) && !isPause ) { // play button
                 StopMusicStream(music);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
@@ -478,7 +481,7 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/OlivettiThin.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/Compis.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/IBM3270.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
@@ -525,7 +528,7 @@ int main (int argc, char *argv[])
     
         // set initial volume and panning
         SetMusicPan(music, pan);
-        SetMusicVolume(music, volume);
+        SetMasterVolume(volume);
     
         // Get normalized time played for current music stream
         currentTime = GetMusicTimePlayed(music); //just to simplify some checks
@@ -542,10 +545,13 @@ int main (int argc, char *argv[])
 
         BeginDrawing();
             ClearBackground(BLANK);
-            // Draw Player background
+            
+            // Draw background at first
             DrawRectangle(0,0,screenWidth,screenHeight,BG_COLOR);
-            //load player texture
+            
+            //load player background image
             DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
+            
             // grid flags
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
