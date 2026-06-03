@@ -8,8 +8,7 @@
 ********************************************************************************************
 * 
 * salvare config :  
-*   autoplay si no,
-*   shuffle at start,
+*   shuffle,
 *   mute
 *   repeat
 *   volume
@@ -17,6 +16,7 @@
 *   colors,
 *   folder music
 *  windows position
+*  last plaayed song (will be open on next start)
 * 
 * search files
 * gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
@@ -29,7 +29,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.6"
+#define TOOL_VERSION            "0.9.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <id3tag.h>  
+#include <unistd.h>
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -75,14 +76,14 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = false;
+bool isShuffle = true;
 bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x80, 0xED, 0x99, 0xFF };
+Color FG_COLOR = CLITERAL(Color){ 0x90, 0xBE, 0x6D, 0xFF };
 Color BG_COLOR; // = CLITERAL(Color) { 0x10, 0x20, 0x30, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -211,7 +212,7 @@ int main (int argc, char *argv[])
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-    //SetTextureFilter(backGround, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
+    SetTextureFilter(backGround, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
     //UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
       
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
@@ -219,7 +220,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font fonts[MAX_FONTS] = { 0 };
-    fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
+    fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
     fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
     GuiSetIconScale(1);
@@ -259,7 +260,8 @@ int main (int argc, char *argv[])
     InitAudioDevice();
     SetAudioStreamBufferSizeDefault(4096);
     AttachAudioMixedProcessor(ProcessAudio);
-    
+    //get Music dir
+    char *musicDir = "/home/andrea/Music";
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     
@@ -291,6 +293,9 @@ int main (int argc, char *argv[])
     Color TEXT_COLOR = DarkenColor(FG_COLOR, 0.5f);
     Color BG_COLOR = DarkenColor(FG_COLOR,0.12f);
 
+    // just a test
+    //system("echo $HOME");
+
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
@@ -299,7 +304,7 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
-    
+
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(fonts[0], titleStr, 32, 0);
         float titleWidth = titleSize.x;
@@ -489,8 +494,8 @@ int main (int argc, char *argv[])
                 titleX = displayArea.x;
             }
 
-        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
