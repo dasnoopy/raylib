@@ -29,7 +29,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.5"
+#define TOOL_VERSION            "0.9.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -54,14 +54,6 @@
 // initial window position
 int screenX = 32;
 int screenY = 880;
-
-// some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x85, 0xD0, 0xD3, 0xFF };      // Green
-#define TEXT_COLOR    CLITERAL(Color){ 0x70, 0x72, 0x72, 0xFF }      // Dark Green /verde bandiera
-#define BG_COLOR      CLITERAL(Color){ 0x17, 0x21, 0x26, 0xFF }
-#define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
-#define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
-#define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -89,8 +81,15 @@ float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
-// Music library
+// some custom colorsq
+Color FG_COLOR = CLITERAL(Color){ 0x80, 0xED, 0x99, 0xFF };
+Color BG_COLOR; // = CLITERAL(Color) { 0x10, 0x20, 0x30, 0xFF };
+Color TEXT_COLOR;
+#define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
+#define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
+#define OFF_COLOR     TEXT_COLOR //CLITERAL(Color){ 0,64, 0,255}
 
+// Music library
 #define MAX_FILEPATH_SIZE       1024
 #define FILE_FILTER      ".mp3;.ogg"
 
@@ -127,7 +126,6 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
         snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
         return;
     }
-    //snprintf(ID3tag, sizeof(ID3tag), "%s: %s, ", label, utf8);
     snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
     free(utf8);
 }
@@ -166,6 +164,19 @@ void LoadMusicByIndex(int idx, FilePathList files) {
             // getID3tags(tag, "TALB", "Album");
             // strcat(titleStr, ID3tag );
             id3_file_close(file);
+}
+
+Color DarkenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char)(color.r * factor),
+        (unsigned char)(color.g * factor),
+        (unsigned char)(color.b * factor),
+        color.a
+    };
 }
 
 //------------------------------------------------------------------------------------
@@ -276,8 +287,9 @@ int main (int argc, char *argv[])
     // colorbar coordinates
     Rectangle ColorBar = {540,8,25,100};
 
-    // Read config from files
-
+    // set colors darker starting from fg color
+    Color TEXT_COLOR = DarkenColor(FG_COLOR, 0.5f);
+    Color BG_COLOR = DarkenColor(FG_COLOR,0.12f);
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -320,6 +332,8 @@ int main (int argc, char *argv[])
          if (CheckCollisionPointRec(mousePos, ColorBar) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             Color pixelColor = GetImageColor(image,mousePos.x,mousePos.y);
             FG_COLOR = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
+            TEXT_COLOR = DarkenColor(FG_COLOR, 0.5f);
+            BG_COLOR = DarkenColor(FG_COLOR,0.12f);
         }
 
 
@@ -478,7 +492,7 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/OlivettiThin.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/IBM3270.ttf", 32, 0, 0);
