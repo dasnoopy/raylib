@@ -29,7 +29,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.8"
+#define TOOL_VERSION            "0.9.9"
 
 #include <stdio.h>
 #include <time.h>
@@ -387,13 +387,15 @@ int main (int argc, char *argv[])
         // Set audio volume
         else if (IsKeyDown(KEY_DOWN))
         {
-            volume -= (volume > 0.0f) ?0.01f : 0.0f;
+            volume -= (volume >= 0.0f) ? 0.01f : 0.0f;
+            if (volume < 0.0f) volume = 0.0f, isMute=true;
             SetMasterVolume(volume);
         }
         else if (IsKeyDown(KEY_UP))
         {
             isMute = false;
-            volume += (volume < 1.0f) ? 0.01f : 0.0f;
+            volume += (volume <= 1.0f) ? 0.01f : 0.0f;
+            if (volume > 1.0f) volume = 1.0f;
             SetMasterVolume(volume);
         }
         
@@ -624,17 +626,29 @@ int main (int argc, char *argv[])
                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, FG_COLOR);
 
             // show Play / Stop /Pause status
-            DrawTextEx(fonts[1],"Play",(Vector2){370,26},16,0, isPlay ? ON_COLOR : OFF_COLOR);
-            DrawTextEx(fonts[1],"Stop",(Vector2){370,8},16,0, isStop ? ON_COLOR : OFF_COLOR);
-            DrawTextEx(fonts[1],"Pause",(Vector2){370,45},16,0, isPause ? ON_COLOR : OFF_COLOR);
+            DrawRectangle(368,27,64,16,isPlay ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Play",(Vector2){370,26},16,0, isPlay ? BG_COLOR : TEXT_COLOR);
+
+            DrawRectangle(368,9,64,15,isStop ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Stop",(Vector2){370,8},16,0, isStop ? BG_COLOR : TEXT_COLOR);
+
+            DrawRectangle(368,46,64,16,isPause ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Pause",(Vector2){370,45},16,0, isPause ? BG_COLOR : TEXT_COLOR);
+
             // Shuffle flag
-            DrawTextEx(fonts[1],"Shuffle",(Vector2){438,8},16,0, isShuffle ? ON_COLOR : OFF_COLOR);
+            DrawRectangle(435,9,64,15,isShuffle ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Shuffle",(Vector2){438,8},16,0, isShuffle ? BG_COLOR : TEXT_COLOR);
+            
             // Mute flag
-            DrawTextEx(fonts[1],"Mute",(Vector2){438,45},16,0, isMute ? ON_COLOR:OFF_COLOR);
+            DrawRectangle(435,27,64,16,isMute ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Mute",(Vector2){438,26},16,0, isMute ? BG_COLOR:TEXT_COLOR);
+            
             // PAN flag
-            DrawTextEx(fonts[1],"(< Pan >)",(Vector2){438,26},16,0, isPan ? ON_COLOR : OFF_COLOR);
-            // scan 10 second of every son in the list
-            DrawTextEx(fonts[1],"Repeat",(Vector2){370,64},16,0, isRepeat ? ON_COLOR: OFF_COLOR);
+            DrawTextEx(fonts[1],"(< Pan >)",(Vector2){438,45},16,0, isPan ? ON_COLOR : OFF_COLOR);
+            
+            // REPEAT flag
+            DrawRectangle(368,65,64,15,isRepeat ? FG_COLOR:BG_COLOR);
+            DrawTextEx(fonts[1],"Repeat",(Vector2){370,64},16,0, isRepeat ? BG_COLOR: TEXT_COLOR);
 
 
             // song of songs
