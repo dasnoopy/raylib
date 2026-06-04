@@ -29,7 +29,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "0.9.7"
+#define TOOL_VERSION            "0.9.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -83,7 +83,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x90, 0xBE, 0x6D, 0xFF };
+Color FG_COLOR = CLITERAL(Color){ 0x9F, 0xEF, 0xA7, 0xFF };
 Color BG_COLOR; // = CLITERAL(Color) { 0x10, 0x20, 0x30, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -94,7 +94,7 @@ Color TEXT_COLOR;
 #define MAX_FILEPATH_SIZE       1024
 #define FILE_FILTER      ".mp3;.ogg"
 
-const char *musicDir = "/home/andrea/Music";
+char *musicDir = "/home/andrea/Music";
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
 int musicFileCount = 0;
@@ -206,13 +206,14 @@ int main (int argc, char *argv[])
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     // center window on the screen
-    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight);
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+    // SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom/middle
+    SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom/left
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
-    Texture2D backGround = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-    SetTextureFilter(backGround, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
+    Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    //SetTextureFilter(background, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
     //UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
       
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
@@ -260,8 +261,8 @@ int main (int argc, char *argv[])
     InitAudioDevice();
     SetAudioStreamBufferSizeDefault(4096);
     AttachAudioMixedProcessor(ProcessAudio);
-    //get Music dir
-    char *musicDir = "/home/andrea/Music";
+    
+
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     
@@ -343,19 +344,21 @@ int main (int argc, char *argv[])
 
 
 // ***********************************************************
-// * keybindigs
-// * 
-// * cursor up/down : Volume UP / DOWN
-// * cursor left/right : Panning audio left/Right
-// * C : center PAN
-// * M : Mute audio
-// * S : Shuffle playlist on / off
-// * R : repeat song on / off
-// * N : play next song
-// * P : play previous song 
-// * Q : leave app
-// * SPACE : restart song from beginning
+// Keybindigs
+//  
+// cursor up/down : Volume UP / DOWN
+// cursor left/right : Panning audio left/Right
+// C : center PAN
+// M : Mute audio
+// S : Shuffle playlist on / off
+// R : repeat song on / off
+// N : play next song
+// P : play previous song 
+// Q : leave app
+// F1-F10 : change main font
+// SPACE : restart song from beginning
 // ***********************************************************
+        
         // Set audio pan
         if (IsKeyDown(KEY_LEFT))
         {
@@ -467,7 +470,7 @@ int main (int argc, char *argv[])
                 isStop=false;
                 isPlay=true;
                 isPause=false;
-                 titleX = displayArea.x;
+                //titleX = displayArea.x;
         }
 
         if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
@@ -484,14 +487,14 @@ int main (int argc, char *argv[])
             }
                 selectedFile = current_play;
                 StopMusicStream(music);
-                UnloadMusicStream(music);
+                //UnloadMusicStream(music);
                 LoadMusicByIndex(current_play,musicFiles);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
                 isStop=false;
                 isPlay=true;
                 isPause=false;
-                titleX = displayArea.x;
+                //titleX = displayArea.x;
             }
 
         if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
@@ -554,6 +557,10 @@ int main (int argc, char *argv[])
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
+        //do someting whe window loses focus
+        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.8f);
+        else SetWindowOpacity(1.0f);
+
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -569,7 +576,7 @@ int main (int argc, char *argv[])
             DrawRectangle(0,0,screenWidth,screenHeight,BG_COLOR);
             
             //load player background image
-            DrawTexture(backGround, screenWidth/2 - backGround.width/2, screenHeight/2 - backGround.height/2, WHITE);
+            DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE);
             
             // grid flags
             DrawLine(434,8,434,81,BORDER_COLOR);
@@ -650,7 +657,7 @@ int main (int argc, char *argv[])
 
     UnloadDirectoryFiles(musicFiles);
     UnloadImage(image);
-    UnloadTexture(backGround);
+    UnloadTexture(background);
     UnloadRenderTexture(target);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
     UnloadMusicStream(music); // Unloaad music stream
