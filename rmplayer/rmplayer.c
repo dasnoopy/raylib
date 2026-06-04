@@ -83,7 +83,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x9F, 0xEF, 0xA7, 0xFF };
+Color FG_COLOR = CLITERAL(Color){ 0x90, 0xFF, 0x7A, 0xFF };
 Color BG_COLOR; // = CLITERAL(Color) { 0x10, 0x20, 0x30, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
