@@ -205,7 +205,8 @@ int main (int argc, char *argv[])
     // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
-    // SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+    // center window on the screen
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom/middle
     //SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom/left
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
@@ -312,7 +313,6 @@ int main (int argc, char *argv[])
         float dt = GetFrameTime();
         if (needScroll) {
             titleX -= (speed * dt);
-            //printf("%f, %f, %f\n", titleX, speed, dt);
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
 
@@ -411,23 +411,25 @@ int main (int argc, char *argv[])
         }
 
         // Restart music playing (stop and play)
-        else if (IsKeyPressed(KEY_SPACE)) {
-            if (!isStop) {
-                StopMusicStream(music);
-                isStop=true;
-                isPlay=false;
-                isPause=false;
+                else if (IsKeyPressed(KEY_SPACE)) {
+                    if (!isStop) {
+                        StopMusicStream(music);
+                        isStop=true;
+                        isPlay=false;
+                        isPause=false;
+                        }
+                    else {
+                         isStop=false;
+                         isPlay=true;
+                         isPause=false;
+                         PlayMusicStream(music);
+                        }
                 }
-            else {
-                 isStop=false;
-                 isPlay=true;
-                 isPause=false;
-                 PlayMusicStream(music);
-                }
-        }
-
+        
         if (btnAction[0]) { // Stop button
+                //ResumeMusicStream(music);
                 StopMusicStream(music);
+                //UpdateMusicStream(music);
                 isStop=true;
                 isPlay=false;
                 isPause=false;
@@ -436,6 +438,7 @@ int main (int argc, char *argv[])
         if (btnAction[1]) { // play button
                 StopMusicStream(music);
                 PlayMusicStream(music);
+                //UpdateMusicStream(music);
                 isStop=false;
                 isPlay=true;
                 isPause=false;
@@ -452,8 +455,10 @@ int main (int argc, char *argv[])
                     if (currentTime < 10.0f) {
                         currentTime = 0.0f; 
                         SeekMusicStream(music, 0.0f);
+                       // UpdateMusicStream(music);
                     }
                     else SeekMusicStream(music, currentTime - SEEK_TIME);
+
         }
         if (btnAction[5] && isPlay) // seek +10sec
         {
@@ -461,9 +466,9 @@ int main (int argc, char *argv[])
                     {
                         currentTime = 0.0f;
                         SeekMusicStream(music, 0.0f);
+                        //UpdateMusicStream(music);
                     }
                     else  SeekMusicStream(music, currentTime + SEEK_TIME);
-
         }
 
         if (btnAction[3] || IsKeyPressed(KEY_P)) { // Previous song : no shuffle on previous song
@@ -471,15 +476,21 @@ int main (int argc, char *argv[])
                 else current_play--;
                 if (current_play<=0) current_play=0;
                 selectedFile = current_play;
-
+                StopMusicStream(music);
                 LoadMusicByIndex(current_play,musicFiles);
-                if (isPlay) PlayMusicStream(music);
+                PlayMusicStream(music);
+                //UpdateMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+                //titleX = displayArea.x;
         }
 
         if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
             prev_play = current_play; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
+                if (shuffle_index == musicFileCount) --shuffle_index;
                 if (musicFileCount > 1 && shuffle_index == current_play)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
                 current_play = shuffle_index;
@@ -488,8 +499,15 @@ int main (int argc, char *argv[])
                 if (current_play >= musicFileCount) current_play = 0;
             }
                 selectedFile = current_play;
+                StopMusicStream(music);
+                //UnloadMusicStream(music);
                 LoadMusicByIndex(current_play,musicFiles);
-                if (isPlay) PlayMusicStream(music);
+                PlayMusicStream(music);
+                //UpdateMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+                //titleX = displayArea.x;
             }
 
         if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
@@ -552,7 +570,7 @@ int main (int argc, char *argv[])
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
-        //do someting when window loses focus
+        //do someting whe window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.8f);
         else SetWindowOpacity(1.0f);
 
@@ -654,10 +672,10 @@ int main (int argc, char *argv[])
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%i Hz", music.stream.sampleRate),196, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),242, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);     
-            DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+            DrawText(TextFormat("%i Hz", music.stream.sampleRate),190, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),238, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),286, screenHeight-16,10,DARKGRAY);     
+            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,GRAY);
      
         EndDrawing();
     }
