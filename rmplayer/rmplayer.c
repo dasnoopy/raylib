@@ -38,15 +38,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 #include <id3tag.h>  
 #include <unistd.h>
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
 
-// raygui integration
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
+// // raygui integration
+// #define RAYGUI_IMPLEMENTATION
+// #include "raygui.h"
 
 // window initial size
 #define screenWidth   572
@@ -99,7 +100,7 @@ char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
 int musicFileCount = 0;
 int current_play = 0;
-int prev_play = 0;
+int prevPlay = 0;
 int selectedFile = -1;
 
 static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
@@ -223,8 +224,8 @@ int main (int argc, char *argv[])
     Font fonts[MAX_FONTS] = { 0 };
     fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
     fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
-    GuiSetIconScale(1);
+    //GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
+    //GuiSetIconScale(1);
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -271,7 +272,7 @@ int main (int argc, char *argv[])
     {
         current_play = GetRandomValue(0,musicFileCount);
         LoadMusicByIndex(current_play,musicFiles);
-        prev_play=current_play;
+        prevPlay=current_play;
     }
     else LoadMusicByIndex(current_play,musicFiles);
 
@@ -472,7 +473,7 @@ int main (int argc, char *argv[])
         }
 
         if (btnAction[3] || IsKeyPressed(KEY_P)) { // Previous song : no shuffle on previous song
-                if (isShuffle) current_play = prev_play;
+                if (isShuffle) current_play = prevPlay;
                 else current_play--;
                 if (current_play<=0) current_play=0;
                 selectedFile = current_play;
@@ -487,10 +488,9 @@ int main (int argc, char *argv[])
         }
 
         if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
-            prev_play = current_play; //save for 1 shot prev.song
+            prevPlay = current_play; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
-                if (shuffle_index == musicFileCount) --shuffle_index;
                 if (musicFileCount > 1 && shuffle_index == current_play)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
                 current_play = shuffle_index;
@@ -538,15 +538,14 @@ int main (int argc, char *argv[])
             }
 
 
-        // auto move on next song (or repeat song if it's ON) and randomize played song if shuffle is enabled
+        // auto move on next song
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
-                prev_play = current_play;
+                prevPlay = current_play;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                     if (isShuffle) {
                         int shuffle_index = GetRandomValue(0,musicFileCount);
-                        if (shuffle_index == musicFileCount) --shuffle_index;
                         if (musicFileCount > 1 && shuffle_index == current_play)
                             shuffle_index = (shuffle_index + 1) % musicFileCount;
                         current_play = shuffle_index;
@@ -554,7 +553,7 @@ int main (int argc, char *argv[])
                         current_play++;
                         if (current_play >= musicFileCount) current_play = 0;
                     }
-                    if (isRepeat) current_play = prev_play;
+                    if (isRepeat) current_play = prevPlay;
 
                 selectedFile = current_play;
                 LoadMusicByIndex(current_play,musicFiles);
@@ -590,7 +589,7 @@ int main (int argc, char *argv[])
             
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE);
-            
+
             // grid flags
             DrawLine(434,8,434,81,BORDER_COLOR);
             DrawLine(367,26,500,26,BORDER_COLOR);
@@ -672,10 +671,10 @@ int main (int argc, char *argv[])
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%i Hz", music.stream.sampleRate),190, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),238, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),286, screenHeight-16,10,DARKGRAY);     
-            DrawText("[Q] exit program.",screenWidth-96, screenHeight-16,10,GRAY);
+            DrawText(TextFormat("%i Hz", music.stream.sampleRate),194, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),242, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);     
+            DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
      
         EndDrawing();
     }
