@@ -95,7 +95,7 @@ Color TEXT_COLOR;
 #define MAX_FILEPATH_SIZE       1024
 #define FILE_FILTER      ".mp3;.ogg"
 
-char *musicDir = "/home/andrea/Music";
+char *musicDir = "/home/public/Music";
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
 int musicFileCount = 0;
@@ -207,25 +207,20 @@ int main (int argc, char *argv[])
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     // center window on the screen
-    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom/middle
-    //SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom/left
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
     //SetTextureFilter(background, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
-    //UnloadImage(image);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
       
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
     // Set UI style
     // Custom GUI font loading
     Font fonts[MAX_FONTS] = { 0 };
-    fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+    fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
     fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
-    //GuiSetStyle(DEFAULT, TEXT_SIZE, 16);
-    //GuiSetIconScale(1);
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -357,6 +352,10 @@ int main (int argc, char *argv[])
 // P : play previous song 
 // Q : leave app
 // F1-F10 : change main font
+// 1 : place window on center screen
+// 2 : place window bottom-left
+// 3 : place window bottom-middle
+// 4 : place window bottom-right
 // SPACE : restart song from beginning
 // ***********************************************************
         
@@ -412,20 +411,20 @@ int main (int argc, char *argv[])
         }
 
         // Restart music playing (stop and play)
-                else if (IsKeyPressed(KEY_SPACE)) {
-                    if (!isStop) {
-                        StopMusicStream(music);
-                        isStop=true;
-                        isPlay=false;
-                        isPause=false;
-                        }
-                    else {
-                         isStop=false;
-                         isPlay=true;
-                         isPause=false;
-                         PlayMusicStream(music);
-                        }
-                }
+        else if (IsKeyPressed(KEY_SPACE)) {
+                if (!isStop) {
+                    StopMusicStream(music);
+                    isStop=true;
+                    isPlay=false;
+                    isPause=false;
+                    }
+                else {
+                     isStop=false;
+                     isPlay=true;
+                     isPause=false;
+                     PlayMusicStream(music);
+                    }
+            }
         
         if (btnAction[0]) { // Stop button
                 //ResumeMusicStream(music);
@@ -491,6 +490,7 @@ int main (int argc, char *argv[])
             prevPlay = current_play; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
+                if (shuffle_index == musicFileCount) --shuffle_index;
                 if (musicFileCount > 1 && shuffle_index == current_play)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
                 current_play = shuffle_index;
@@ -510,9 +510,9 @@ int main (int argc, char *argv[])
                 //titleX = displayArea.x;
             }
 
-        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
+        if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
@@ -520,6 +520,11 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
         if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
+
+        if (IsKeyPressed(KEY_ONE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+        if (IsKeyPressed(KEY_TWO)) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left
+        if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
+        if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
@@ -546,6 +551,7 @@ int main (int argc, char *argv[])
                 UnloadMusicStream(music);
                     if (isShuffle) {
                         int shuffle_index = GetRandomValue(0,musicFileCount);
+                        if (shuffle_index == musicFileCount) --shuffle_index;
                         if (musicFileCount > 1 && shuffle_index == current_play)
                             shuffle_index = (shuffle_index + 1) % musicFileCount;
                         current_play = shuffle_index;
