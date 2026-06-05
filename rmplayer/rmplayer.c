@@ -77,7 +77,7 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isPan = false;
-bool isShuffle = true;
+bool isShuffle = false;
 bool isRepeat = false;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
@@ -219,8 +219,13 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font fonts[MAX_FONTS] = { 0 };
-    fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
-    fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, 0, 0);
+    // fonts[0] = LoadFontEx("fonts/monogram-extended.ttf", 32, NULL, 0); // title
+    // fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    // fonts[2] = LoadFontEx("fonts/monogram-extended.ttf", 32, NULL, 0); // digits
+
+    fonts[0] = LoadFontEx("fonts/DINPro-Bold.otf", 32, NULL, 0); // title
+    fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    fonts[2] = LoadFontEx("fonts/DINPro-Regular.otf", 32, NULL, 0); // digits
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -262,14 +267,10 @@ int main (int argc, char *argv[])
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     
-    // randomize initial song or not
-    if (isShuffle) 
-    {
+    // always start with a random song
         current_play = GetRandomValue(0,musicFileCount);
         LoadMusicByIndex(current_play,musicFiles);
         prevPlay=current_play;
-    }
-    else LoadMusicByIndex(current_play,musicFiles);
 
     // auto start song on open
     if (isPlay) PlayMusicStream(music);  // autoplay at start
@@ -279,7 +280,7 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 6, 349,30 };
+    Rectangle displayArea = { 9, 4, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
@@ -510,16 +511,16 @@ int main (int argc, char *argv[])
                 //titleX = displayArea.x;
             }
 
-        if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/IBM3270.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
-        if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/IBM3270.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
+        // if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
 
         if (IsKeyPressed(KEY_ONE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
         if (IsKeyPressed(KEY_TWO)) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left
@@ -624,13 +625,13 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            DrawTextEx(fonts[1],"Hour   Min    Sec",(Vector2){10,41},16,0, TEXT_COLOR);
+            DrawTextEx(fonts[1],"Hour:Min:Sec",(Vector2){10,41},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            DrawTextEx(fonts[0],timeStr,(Vector2){10,53},32,0, FG_COLOR);
+            DrawTextEx(fonts[2],timeStr,(Vector2){10,51},32,0, FG_COLOR);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
             int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
