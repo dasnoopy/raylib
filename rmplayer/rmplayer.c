@@ -218,14 +218,12 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font fonts[MAX_FONTS] = { 0 };
-    // fonts[0] = LoadFontEx("fonts/monogram-extended.ttf", 32, NULL, 0); // title
-    // fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
-    // fonts[2] = LoadFontEx("fonts/monogram-extended.ttf", 32, NULL, 0); // digits
 
-    fonts[0] = LoadFontEx("fonts/DINPro-Bold.otf", 32, NULL, 0); // title
-    fonts[1] = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
-    fonts[2] = LoadFontEx("fonts/DINPro-Regular.otf", 32, NULL, 0); // digits
+    Font titleFnt = LoadFontEx("fonts/lcddot.otf", 28, NULL, 0); // title
+    // GenTextureMipmaps(&titleFnt.texture);
+    // SetTextureFilter(titleFnt.texture, TEXTURE_FILTER_BILINEAR);
+    Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    Font digitFnt = LoadFontEx("fonts/DSEG7Modern-Regular.ttf", 20, NULL, 0); // digits
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -280,7 +278,7 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 4, 349,30 };
+    Rectangle displayArea = { 9, 9, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
@@ -304,7 +302,7 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
 
         // set scroll text speed
-        Vector2 titleSize = MeasureTextEx(fonts[0], titleStr, 32, 0);
+        Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 32, 0);
         float titleWidth = titleSize.x;
         bool needScroll = titleWidth > displayArea.width;
         float dt = GetFrameTime();
@@ -511,17 +509,6 @@ int main (int argc, char *argv[])
                 //titleX = displayArea.x;
             }
 
-        // if (IsKeyPressed(KEY_F1)) fonts[0] = LoadFontEx("fonts/IBMod3.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F2)) fonts[0] = LoadFontEx("fonts/Sigma.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F3)) fonts[0] = LoadFontEx("fonts/PC230.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F4)) fonts[0] = LoadFontEx("fonts/Wyse700b.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F5)) fonts[0] = LoadFontEx("fonts/AcerMono.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F6)) fonts[0] = LoadFontEx("fonts/PhoenixVGA.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F7)) fonts[0] = LoadFontEx("fonts/IBM3270.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F8)) fonts[0] = LoadFontEx("fonts/IBMIso.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F9)) fonts[0] = LoadFontEx("fonts/IBMVga.ttf", 32, 0, 0);
-        // if (IsKeyPressed(KEY_F10)) fonts[0] = LoadFontEx("fonts/Toshiba.ttf", 32, 0, 0);
-
         if (IsKeyPressed(KEY_ONE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
         if (IsKeyPressed(KEY_TWO)) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left
         if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
@@ -605,18 +592,18 @@ int main (int argc, char *argv[])
 
             //volume slider
             DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,FG_COLOR);
-            DrawTextEx(fonts[1],"Max",(Vector2){508,8},16,0, TEXT_COLOR);
-            DrawTextEx(fonts[1],"Min",(Vector2){508,94},16,0, TEXT_COLOR);
-            DrawTextEx(fonts[1],TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,FG_COLOR);
+            DrawTextEx(textFnt,"Max",(Vector2){508,8},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,"Min",(Vector2){508,94},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,FG_COLOR);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,FG_COLOR);
-            DrawTextEx(fonts[1],"Left",(Vector2){370,90},16,0, TEXT_COLOR);
-            DrawTextEx(fonts[1],"Right",(Vector2){464,90},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-                if (needScroll) DrawTextEx(fonts[0], titleStr, (Vector2){ titleX, displayArea.y }, 32, 0, FG_COLOR);
-                else DrawTextEx(fonts[0], titleStr, (Vector2){ displayArea.x, displayArea.y}, 32,0, FG_COLOR);
+                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, FG_COLOR);
+                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 28,0, FG_COLOR);
             EndScissorMode();
 
             // Draw buttons bar
@@ -625,18 +612,19 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            DrawTextEx(fonts[1],"Hour:Min:Sec",(Vector2){10,41},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,"Hour:Min:Sec",(Vector2){10,41},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            DrawTextEx(fonts[2],timeStr,(Vector2){10,51},32,0, FG_COLOR);
+            DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, TEXT_COLOR);
+            DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, FG_COLOR);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
             int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
             snprintf(timeStr,sizeof(timeStr),"-%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(fonts[1],timeStr,(Vector2){156,64},16,0, FG_COLOR);
+            DrawTextEx(textFnt,timeStr,(Vector2){156,64},16,0, FG_COLOR);
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
@@ -644,33 +632,33 @@ int main (int argc, char *argv[])
 
             // show Play / Stop /Pause status
             DrawRectangle(368,27,64,16,isPlay ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Play",(Vector2){370,26},16,0, isPlay ? BG_COLOR : TEXT_COLOR);
+            DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? BG_COLOR : TEXT_COLOR);
 
             DrawRectangle(368,9,64,15,isStop ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Stop",(Vector2){370,8},16,0, isStop ? BG_COLOR : TEXT_COLOR);
+            DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? BG_COLOR : TEXT_COLOR);
 
             DrawRectangle(368,46,64,16,isPause ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Pause",(Vector2){370,45},16,0, isPause ? BG_COLOR : TEXT_COLOR);
+            DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? BG_COLOR : TEXT_COLOR);
 
             // Shuffle flag
             DrawRectangle(435,9,64,15,isShuffle ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Shuffle",(Vector2){438,8},16,0, isShuffle ? BG_COLOR : TEXT_COLOR);
+            DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? BG_COLOR : TEXT_COLOR);
             
             // Mute flag
             DrawRectangle(435,27,64,16,isMute ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Mute",(Vector2){438,26},16,0, isMute ? BG_COLOR:TEXT_COLOR);
+            DrawTextEx(textFnt,"Mute",(Vector2){438,26},16,0, isMute ? BG_COLOR:TEXT_COLOR);
             
             // PAN flag
-            DrawTextEx(fonts[1],"(< Pan >)",(Vector2){438,45},16,0, isPan ? ON_COLOR : OFF_COLOR);
+            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,45},16,0, isPan ? ON_COLOR : OFF_COLOR);
             
             // REPEAT flag
             DrawRectangle(368,65,64,15,isRepeat ? FG_COLOR:BG_COLOR);
-            DrawTextEx(fonts[1],"Repeat",(Vector2){370,64},16,0, isRepeat ? BG_COLOR: TEXT_COLOR);
+            DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? BG_COLOR: TEXT_COLOR);
 
 
             // song of songs
-            DrawTextEx(fonts[1],TextFormat("%04d",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
-            DrawTextEx(fonts[1],TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,TextFormat("%04d",current_play+1),(Vector2){136,41},16,0, TEXT_COLOR);
+            DrawTextEx(textFnt,TextFormat("of %04d",musicFileCount),(Vector2){168,41},16,0, TEXT_COLOR);
 
             // only progressbar
             DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, FG_COLOR);  // riempimento
@@ -693,7 +681,9 @@ int main (int argc, char *argv[])
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
     UnloadMusicStream(music); // Unloaad music stream
     // unload fonts
-    for (int i = 0; i < MAX_FONTS; ++i) UnloadFont(fonts[i]);
+    UnloadFont(titleFnt);
+    UnloadFont(textFnt);
+    UnloadFont(digitFnt);
     // unload buttons texture 
     for (int i = 0; i < NUM_BUTTONS; ++i) UnloadTexture(btnTexture[i]);
     CloseAudioDevice();
