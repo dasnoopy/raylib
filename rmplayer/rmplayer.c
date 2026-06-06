@@ -84,8 +84,8 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x90, 0xFF, 0x7A, 0xFF };
-Color BG_COLOR; // = CLITERAL(Color) { 0x10, 0x20, 0x30, 0xFF };
+Color FG_COLOR = CLITERAL(Color){ 0xBD, 0xD5, 0xEA, 0xFF }; // light theme
+Color BG_COLOR; // = CLITERAL(Color){ 0x11, 0x22, 0x11, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
 #define ON_COLOR      FG_COLOR // CLITERAL(Color){ 0, 255, 0, 255}
@@ -204,7 +204,7 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
@@ -219,7 +219,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
 
-    Font titleFnt = LoadFontEx("fonts/lcddot.otf", 28, NULL, 0); // title
+    Font titleFnt = LoadFontEx("fonts/mono.otf", 28, NULL, 0); // title
     // GenTextureMipmaps(&titleFnt.texture);
     // SetTextureFilter(titleFnt.texture, TEXTURE_FILTER_BILINEAR);
     Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
@@ -278,7 +278,7 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 9, 349,30 };
+    Rectangle displayArea = { 9, 8, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
@@ -287,7 +287,7 @@ int main (int argc, char *argv[])
 
     // set colors darker starting from fg color
     Color TEXT_COLOR = DarkenColor(FG_COLOR, 0.56f);
-    Color BG_COLOR = DarkenColor(FG_COLOR,0.12f);
+    Color BG_COLOR = DarkenColor(FG_COLOR,0.16f);
 
     // just a test
     //system("echo $HOME");
@@ -302,7 +302,7 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
 
         // set scroll text speed
-        Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 32, 0);
+        Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 28, 0);
         float titleWidth = titleSize.x;
         bool needScroll = titleWidth > displayArea.width;
         float dt = GetFrameTime();
@@ -334,7 +334,7 @@ int main (int argc, char *argv[])
             Color pixelColor = GetImageColor(image,mousePos.x,mousePos.y);
             FG_COLOR = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
             TEXT_COLOR = DarkenColor(FG_COLOR, 0.56f);
-            BG_COLOR = DarkenColor(FG_COLOR,0.12f);
+            BG_COLOR = DarkenColor(FG_COLOR,0.16f);
         }
 
 
@@ -564,19 +564,18 @@ int main (int argc, char *argv[])
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
         //do someting whe window loses focus
-        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.8f);
+        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         else SetWindowOpacity(1.0f);
-
 
         //----------------------------------------------------------------------------------
         // Draw
         //----------------------------------------------------------------------------------
         BeginTextureMode(target);
-            ClearBackground(BLANK);
+            ClearBackground(BLACK);
         EndTextureMode();
 
         BeginDrawing();
-            ClearBackground(BLANK);
+            ClearBackground(BLACK);
             
             // Draw background at first
             DrawRectangle(0,0,screenWidth,screenHeight,BG_COLOR);
@@ -601,6 +600,7 @@ int main (int argc, char *argv[])
             DrawTextEx(textFnt,"Left",(Vector2){370,90},16,0, TEXT_COLOR);
             DrawTextEx(textFnt,"Right",(Vector2){464,90},16,0, TEXT_COLOR);
 
+            // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
                 if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, FG_COLOR);
                 else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 28,0, FG_COLOR);
