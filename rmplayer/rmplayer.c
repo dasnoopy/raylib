@@ -73,6 +73,7 @@ Music music;
 
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
+bool dgtEffect = true;
 bool isPlay = false;
 bool isStop = true;
 bool isPause = false;  
@@ -516,12 +517,16 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
 
         if (IsKeyPressed(KEY_F1)) 
-            { titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
-              digitFnt = LoadFontEx("fonts/segment-lcd.otf", 20, NULL, 0);
+            { 
+                dgtEffect = true;
+                titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
+                digitFnt = LoadFontEx("fonts/segment-lcd.otf", 20, NULL, 0);
             }
         if (IsKeyPressed(KEY_F2)) 
-            { titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0);
-              digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0);
+            {   
+                dgtEffect = false;
+                titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0);
+                digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0);
             }
 
         // set toolbar button status in stop, play, pause
@@ -622,19 +627,26 @@ int main (int argc, char *argv[])
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            DrawTextEx(textFnt,"Hour:Min:Sec",(Vector2){10,41},16,0, TEXT_COLOR);
+            //DrawTextEx(textFnt,"Hour:Min:Sec",(Vector2){10,41},16,0, TEXT_COLOR);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            //DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, TEXT_COLOR);
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, TEXT_COLOR);
             DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, FG_COLOR);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
             int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
             snprintf(timeStr,sizeof(timeStr),"-%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(textFnt,timeStr,(Vector2){156,64},16,0, FG_COLOR);
+            DrawTextEx(textFnt,timeStr,(Vector2){10,41},16,0, TEXT_COLOR);
+
+            // clock
+            time_t now = time (NULL);
+            struct tm *t = localtime(&now);
+            Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, TEXT_COLOR);
+            DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, FG_COLOR);
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
