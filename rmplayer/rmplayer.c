@@ -7,16 +7,17 @@
 *
 ********************************************************************************************
 * 
-* salvare config :  
+* leggee config da file di testo (che modifico a mano se voglio) :  
 *   shuffle,
 *   mute
 *   repeat
 *   volume
 *   pan
-*   colors,
+*   colors, font title
 *   folder music
 *  windows position
-*  last plaayed song (will be open on next start)
+*  last played song (will be open on next start)
+* 
 * 
 * search files
 * gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
@@ -84,7 +85,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0xBD, 0xD5, 0xEA, 0xFF }; // light theme
+Color FG_COLOR = CLITERAL(Color){ 0x8A, 0xC9, 0x26, 0xFF }; // light theme
 Color BG_COLOR; // = CLITERAL(Color){ 0x11, 0x22, 0x11, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -161,6 +162,7 @@ void LoadMusicByIndex(int idx, FilePathList files) {
             strcat (titleStr, " - ");
             getID3tags(tag, "TIT2", "Title");
             strcat(titleStr, ID3tag );
+            strcat(titleStr, "\0");
             // //separator
             // strcat (titleStr, " - ");
             // getID3tags(tag, "TALB", "Album");
@@ -218,8 +220,8 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-
-    Font titleFnt = LoadFontEx("fonts/mono.otf", 28, NULL, 0); // title
+    Font titleFnt;
+    titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0); // title
     // GenTextureMipmaps(&titleFnt.texture);
     // SetTextureFilter(titleFnt.texture, TEXTURE_FILTER_BILINEAR);
     Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
@@ -274,7 +276,7 @@ int main (int argc, char *argv[])
     if (isPlay) PlayMusicStream(music);  // autoplay at start
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    SetTargetFPS(60);
+    // SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
     // scroll title / id3
     selectedFile = current_play;
@@ -283,7 +285,7 @@ int main (int argc, char *argv[])
     float speed = 60.0f;
     
     // colorbar coordinates
-    Rectangle ColorBar = {540,8,25,100};
+    Rectangle ColorBar = {540,8,25,103};
 
     // set colors darker starting from fg color
     Color TEXT_COLOR = DarkenColor(FG_COLOR, 0.56f);
@@ -337,7 +339,6 @@ int main (int argc, char *argv[])
             BG_COLOR = DarkenColor(FG_COLOR,0.16f);
         }
 
-
 // ***********************************************************
 // Keybindigs
 //  
@@ -350,12 +351,11 @@ int main (int argc, char *argv[])
 // N : play next song
 // P : play previous song 
 // Q : leave app
-// F1-F10 : change main font
 // 1 : place window on center screen
 // 2 : place window bottom-left
 // 3 : place window bottom-middle
 // 4 : place window bottom-right
-// SPACE : restart song from beginning
+// SPACE : play/stop song
 // ***********************************************************
         
         // Set audio pan
@@ -514,6 +514,10 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
         if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
 
+        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/mono.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F3)) titleFnt = LoadFontEx("fonts/scandistro.otf", 28, NULL, 0);
+
         // set toolbar button status in stop, play, pause
         if (isStop) {
             btnState[0] = 1;
@@ -670,7 +674,7 @@ int main (int argc, char *argv[])
             DrawText(TextFormat("/ %i bits", music.stream.sampleSize),242, screenHeight-16,10,BLACK);
             DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);     
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-     
+        
         EndDrawing();
     }
 
