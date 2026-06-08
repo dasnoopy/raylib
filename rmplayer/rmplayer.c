@@ -85,7 +85,7 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colorsq
-Color FG_COLOR = CLITERAL(Color){ 0x8A, 0xC9, 0x26, 0xFF }; // light theme
+Color FG_COLOR = CLITERAL(Color){ 0x8B, 0xE5, 0x9D, 0xFF }; // light theme
 Color BG_COLOR; // = CLITERAL(Color){ 0x11, 0x22, 0x11, 0xFF };
 Color TEXT_COLOR;
 #define BORDER_COLOR  TEXT_COLOR // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
@@ -221,11 +221,12 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font titleFnt;
+    Font digitFnt;
     titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0); // title
     // GenTextureMipmaps(&titleFnt.texture);
     // SetTextureFilter(titleFnt.texture, TEXTURE_FILTER_BILINEAR);
     Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
-    Font digitFnt = LoadFontEx("fonts/DSEG7Modern-Regular.ttf", 20, NULL, 0); // digits
+    digitFnt = LoadFontEx("fonts/segment-lcd.otf", 20, NULL, 0); // digits
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -280,7 +281,7 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 8, 349,30 };
+    Rectangle displayArea = { 9, 7, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
@@ -514,9 +515,14 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
         if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
 
-        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
-        if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/mono.otf", 28, NULL, 0);
-        if (IsKeyPressed(KEY_F3)) titleFnt = LoadFontEx("fonts/scandistro.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F1)) 
+            { titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
+              digitFnt = LoadFontEx("fonts/segment-lcd.otf", 20, NULL, 0);
+            }
+        if (IsKeyPressed(KEY_F2)) 
+            { titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0);
+              digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0);
+            }
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
@@ -622,7 +628,7 @@ int main (int argc, char *argv[])
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, TEXT_COLOR);
+            //DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, TEXT_COLOR);
             DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, FG_COLOR);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
