@@ -15,7 +15,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.2.0"
+#define TOOL_VERSION            "1.2.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -74,9 +74,9 @@ float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colors
-Color bgColor; // = CLITERAL(Color){ 0x11, 0x22, 0x11, 0xFF };
+Color bgColor; 
 Color textColor;
-#define borderColor  textColor // CLITERAL(Color){ 128, 130, 133, 255}  //grid color
+Color borderColor; // grids color
 #define onColor      fgColor // CLITERAL(Color){ 0, 255, 0, 255}
 #define offColor     textColor //CLITERAL(Color){ 0,64, 0,255}
 
@@ -374,6 +374,7 @@ int main (int argc, char *argv[])
     // set colors darker starting from fg color
     Color textColor = DarkenColor(fgColor, 0.56f);
     Color bgColor = DarkenColor(fgColor,0.16f);
+    Color borderColor = DarkenColor(fgColor,0.32f);
 
     // just a test
     //system("echo $HOME");
@@ -421,6 +422,7 @@ int main (int argc, char *argv[])
             fgColor = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
             textColor = DarkenColor(fgColor, 0.56f);
             bgColor = DarkenColor(fgColor,0.16f);
+            borderColor = DarkenColor(fgColor,0.32f);
         }
 
 // ***********************************************************
@@ -685,6 +687,10 @@ int main (int argc, char *argv[])
             DrawLine(367,26,500,26,borderColor);
             DrawLine(367,45,500,45,borderColor);
             DrawLine(367,64,500,64,borderColor);
+
+            // visualizer grid
+            for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
+            for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
 
             //volume slider
             DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,fgColor);
