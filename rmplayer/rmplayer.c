@@ -15,7 +15,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.2.4"
+#define TOOL_VERSION            "1.3.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,12 +36,12 @@ typedef struct Config
 {
     bool isPlay;
     bool isShuffle;
-    Color fgColor;
+    Color accentColor;
     char musicDir[512];
 } Config;
 
 // window initial size
-#define screenWidth   572
+#define screenWidth   540
 #define screenHeight  156
 
 // initial window position
@@ -77,7 +77,7 @@ float prev_volume = 0.50f;
 Color bgColor; 
 Color textColor;
 Color borderColor; // grids color
-#define onColor      fgColor // CLITERAL(Color){ 0, 255, 0, 255}
+#define onColor      accentColor // CLITERAL(Color){ 0, 255, 0, 255}
 #define offColor     textColor //CLITERAL(Color){ 0,64, 0,255}
 
 // Music library
@@ -157,7 +157,7 @@ bool LoadConfig(const char* filename, Config* cfg) {
         }
         // Style / UI section
         else if (strcmp(currentSection, "style") == 0) {
-            if (strcmp(key, "fgColor") == 0) cfg->fgColor = ParseColor(value);
+            if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
         }
     }
 
@@ -329,7 +329,7 @@ int main (int argc, char *argv[])
     Config cfg = {
         .isPlay = false,
         .isShuffle = false,
-        .fgColor = {255,255,255,255}, //green
+        .accentColor = {255,255,255,255}, //green
         .musicDir = "/home/public/Music" //default music folder
     };
 
@@ -341,7 +341,7 @@ int main (int argc, char *argv[])
     // assign  values from config file
     bool isPlay = cfg.isPlay;
     bool isShuffle = cfg.isShuffle;
-    Color fgColor = cfg.fgColor;
+    Color accentColor = cfg.accentColor;
     char *musicDir = cfg.musicDir;
 
     // Load music files
@@ -368,13 +368,10 @@ int main (int argc, char *argv[])
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
-    // colorbar coordinates
-    Rectangle ColorBar = {540,8,25,103};
-
     // set colors darker starting from fg color
-    Color textColor = DarkenColor(fgColor, 0.56f);
-    Color bgColor = DarkenColor(fgColor,0.16f);
-    Color borderColor = DarkenColor(fgColor,0.32f);
+    Color textColor = DarkenColor(accentColor, 0.56f);
+    Color bgColor = DarkenColor(accentColor,0.16f);
+    Color borderColor = DarkenColor(accentColor,0.32f);
 
     // just a test
     //system("echo $HOME");
@@ -416,14 +413,6 @@ int main (int argc, char *argv[])
             srcRect[i].y = btnState[i]*frameHeight;
         }
 
-         // detect color when mousepos is over colorba
-         if (CheckCollisionPointRec(mousePos, ColorBar) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            Color pixelColor = GetImageColor(image,mousePos.x,mousePos.y);
-            fgColor = CLITERAL(Color){ pixelColor.r, pixelColor.g, pixelColor.b, 255 };
-            textColor = DarkenColor(fgColor, 0.56f);
-            bgColor = DarkenColor(fgColor,0.16f);
-            borderColor = DarkenColor(fgColor,0.32f);
-        }
 
 // ***********************************************************
 // Keybindigs
@@ -693,25 +682,25 @@ int main (int argc, char *argv[])
             for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
 
             //volume slider
-            DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,fgColor);
+            DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,accentColor);
             DrawTextEx(textFnt,"Max",(Vector2){508,8},16,0, textColor);
             DrawTextEx(textFnt,"Min",(Vector2){508,94},16,0, textColor);
-            DrawTextEx(textFnt,TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,fgColor);
+            DrawTextEx(textFnt,TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,accentColor);
 
             // pan slider
-            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,fgColor);
+            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,accentColor);
             DrawTextEx(textFnt,"Left",(Vector2){370,90},16,0, textColor);
             DrawTextEx(textFnt,"Right",(Vector2){464,90},16,0, textColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, fgColor);
-                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 28,0, fgColor);
+                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, accentColor);
+                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 28,0, accentColor);
             EndScissorMode();
 
             // Draw buttons bar
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
-                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, fgColor);
+                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, accentColor);
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
@@ -722,7 +711,7 @@ int main (int argc, char *argv[])
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, textColor);
-            DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, fgColor);
+            DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, accentColor);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
             int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
@@ -734,42 +723,42 @@ int main (int argc, char *argv[])
             struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
             //if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, textColor);
-            DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, fgColor);
+            DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
-                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, fgColor);
+                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, accentColor);
 
             // show Play / Stop /Pause status
-            DrawRectangle(368,27,64,16,isPlay ? fgColor:bgColor);
+            DrawRectangle(368,27,64,16,isPlay ? accentColor:bgColor);
             DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : textColor);
 
-            DrawRectangle(368,9,64,15,isStop ? fgColor:bgColor);
+            DrawRectangle(368,9,64,15,isStop ? accentColor:bgColor);
             DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? bgColor : textColor);
 
-            DrawRectangle(368,46,64,16,isPause ? fgColor:bgColor);
+            DrawRectangle(368,46,64,16,isPause ? accentColor:bgColor);
             DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? bgColor : textColor);
 
             // Shuffle flag
-            DrawRectangle(435,9,64,15,isShuffle ? fgColor:bgColor);
+            DrawRectangle(435,9,64,15,isShuffle ? accentColor:bgColor);
             DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : textColor);
             
             // Mute flag
-            DrawRectangle(435,27,64,16,isMute ? fgColor:bgColor);
+            DrawRectangle(435,27,64,16,isMute ? accentColor:bgColor);
             DrawTextEx(textFnt,"Mute",(Vector2){438,26},16,0, isMute ? bgColor:textColor);
             
             // PAN flag
             DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,45},16,0, isPan ? onColor : offColor);
             
             // REPEAT flag
-            DrawRectangle(368,65,64,15,isRepeat ? fgColor:bgColor);
+            DrawRectangle(368,65,64,15,isRepeat ? accentColor:bgColor);
             DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? bgColor: textColor);
 
             // song of songs
             DrawTextEx(textFnt,TextFormat("%04d of %04d",current_play + 1, musicFileCount),(Vector2){136,41},16,0, textColor);
 
             // only progressbar
-            DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, fgColor);  // riempimento
+            DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, accentColor);  // riempimento
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
