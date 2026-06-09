@@ -117,8 +117,20 @@ static Color ParseColor(const char *value) {
         color.b = (unsigned char)b;
         color.a = (unsigned char)a;
     }
-
     return color;
+}
+
+Color DarkenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char)(color.r * factor),
+        (unsigned char)(color.g * factor),
+        (unsigned char)(color.b * factor),
+        color.a
+    };
 }
 
 bool LoadConfig(const char* filename, Config* cfg) {
@@ -160,23 +172,10 @@ bool LoadConfig(const char* filename, Config* cfg) {
             if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
         }
     }
-
     fclose(fp);
     return true;
 }
 
-Color DarkenColor(Color color, float factor)
-{
-    if (factor < 0.0f) factor = 0.0f;
-    if (factor > 1.0f) factor = 1.0f;
-
-    return (Color){
-        (unsigned char)(color.r * factor),
-        (unsigned char)(color.g * factor),
-        (unsigned char)(color.b * factor),
-        color.a
-    };
-}
 
 static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 {
@@ -187,20 +186,19 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 
     frame = id3_tag_findframe(tag, id, 0);
     if (!frame) {
-        snprintf(ID3tag,sizeof(ID3tag), "%s: <not present>", label);
+        snprintf(ID3tag,sizeof(ID3tag), " %s: ??? ", label);
         return;
     }
 
-    // Nei frame di testo il campo 1 contiene il testo
     field = &frame->fields[1];
     ucs4 = id3_field_getstrings(field, 0);
     if (!ucs4) {
-        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        snprintf(ID3tag,sizeof(ID3tag), " %s: <empty> ", label);
         return;
     }
     utf8 = id3_ucs4_utf8duplicate(ucs4);
     if (!utf8) {
-        snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
+        snprintf(ID3tag,sizeof(ID3tag)," %s: <conversion error> ", label);
         return;
     }
     snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
@@ -216,9 +214,11 @@ FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, boo
 }
 
 void LoadMusicByIndex(int idx, FilePathList files) {
-    if (idx < 0 || idx >= musicFileCount) return;
-    music = LoadMusicStream(files.paths[idx]);
+    if (idx < 0 ) idx=0;
+    else if (idx >= musicFileCount) idx = musicFileCount-1;
+
     current_play = idx;
+    music = LoadMusicStream(files.paths[idx]);
     
     //get ID3 tags
     struct id3_file *file;
@@ -230,18 +230,18 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     }
 
     tag = id3_file_tag(file);
-            getID3tags(tag, "TPE1", "Artist");
-            strcpy(titleStr, ID3tag );
-            //separator
-            strcat (titleStr, " - ");
-            getID3tags(tag, "TIT2", "Title");
-            strcat(titleStr, ID3tag );
-            strcat(titleStr, "\0");
-            // //separator
-            // strcat (titleStr, " - ");
-            // getID3tags(tag, "TALB", "Album");
-            // strcat(titleStr, ID3tag );
-            id3_file_close(file);
+            
+    getID3tags(tag, "TPE1", "Artist");
+    strcpy(titleStr, ID3tag );
+    strcat (titleStr, " - ");
+    getID3tags(tag, "TIT2", "Title");
+    strcat(titleStr, ID3tag );
+    //strcat(titleStr, "\0");
+    strcat (titleStr, " [");
+    getID3tags(tag, "TDRC", "Year");
+    strcat(titleStr, ID3tag );
+    strcat(titleStr, "]\0");
+    id3_file_close(file);
 }
 
 //------------------------------------------------------------------------------------
@@ -283,10 +283,9 @@ int main (int argc, char *argv[])
     // Custom GUI font loading
     Font titleFnt;
     Font digitFnt;
+    Font textFnt;
     titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0); // title
-    // GenTextureMipmaps(&titleFnt.texture);
-    // SetTextureFilter(titleFnt.texture, TEXTURE_FILTER_BILINEAR);
-    Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
     digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0); // digits
 
     // Load texture for toolbar buttons
@@ -299,7 +298,6 @@ int main (int argc, char *argv[])
     btnTexture[5] = LoadTexture("assets/btnPlus.png"); // Load button texture for seek +10 sec
     btnTexture[6] = LoadTexture("assets/btnNext.png"); // Load button texture for next song in the list
     float frameHeight = btnTexture[0].height / NUM_FRAMES; // altezza immagine / nr. FRAMES
-
 
     // Define button position and button size for every texture loaded
     Rectangle btnRect[NUM_BUTTONS] = { 0 };
@@ -335,7 +333,7 @@ int main (int argc, char *argv[])
 
     //load config from file
     if (!LoadConfig("rmplayer.cfg", &cfg)) {
-        printf("Impossibile leggere di configurazione! Verrano usati valori di default.\n");
+        printf("Errore durante apertura file di configurazione! Verrano usati valori di default.\n");
     }
 
     // assign  values from config file
@@ -369,9 +367,9 @@ int main (int argc, char *argv[])
     float speed = 60.0f;
     
     // set colors darker starting from fg color
-    Color textColor = DarkenColor(accentColor, 0.56f);
-    Color bgColor = DarkenColor(accentColor,0.16f);
-    Color borderColor = DarkenColor(accentColor,0.32f);
+    Color bgColor = DarkenColor(accentColor,0.15f);
+    Color textColor = DarkenColor(accentColor, 0.60f);
+    Color borderColor = DarkenColor(accentColor,0.30f);
 
     // just a test
     //system("echo $HOME");
@@ -481,16 +479,15 @@ int main (int argc, char *argv[])
                     volume = 0.0f;
                     }
                 else volume = prev_volume;
-
         }
 
         // Restart music playing (stop and play)
         else if (IsKeyPressed(KEY_SPACE)) {
                 if (!isStop) {
-                    StopMusicStream(music);
                     isStop=true;
                     isPlay=false;
                     isPause=false;
+                    StopMusicStream(music);
                     }
                 else {
                      isStop=false;
@@ -536,8 +533,7 @@ int main (int argc, char *argv[])
         }
         if (btnAction[5] && isPlay) // seek +10sec
         {
-                    if (currentTime + SEEK_TIME >= GetMusicTimeLength(music)) 
-                    {
+                    if (currentTime + SEEK_TIME >= GetMusicTimeLength(music)) {
                         currentTime = 0.0f;
                         SeekMusicStream(music, 0.0f);
                         //UpdateMusicStream(music);
@@ -651,9 +647,9 @@ int main (int argc, char *argv[])
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
-        //do someting whe window loses focus
-        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
-        else SetWindowOpacity(1.0f);
+        // //do someting whe window loses focus
+        // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
+        // else SetWindowOpacity(1.0f);
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -722,7 +718,7 @@ int main (int argc, char *argv[])
             time_t now = time (NULL);
             struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
-            //if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, textColor);
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, textColor);
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
@@ -755,7 +751,7 @@ int main (int argc, char *argv[])
             DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? bgColor: textColor);
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d of %04d",current_play + 1, musicFileCount),(Vector2){136,41},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d of %04d",current_play + 1 , musicFileCount),(Vector2){136,41},16,0, textColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, accentColor);  // riempimento
