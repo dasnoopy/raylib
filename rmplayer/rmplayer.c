@@ -15,7 +15,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.3.2"
+#define TOOL_VERSION            "1.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -37,7 +37,10 @@ typedef struct Config
     bool isPlay;
     bool isShuffle;
     Color accentColor;
-    char musicDir[512];
+    char musicDir[256];
+    char titleFnt[256];
+    char digitFnt[256];
+    bool dgtEffect;
 } Config;
 
 // window initial size
@@ -63,7 +66,6 @@ Music music;
 
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
-bool dgtEffect = false;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
@@ -170,6 +172,9 @@ bool LoadConfig(const char* filename, Config* cfg) {
         // Style / UI section
         else if (strcmp(currentSection, "style") == 0) {
             if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
+            else if (strcmp(key, "titleFnt") == 0) strncpy(cfg->titleFnt, value, sizeof(cfg->titleFnt) - 1);
+            else if (strcmp(key, "digitFnt") == 0) strncpy(cfg->digitFnt, value, sizeof(cfg->digitFnt) - 1);
+            else if (strcmp(key, "dgtEffect") == 0) cfg->dgtEffect = ParseBool(value);
         }
     }
     fclose(fp);
@@ -186,19 +191,19 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 
     frame = id3_tag_findframe(tag, id, 0);
     if (!frame) {
-        snprintf(ID3tag,sizeof(ID3tag), " %s: ??? ", label);
+        snprintf(ID3tag,sizeof(ID3tag), "%s: n/a", label);
         return;
     }
 
     field = &frame->fields[1];
     ucs4 = id3_field_getstrings(field, 0);
     if (!ucs4) {
-        snprintf(ID3tag,sizeof(ID3tag), " %s: <empty> ", label);
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
         return;
     }
     utf8 = id3_ucs4_utf8duplicate(ucs4);
     if (!utf8) {
-        snprintf(ID3tag,sizeof(ID3tag)," %s: <conversion error> ", label);
+        snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
         return;
     }
     snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
@@ -284,9 +289,7 @@ int main (int argc, char *argv[])
     Font titleFnt;
     Font digitFnt;
     Font textFnt;
-    titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0); // title
     textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
-    digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0); // digits
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -328,7 +331,10 @@ int main (int argc, char *argv[])
         .isPlay = false,
         .isShuffle = false,
         .accentColor = {255,255,255,255}, //green
-        .musicDir = "/home/public/Music" //default music folder
+        .musicDir = "/home/public/Music", //default music folder
+        .titleFnt = "fonts/macano.otf", // title font
+        .digitFnt = "fonts/segment-lcd.otf", // title font
+        .dgtEffect= false
     };
 
     //load config from file
@@ -341,6 +347,9 @@ int main (int argc, char *argv[])
     bool isShuffle = cfg.isShuffle;
     Color accentColor = cfg.accentColor;
     char *musicDir = cfg.musicDir;
+    titleFnt = LoadFontEx(cfg.titleFnt, 28, NULL, 0);
+    digitFnt = LoadFontEx(cfg.digitFnt, 20, NULL, 0);
+    bool dgtEffect = cfg.dgtEffect;
 
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
@@ -362,7 +371,7 @@ int main (int argc, char *argv[])
 
     // scroll title / id3
     selectedFile = current_play;
-    Rectangle displayArea = { 9, 7, 349,30 };
+    Rectangle displayArea = { 9, 8, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
     
@@ -585,19 +594,6 @@ int main (int argc, char *argv[])
         if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
         if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
         
-        if (IsKeyPressed(KEY_F1)) 
-            {   
-                dgtEffect = false;
-                titleFnt = LoadFontEx("fonts/transit.otf", 28, NULL, 0);
-                digitFnt = LoadFontEx("fonts/squarenum.otf", 20, NULL, 0);
-            }
-        if (IsKeyPressed(KEY_F2)) 
-            { 
-                dgtEffect = true;
-                titleFnt = LoadFontEx("fonts/macano.otf", 28, NULL, 0);
-                digitFnt = LoadFontEx("fonts/segment-lcd.otf", 20, NULL, 0);
-            }
-
         // set toolbar button status in stop, play, pause
         if (isStop) {
             btnState[0] = 1;
