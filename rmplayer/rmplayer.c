@@ -23,7 +23,8 @@
 // S : Shuffle playlist on / off
 // R : repeat song on / off
 // N : play next song
-// P : play previous song 
+// P : play previous song
+// X : goto current playing file 
 // Q : leave app
 // 1 : place window on center screen
 // 2 : place window bottom-left
@@ -35,7 +36,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.5.2"
+#define TOOL_VERSION            "1.5.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -99,8 +100,9 @@ Color borderColor; // grids color
 
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
-int selectedIndex = 0;
-int prevPlay = 0;
+int selectedIndex = 0; // selected song in the file list
+int currPlay = 0; //playing song
+int prevPlay = 0; //previous played song when shuffle is ON
 FilePathList files;
 
 typedef struct Config
@@ -243,6 +245,7 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     if (idx < 0 ) idx=0;
     else if (idx >= files.count) idx = files.count-1;
     selectedIndex = idx;
+    currPlay = idx;
     music = LoadMusicStream(files.paths[idx]);
     
     //get ID3 tags
@@ -456,7 +459,7 @@ int main (int argc, char *argv[])
                         selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
                         if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
                         if (IsKeyPressed(KEY_UP)) selectedIndex--;
-                        if (IsKeyPressed(KEY_ENTER)) {
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
                             if (selectedIndex >= 0 && selectedIndex < files.count) {
                                 StopMusicStream(music);
                                 //UnloadMusicStream(music);
@@ -513,7 +516,8 @@ int main (int argc, char *argv[])
             if (volume > 1.0f) volume = 1.0f;
             SetMasterVolume(volume);
         }
-        
+        if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
+
         if (IsKeyPressed(KEY_M)) // MUTE
         {
             isMute = !isMute;
@@ -775,7 +779,7 @@ int main (int argc, char *argv[])
             DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? bgColor: textColor);
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d of %04d",selectedIndex + 1, files.count),(Vector2){136,41},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, accentColor);  // riempimento
@@ -783,9 +787,9 @@ int main (int argc, char *argv[])
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%i Hz", music.stream.sampleRate),194, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i bits", music.stream.sampleSize),242, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);
+            DrawText(TextFormat("%i Hz", music.stream.sampleRate),190, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/%i bits", music.stream.sampleSize),234, screenHeight-16,10,BLACK);
+            DrawText(TextFormat("/%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),282, screenHeight-16,10,DARKGRAY);
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             // GetFileLength(files.paths[fileIndex])/1024/1024
             {
