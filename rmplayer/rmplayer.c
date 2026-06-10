@@ -32,20 +32,11 @@
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
 
-typedef struct Config
-{
-    bool isPlay;
-    bool isShuffle;
-    Color accentColor;
-    char musicDir[256];
-    char titleFnt[256];
-    char digitFnt[256];
-    bool dgtEffect;
-} Config;
+
 
 // window initial size
 #define screenWidth   540
-#define screenHeight  156
+#define screenHeight  156 // 156
 
 // initial window position
 int screenX = 32;
@@ -88,10 +79,21 @@ Color borderColor; // grids color
 
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
+char currentFile[512] = { '\0' };
 int musicFileCount = 0;
-int current_play = 0;
+int currentPlay = 0;
 int prevPlay = 0;
-int selectedFile = -1;
+
+typedef struct Config
+{
+    bool isPlay;
+    bool isShuffle;
+    Color accentColor;
+    char musicDir[256];
+    char titleFnt[256];
+    char digitFnt[256];
+    bool dgtEffect;
+} Config;
 
 static char *Trim(char *str)
 {
@@ -222,7 +224,9 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     if (idx < 0 ) idx=0;
     else if (idx >= musicFileCount) idx = musicFileCount-1;
 
-    current_play = idx;
+    currentPlay = idx;
+    strcpy(currentFile, files.paths[idx]);
+    //currentFile = files.paths[idx];
     music = LoadMusicStream(files.paths[idx]);
     
     //get ID3 tags
@@ -355,9 +359,9 @@ int main (int argc, char *argv[])
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     
     // always start with a random song
-        current_play = GetRandomValue(0,musicFileCount);
-        LoadMusicByIndex(current_play,musicFiles);
-        prevPlay=current_play;
+        currentPlay = GetRandomValue(0,musicFileCount);
+        LoadMusicByIndex(currentPlay,musicFiles);
+        prevPlay=currentPlay;
 
     // auto start song on open
     if (isPlay) {
@@ -370,7 +374,6 @@ int main (int argc, char *argv[])
     // SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
     // scroll title / id3
-    selectedFile = current_play;
     Rectangle displayArea = { 9, 8, 349,30 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
@@ -551,12 +554,11 @@ int main (int argc, char *argv[])
         }
 
         if (btnAction[3] || IsKeyPressed(KEY_P)) { // Previous song : no shuffle on previous song
-                if (isShuffle) current_play = prevPlay;
-                else current_play--;
-                if (current_play<=0) current_play=0;
-                selectedFile = current_play;
+                if (isShuffle) currentPlay = prevPlay;
+                else currentPlay--;
+                if (currentPlay<=0) currentPlay=0;
                 StopMusicStream(music);
-                LoadMusicByIndex(current_play,musicFiles);
+                LoadMusicByIndex(currentPlay,musicFiles);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
                 isStop=false;
@@ -566,21 +568,20 @@ int main (int argc, char *argv[])
         }
 
         if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
-            prevPlay = current_play; //save for 1 shot prev.song
+            prevPlay = currentPlay; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffle_index = GetRandomValue(0,musicFileCount);
                 if (shuffle_index == musicFileCount) --shuffle_index;
-                if (musicFileCount > 1 && shuffle_index == current_play)
+                if (musicFileCount > 1 && shuffle_index == currentPlay)
                     shuffle_index = (shuffle_index + 1) % musicFileCount;
-                current_play = shuffle_index;
+                currentPlay = shuffle_index;
             } else {
-                current_play++;
-                if (current_play >= musicFileCount) current_play = 0;
+                currentPlay++;
+                if (currentPlay >= musicFileCount) currentPlay = 0;
             }
-                selectedFile = current_play;
                 StopMusicStream(music);
                 //UnloadMusicStream(music);
-                LoadMusicByIndex(current_play,musicFiles);
+                LoadMusicByIndex(currentPlay,musicFiles);
                 PlayMusicStream(music);
                 //UpdateMusicStream(music);
                 isStop=false;
@@ -614,23 +615,21 @@ int main (int argc, char *argv[])
         // auto move on next song
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
-                prevPlay = current_play;
+                prevPlay = currentPlay;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                     if (isShuffle) {
                         int shuffle_index = GetRandomValue(0,musicFileCount);
                         if (shuffle_index == musicFileCount) --shuffle_index;
-                        if (musicFileCount > 1 && shuffle_index == current_play)
+                        if (musicFileCount > 1 && shuffle_index == currentPlay)
                             shuffle_index = (shuffle_index + 1) % musicFileCount;
-                        current_play = shuffle_index;
+                        currentPlay = shuffle_index;
                     } else {
-                        current_play++;
-                        if (current_play >= musicFileCount) current_play = 0;
+                        currentPlay++;
+                        if (currentPlay >= musicFileCount) currentPlay = 0;
                     }
-                    if (isRepeat) current_play = prevPlay;
-
-                selectedFile = current_play;
-                LoadMusicByIndex(current_play,musicFiles);
+                    if (isRepeat) currentPlay = prevPlay;
+                LoadMusicByIndex(currentPlay,musicFiles);
                 PlayMusicStream(music);
             }
     
@@ -747,7 +746,7 @@ int main (int argc, char *argv[])
             DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? bgColor: textColor);
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d of %04d",current_play + 1 , musicFileCount),(Vector2){136,41},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d of %04d",currentPlay + 1 , musicFileCount),(Vector2){136,41},16,0, textColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, accentColor);  // riempimento
@@ -757,12 +756,14 @@ int main (int argc, char *argv[])
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
             DrawText(TextFormat("%i Hz", music.stream.sampleRate),194, screenHeight-16,10,BLACK);
             DrawText(TextFormat("/ %i bits", music.stream.sampleSize),242, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);     
+            DrawText(TextFormat("/ %i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),292, screenHeight-16,10,DARKGRAY);
+            //DrawText(TextFormat("%iMbytes",GetFileLength(currentFile)/1024/1024),350,screenHeight-32,10,RED);
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
         
         EndDrawing();
     }
-
+    
+    //unload reosurce
     UnloadDirectoryFiles(musicFiles);
     UnloadImage(image);
     UnloadTexture(background);
@@ -775,6 +776,8 @@ int main (int argc, char *argv[])
     UnloadFont(digitFnt);
     // unload buttons texture 
     for (int i = 0; i < NUM_BUTTONS; ++i) UnloadTexture(btnTexture[i]);
+    
+    //cleanup
     CloseAudioDevice();
     CloseWindow();
     return 0;
