@@ -1,0 +1,23 @@
+// ******************************************
+// **         rmplayer Keybindigs          **
+// ******************************************
+//
+// cursor up /down select file in library
+// Enter : play selected file
+// PAGE up/down : volume UP / DOWN
+// cursor left/right : Pan audio left/right
+// C : center Pan
+// M : Mute audio
+// S : Shuffle playlist on / off
+// R : repeat song on / off
+// N : play next song
+// P : play previous song
+// SPACE : play/stop song
+// X : goto current playing file 
+// I : switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
+// 1 : place window on center screen
+// 2 : place window bottom-left
+// 3 : place window bottom-middle
+// 4 : place window bottom-right
+// Q : leave app
+// *****************************************************************************

@@ -1,42 +1,17 @@
-/*******************************************************************************************
+/*******************************************************************************
 *
 *   raylib MPlayer (a sort of MOD4WIN revival)
 *   Small utility to play mp3 files based on Raylib
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
-********************************************************************************************
-* 
-* gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
-* gestione errore se tag mp3 hanno problemi o mancano
+********************************************************************************
 * 
 * font diverso lista file?
 * ordinamento file
 * ricerca con finestra input
 * 
-*******************************************************************************************/
-
-// Keybindigs
-//  
-// cursor ip /down select file
-// Enter : play selected file
-// PAGE up/down : volume UP / DOWN
-// cursor left/right : Panning audio left/Right
-// C : center PAN
-// M : Mute audio
-// S : Shuffle playlist on / off
-// R : repeat song on / off
-// N : play next song
-// P : play previous song
-// X : goto current playing file 
-// F: switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
-// Q : leave app
-// 1 : place window on center screen
-// 2 : place window bottom-left
-// 3 : place window bottom-middle
-// 4 : place window bottom-right
-// SPACE : play/stop song
-// ****************************************************************************************
+*******************************************************************************/
         
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
@@ -525,7 +500,7 @@ int main (int argc, char *argv[])
             SetMusicPan(music, pan);
         }
             
-        if (IsKeyPressed(KEY_F)) {
+        if (IsKeyPressed(KEY_I)) {
             isID3 = !isID3;
             GetTitle(currPlay);
         }
