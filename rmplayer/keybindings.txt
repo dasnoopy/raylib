@@ -15,9 +15,6 @@
 // SPACE : play/stop song
 // X : goto current playing file 
 // I : switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
-// 1 : place window on center screen
-// 2 : place window bottom-left
-// 3 : place window bottom-middle
-// 4 : place window bottom-right
+// V : mini window mode : all keybindigs are active but the filelist selection
 // Q : leave app
 // *****************************************************************************

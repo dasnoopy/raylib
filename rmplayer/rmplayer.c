@@ -10,13 +10,14 @@
 * font diverso lista file?
 * ordinamento file
 * ricerca con finestra input
+* utf8 per il titolo oppure sprite font? 
 * 
 *******************************************************************************/
         
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.3"
+#define TOOL_VERSION            "1.6.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,7 +36,9 @@
 
 // window initial size
 #define screenWidth   540
-#define screenHeight  263 // 156
+#define screenHeight  263
+#define miniScrWidth 365
+#define miniScrHeight 117
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -89,6 +92,7 @@ typedef struct Config
     char titleFnt[256];
     char digitFnt[256];
     bool dgtEffect;
+    bool isMini;
 } Config;
 
 static char *Trim(char *str)
@@ -166,6 +170,7 @@ bool LoadConfig(const char* filename, Config* cfg) {
             if (strcmp(key, "isPlay") == 0) cfg->isPlay = ParseBool(value);
             else if (strcmp(key, "isShuffle") == 0) cfg->isShuffle = ParseBool(value);
             else if (strcmp(key, "musicDir") == 0) strncpy(cfg->musicDir, value, sizeof(cfg->musicDir) - 1);
+            else if (strcmp(key, "isMini") == 0) cfg->isMini = ParseBool(value);
         }
         // Style / UI section
         else if (strcmp(currentSection, "style") == 0) {
@@ -173,12 +178,12 @@ bool LoadConfig(const char* filename, Config* cfg) {
             else if (strcmp(key, "titleFnt") == 0) strncpy(cfg->titleFnt, value, sizeof(cfg->titleFnt) - 1);
             else if (strcmp(key, "digitFnt") == 0) strncpy(cfg->digitFnt, value, sizeof(cfg->digitFnt) - 1);
             else if (strcmp(key, "dgtEffect") == 0) cfg->dgtEffect = ParseBool(value);
+
         }
     }
     fclose(fp);
     return true;
 }
-
 
 static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 {
@@ -360,7 +365,8 @@ int main (int argc, char *argv[])
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/macano.otf", // title font
         .digitFnt = "fonts/segment-lcd.otf", // title font
-        .dgtEffect= false
+        .dgtEffect = false,
+        .isMini = false
     };
 
     //load config from file
@@ -371,6 +377,7 @@ int main (int argc, char *argv[])
     // assign  values from config file
     bool isPlay = cfg.isPlay;
     bool isShuffle = cfg.isShuffle;
+    bool isMini = cfg.isMini;
     Color accentColor = cfg.accentColor;
     char *musicDir = cfg.musicDir;
     titleFnt = LoadFontEx(cfg.titleFnt, 28, NULL, 0);
@@ -413,8 +420,8 @@ int main (int argc, char *argv[])
     Color textColor = DarkenColor(accentColor, 0.60f);
     Color borderColor = DarkenColor(accentColor,0.30f);
 
-    // just a test
-    //system("echo $HOME");
+    if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
+    else SetWindowSize(screenWidth,screenHeight);
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -452,7 +459,7 @@ int main (int argc, char *argv[])
             // Calculate button frame rectangle to draw depending on button state
             srcRect[i].y = btnState[i]*frameHeight;
         }
-
+if (!isMini) {// when mini view is active all  keybindings are not active
         //------------------------------------------------------------------------------
         // scrollFiles with mouse
         //------------------------------------------------------------------------------
@@ -477,6 +484,7 @@ int main (int argc, char *argv[])
                             if (selectedIndex < 0) selectedIndex=0;
                             if (selectedIndex > files.count-1) selectedIndex=files.count-1;
                 }
+}  // all above keybindigs are disable in mini view modo
 
         // Set audio pan
         if (IsKeyDown(KEY_LEFT))
@@ -504,6 +512,13 @@ int main (int argc, char *argv[])
             isID3 = !isID3;
             GetTitle(currPlay);
         }
+
+        if (IsKeyPressed(KEY_V)) {
+            isMini= !isMini;
+            if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
+            else SetWindowSize(screenWidth,screenHeight);
+        }
+
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
          
@@ -522,6 +537,7 @@ int main (int argc, char *argv[])
             SetMasterVolume(volume);
         }
         if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
+
 
         if (IsKeyPressed(KEY_M)) // MUTE
         {
@@ -627,12 +643,8 @@ int main (int argc, char *argv[])
                 isPlay=true;
                 isPause=false;
             }
+    
 
-        if (IsKeyPressed(KEY_ONE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
-        if (IsKeyPressed(KEY_TWO)) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left
-        if (IsKeyPressed(KEY_THREE)) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
-        if (IsKeyPressed(KEY_FOUR)) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
-        
         // set toolbar button status in stop, play, pause
         if (isStop) {
             btnState[0] = 1;
@@ -699,6 +711,13 @@ int main (int argc, char *argv[])
             
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE);
+
+            // if miniwindow is active draw a border windows
+            if (isMini) {
+                DrawRectangleLinesEx((Rectangle){0,0,miniScrWidth,miniScrHeight},1,GRAY);
+                DrawLine(0,1,miniScrWidth,1,WHITE);
+                DrawLine(1,0,1,miniScrHeight,WHITE);
+            }
 
             // grid flags
             DrawLine(434,8,434,81,borderColor);
