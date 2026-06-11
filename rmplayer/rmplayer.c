@@ -305,8 +305,6 @@ int main (int argc, char *argv[])
     // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "rMPlayer");
-    // center window on the screen
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
@@ -420,8 +418,15 @@ int main (int argc, char *argv[])
     Color textColor = DarkenColor(accentColor, 0.60f);
     Color borderColor = DarkenColor(accentColor,0.30f);
 
-    if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
-    else SetWindowSize(screenWidth,screenHeight);
+    // set window size and center on screen
+    if (isMini) {
+        SetWindowSize(miniScrWidth,miniScrHeight);
+        SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
+    }
+    else {
+        SetWindowSize(screenWidth,screenHeight);
+        SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+    }
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);

@@ -2,13 +2,13 @@
 // **         rmplayer Keybindigs          **
 // ******************************************
 //
-// cursor up /down select file in library
+// cursor up/down : select file in library
 // Enter : play selected file
-// PAGE up/down : volume UP / DOWN
+// Page UP/DOWN : volume UP / DOWN
 // cursor left/right : Pan audio left/right
 // C : center Pan
 // M : Mute audio
-// S : Shuffle playlist on / off
+// S : Shuffle play on / off
 // R : repeat song on / off
 // N : play next song
 // P : play previous song
