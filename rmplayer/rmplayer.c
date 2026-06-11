@@ -10,6 +10,10 @@
 * gestion errori / problemi apertura file... eg se cambio nome ad un file mp3 quando il programma si incazza?
 * gestione errore se tag mp3 hanno problemi o mancano
 * 
+* font diverso lista file?
+* ordinamento file
+* ricerca con finestra input
+* 
 *******************************************************************************************/
 
 // Keybindigs
@@ -25,6 +29,7 @@
 // N : play next song
 // P : play previous song
 // X : goto current playing file 
+// F: switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
 // Q : leave app
 // 1 : place window on center screen
 // 2 : place window bottom-left
@@ -36,7 +41,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.5.3"
+#define TOOL_VERSION            "1.6.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -53,15 +58,9 @@
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
 
-
-
 // window initial size
 #define screenWidth   540
-#define screenHeight  320 // 156
-
-// initial window position
-int screenX = 32;
-int screenY = 880;
+#define screenHeight  302 // 156
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -83,6 +82,7 @@ bool isPause = false;
 bool isMute = false;
 bool isPan = false;
 bool isRepeat = false;
+bool isID3 = true;
 float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
@@ -91,8 +91,8 @@ float prev_volume = 0.50f;
 Color bgColor; 
 Color textColor;
 Color borderColor; // grids color
-#define onColor      accentColor // CLITERAL(Color){ 0, 255, 0, 255}
-#define offColor     textColor //CLITERAL(Color){ 0,64, 0,255}
+#define onColor      accentColor
+#define offColor     textColor
 
 // Music library
 #define MAX_FILEPATH_SIZE       1024
@@ -214,7 +214,7 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
 
     frame = id3_tag_findframe(tag, id, 0);
     if (!frame) {
-        snprintf(ID3tag,sizeof(ID3tag), "%s: n/a", label);
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
         return;
     }
 
@@ -233,6 +233,54 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     free(utf8);
 }
 
+void GetTitle (int idx){
+    //get ID3 tags
+    struct id3_file *file;
+    struct id3_tag *tag;
+    file = id3_file_open(files.paths[idx], ID3_FILE_MODE_READONLY);
+    
+    if (!file) fprintf(stderr, "Errore apertura file\n");
+
+    tag = id3_file_tag(file);
+    // show ID3 tag
+    if (isID3) {
+        getID3tags(tag, "TPE1", "Artist");
+        strcpy(titleStr, ID3tag );
+        strcat (titleStr, " - ");
+        getID3tags(tag, "TIT2", "Title");
+        strcat(titleStr, ID3tag );
+        //strcat(titleStr, "\0");
+        strcat (titleStr, " [");
+        getID3tags(tag, "TDRC", "Year");
+        strcat(titleStr, ID3tag );
+        strcat(titleStr, "]\0");
+        id3_file_close(file);
+        }
+    else { // show file info
+        char tmpInfo[64];
+        // complete path + filename
+        strcpy(titleStr, files.paths[idx]);
+        strcat (titleStr, " [ ");
+        // file size in bytes
+        snprintf(tmpInfo, sizeof(tmpInfo),"%d KBytes",GetFileLength(files.paths[idx])/1024);
+        strcat (titleStr, tmpInfo);
+        strcat (titleStr, " , ");
+        // sample rate
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i HZ",music.stream.sampleRate);
+        strcat (titleStr, tmpInfo);
+        strcat (titleStr, " , ");
+        // sample size
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
+        strcat (titleStr, tmpInfo);
+        strcat (titleStr, " , ");
+        // channels
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi");
+        strcat (titleStr, tmpInfo);
+        strcat (titleStr, " ] ");
+
+        }
+}
+
 // Funzione che restituisce un FilePathList dei file in basePath con estensioni filter
 FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
     files = LoadDirectoryFilesEx(basePath, filter, includeSubdirs);
@@ -247,30 +295,10 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     selectedIndex = idx;
     currPlay = idx;
     music = LoadMusicStream(files.paths[idx]);
-    
-    //get ID3 tags
-    struct id3_file *file;
-    struct id3_tag *tag;
-    file = id3_file_open(files.paths[idx], ID3_FILE_MODE_READONLY);
-    
-    if (!file) {
-        fprintf(stderr, "Errore apertura file\n");
-    }
-
-    tag = id3_file_tag(file);
-            
-    getID3tags(tag, "TPE1", "Artist");
-    strcpy(titleStr, ID3tag );
-    strcat (titleStr, " - ");
-    getID3tags(tag, "TIT2", "Title");
-    strcat(titleStr, ID3tag );
-    //strcat(titleStr, "\0");
-    strcat (titleStr, " [");
-    getID3tags(tag, "TDRC", "Year");
-    strcat(titleStr, ID3tag );
-    strcat(titleStr, "]\0");
-    id3_file_close(file);
+    GetTitle(idx);
 }
+
+
 
 //------------------------------------------------------------------------------------
 // Audio processing function
@@ -398,13 +426,12 @@ int main (int argc, char *argv[])
     float speed = 60.0f;
 
     // filelist variables
-    Rectangle filesArea = { 7,119,screenWidth-16,156 };
+    Rectangle filesArea = { 8,118,screenWidth-16,139 };
     int rowHeight = 20;
-    int visibleRows = 8;
+    int visibleRows = 7;
     
     int scrollOffset = 0;     // primo file visualizzato
-    const int centerRow = visibleRows / 2;   // 4
-
+    const int centerRow = 3;
 
     // set colors darker starting from fg color
     Color bgColor = DarkenColor(accentColor,0.15f);
@@ -474,7 +501,6 @@ int main (int argc, char *argv[])
                     // checks
                             if (selectedIndex < 0) selectedIndex=0;
                             if (selectedIndex > files.count-1) selectedIndex=files.count-1;
-
                 }
 
         // Set audio pan
@@ -498,7 +524,11 @@ int main (int argc, char *argv[])
             pan = 0.0f;
             SetMusicPan(music, pan);
         }
-        
+            
+        if (IsKeyPressed(KEY_F)) {
+            isID3 = !isID3;
+            GetTitle(currPlay);
+        }
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
          
@@ -676,8 +706,8 @@ int main (int argc, char *argv[])
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
         // //do someting whe window loses focus
-        // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
-        // else SetWindowOpacity(1.0f);
+        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
+        else SetWindowOpacity(1.0f);
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -701,15 +731,10 @@ int main (int argc, char *argv[])
             DrawLine(367,45,500,45,borderColor);
             DrawLine(367,64,500,64,borderColor);
 
-            // visualizer grid
-            for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
-            for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
-
             //volume slider
             DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,accentColor);
             DrawTextEx(textFnt,"Max",(Vector2){508,8},16,0, textColor);
             DrawTextEx(textFnt,"Min",(Vector2){508,94},16,0, textColor);
-            DrawTextEx(textFnt,TextFormat("Vol.: %02.f",volume*100),(Vector2){438,64},16,0,accentColor);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,accentColor);
@@ -750,33 +775,45 @@ int main (int argc, char *argv[])
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
-            for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
-                DrawLine(225 + i, 80 - (int)(averageVolume[i]*32), 225 + i, 80, accentColor);
+            BeginScissorMode(223,43,135,80);
+                // visualizer grid
+                for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
+                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
+                for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
+                    DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
+            EndScissorMode();
 
-            // show Play / Stop /Pause status
-            DrawRectangle(368,27,64,16,isPlay ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : textColor);
+            // PLAY flag
+            DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
+            DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : offColor);
 
-            DrawRectangle(368,9,64,15,isStop ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? bgColor : textColor);
+            // STOP flag
+            DrawRectangle(368,9,64,15,isStop ? onColor:bgColor);
+            DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? bgColor : offColor);
 
-            DrawRectangle(368,46,64,16,isPause ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? bgColor : textColor);
+            // PAUSE flag
+            DrawRectangle(368,46,64,16,isPause ? onColor:bgColor);
+            DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? bgColor : offColor);
 
             // Shuffle flag
-            DrawRectangle(435,9,64,15,isShuffle ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : textColor);
+            DrawRectangle(435,9,64,15,isShuffle ? onColor:bgColor);
+            DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : offColor);
             
             // Mute flag
-            DrawRectangle(435,27,64,16,isMute ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Mute",(Vector2){438,26},16,0, isMute ? bgColor:textColor);
+            DrawRectangle(435,27,64,16,isMute ? onColor:bgColor);
+            DrawTextEx(textFnt,"Mute",(Vector2){438,26},16,0, isMute ? bgColor:offColor);
             
             // PAN flag
-            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,45},16,0, isPan ? onColor : offColor);
+            DrawRectangle(435,46,64,16,isPan ? onColor:bgColor);
+            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,45},16,0, isPan ? bgColor : offColor);
             
             // REPEAT flag
-            DrawRectangle(368,65,64,15,isRepeat ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Repeat",(Vector2){370,64},16,0, isRepeat ? bgColor: textColor);
+            DrawRectangle(435,65,64,15,isRepeat ? onColor:bgColor);
+            DrawTextEx(textFnt,"Repeat",(Vector2){438,64},16,0, isRepeat ? bgColor : offColor);
+
+            // ID3/INFO flag
+            DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
+            DrawTextEx(textFnt, "File Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
 
             // song of songs
             DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
@@ -787,11 +824,8 @@ int main (int argc, char *argv[])
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%i Hz", music.stream.sampleRate),190, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/%i bits", music.stream.sampleSize),234, screenHeight-16,10,BLACK);
-            DrawText(TextFormat("/%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi"),282, screenHeight-16,10,DARKGRAY);
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            // GetFileLength(files.paths[fileIndex])/1024/1024
+
             {
 
               BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
@@ -807,10 +841,10 @@ int main (int argc, char *argv[])
                         DrawLine(filesArea.x,filesArea.y + (i*rowHeight) ,screenWidth-8,filesArea.y +(i*rowHeight),borderColor);
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
-                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, onColor);
-                        DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1, onColor);
+                        DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
-                DrawLine(42,118,42,276,borderColor);
+                DrawLine(42,118,42,259,borderColor);
                 //DrawLine(82,118,82,276,borderColor);
                 EndScissorMode();
             }           
