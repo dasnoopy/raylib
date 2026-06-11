@@ -16,7 +16,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.2"
+#define TOOL_VERSION            "1.6.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -35,7 +35,7 @@
 
 // window initial size
 #define screenWidth   540
-#define screenHeight  302 // 156
+#define screenHeight  263 // 156
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -401,12 +401,12 @@ int main (int argc, char *argv[])
     float speed = 60.0f;
 
     // filelist variables
-    Rectangle filesArea = { 8,118,screenWidth-16,139 };
+    Rectangle filesArea = { 8,118,screenWidth-16,100 };
     int rowHeight = 20;
-    int visibleRows = 7;
-    
+    int visibleRows = 5;
+    const int centerRow = 2;
     int scrollOffset = 0;     // primo file visualizzato
-    const int centerRow = 3;
+
 
     // set colors darker starting from fg color
     Color bgColor = DarkenColor(accentColor,0.15f);
@@ -775,16 +775,16 @@ int main (int argc, char *argv[])
             DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : offColor);
             
             // Mute flag
-            DrawRectangle(435,27,64,16,isMute ? onColor:bgColor);
-            DrawTextEx(textFnt,"Mute",(Vector2){438,26},16,0, isMute ? bgColor:offColor);
+            DrawRectangle(435,46,64,16,isMute ? onColor:bgColor);
+            DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:offColor);
             
             // PAN flag
-            DrawRectangle(435,46,64,16,isPan ? onColor:bgColor);
-            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,45},16,0, isPan ? bgColor : offColor);
+            DrawRectangle(435,65,64,16,isPan ? onColor:bgColor);
+            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,64},16,0, isPan ? bgColor : offColor);
             
             // REPEAT flag
-            DrawRectangle(435,65,64,15,isRepeat ? onColor:bgColor);
-            DrawTextEx(textFnt,"Repeat",(Vector2){438,64},16,0, isRepeat ? bgColor : offColor);
+            DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);
+            DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
 
             // ID3/INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
@@ -819,7 +819,7 @@ int main (int argc, char *argv[])
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1, onColor);
                         DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
-                DrawLine(42,118,42,259,borderColor);
+                DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
                 //DrawLine(82,118,82,276,borderColor);
                 EndScissorMode();
             }           
