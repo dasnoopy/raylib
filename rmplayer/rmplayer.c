@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.7"
+#define TOOL_VERSION            "1.6.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -663,7 +663,6 @@ if (!isMini) {// when mini view is active all  keybindings are not active
             srcRect[2].y = btnState[2]*frameHeight;   
             }
 
-
         // auto move on next song
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
             {
@@ -750,7 +749,6 @@ if (!isMini) {// when mini view is active all  keybindings are not active
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
                 }
             // tempo attuale brano e durata totale brano
-            //DrawTextEx(textFnt,"Hour:Min:Sec",(Vector2){10,41},16,0, textColor);
             char timeStr[32];
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
@@ -773,9 +771,14 @@ if (!isMini) {// when mini view is active all  keybindings are not active
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,135,80);
-                // visualizer grid
-                for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
-                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
+                // // grid lines
+                // for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
+                // for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
+                // grid points
+                for (int h = 0; h<138 ; h+=3) 
+                    for (int v = 0; v < 36; v+=3)
+                        DrawPixel(225 + h, 45 + v,textColor);
+                // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                     DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
             EndScissorMode();
