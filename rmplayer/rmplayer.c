@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.8"
+#define TOOL_VERSION            "1.7.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -461,7 +461,7 @@ int main (int argc, char *argv[])
             // Calculate button frame rectangle to draw depending on button state
             srcRect[i].y = btnState[i]*frameHeight;
         }
-if (!isMini) {// when mini view is active all  keybindings are not active
+if (!isMini) {// when mini view is active fileselectio is disabled
         //------------------------------------------------------------------------------
         // scrollFiles with mouse
         //------------------------------------------------------------------------------
@@ -645,7 +645,26 @@ if (!isMini) {// when mini view is active all  keybindings are not active
                 isPlay=true;
                 isPause=false;
             }
-    
+
+        if (IsKeyPressed(KEY_F1)) {
+            if (!isMini) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+            else SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
+        }
+
+        if (IsKeyPressed(KEY_F2)) {
+            if (!isMini) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left;
+            else SetWindowPosition(0,GetMonitorHeight(0) - miniScrHeight); //bottom-left;
+        }
+
+        if (IsKeyPressed(KEY_F3)) {
+            if (!isMini) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
+            else SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2,GetMonitorHeight(0) - miniScrHeight); 
+        }
+        
+        if (IsKeyPressed(KEY_F4)) {
+            if (!isMini) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
+            else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
+        }
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
@@ -727,15 +746,15 @@ if (!isMini) {// when mini view is active all  keybindings are not active
             DrawLine(367,45,500,45,borderColor);
             DrawLine(367,64,500,64,borderColor);
 
-            //volume slider
-            DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,accentColor);
-            DrawTextEx(textFnt,"Vol+",(Vector2){507,8},16,0, textColor);
-            DrawTextEx(textFnt,"Vol-",(Vector2){507,94},16,0, textColor);
+            //volume bar
+                DrawRectangleRec((Rectangle){508,109-(volume*100),23,(volume*100) +1 },accentColor);
+                char tmp[] = "+VOLUME-";
+                for (int i = 0; i < strlen(tmp); ++i)
+                    DrawTextEx(textFnt,TextFormat("%c", tmp[i]),(Vector2){515,10+i*12},16,0, textColor);
 
             // pan slider
-            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,accentColor);
-            DrawTextEx(textFnt,"[(<",(Vector2){370,91},16,0, textColor);
-            DrawTextEx(textFnt,">)]",(Vector2){480,91},16,0, textColor);
+            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*125), 89, 6, 21},3,accentColor);
+            DrawTextEx(textFnt,"[(<         PAN        >)]",(Vector2){370,91},16,0, textColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -772,12 +791,12 @@ if (!isMini) {// when mini view is active all  keybindings are not active
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,135,80);
                 // // grid lines
-                // for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
-                // for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
+                for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
+                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
                 // grid points
-                for (int h = 0; h<138 ; h+=3) 
-                    for (int v = 0; v < 36; v+=3)
-                        DrawPixel(225 + h, 45 + v,textColor);
+                // for (int h = 0; h<138 ; h+=3) 
+                //     for (int v = 0; v < 36; v+=3)
+                //         DrawPixel(225 + h, 45 + v,textColor);
                 // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                     DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
@@ -805,7 +824,7 @@ if (!isMini) {// when mini view is active all  keybindings are not active
             
             // PAN flag
             DrawRectangle(435,65,64,16,isPan ? onColor:bgColor);
-            DrawTextEx(textFnt,"(< Pan >)",(Vector2){438,64},16,0, isPan ? bgColor : offColor);
+            DrawTextEx(textFnt,"Panning",(Vector2){438,64},16,0, isPan ? bgColor : offColor);
             
             // REPEAT flag
             DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);

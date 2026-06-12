@@ -16,5 +16,6 @@
 // X : goto current playing file 
 // I : switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
 // V : mini window mode : all keybindigs are active but the filelist selection
+// 1 to 4 : set windows position to center, bottom/left , bottom/middle, bottom/right
 // Q : leave app
 // *****************************************************************************
