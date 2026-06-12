@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.6"
+#define TOOL_VERSION            "1.6.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -37,7 +37,7 @@
 // window initial size
 #define screenWidth   540
 #define screenHeight  302
-#define miniScrWidth 366
+#define miniScrWidth 367
 #define miniScrHeight 118
 
 // visualizer variables
@@ -730,13 +730,13 @@ if (!isMini) {// when mini view is active all  keybindings are not active
 
             //volume slider
             DrawRectangleLinesEx((Rectangle){507,(int)105-(volume*97),25,6},2,accentColor);
-            DrawTextEx(textFnt,"Max",(Vector2){508,8},16,0, textColor);
-            DrawTextEx(textFnt,"Min",(Vector2){508,94},16,0, textColor);
+            DrawTextEx(textFnt,"Vol+",(Vector2){507,8},16,0, textColor);
+            DrawTextEx(textFnt,"Vol-",(Vector2){507,94},16,0, textColor);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*124), 88, 6, 23},2,accentColor);
-            DrawTextEx(textFnt,"Left",(Vector2){370,90},16,0, textColor);
-            DrawTextEx(textFnt,"Right",(Vector2){464,90},16,0, textColor);
+            DrawTextEx(textFnt,"[(<",(Vector2){370,91},16,0, textColor);
+            DrawTextEx(textFnt,">)]",(Vector2){480,91},16,0, textColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
