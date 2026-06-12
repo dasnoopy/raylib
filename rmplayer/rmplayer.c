@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,9 +36,9 @@
 
 // window initial size
 #define screenWidth   540
-#define screenHeight  263
-#define miniScrWidth 365
-#define miniScrHeight 117
+#define screenHeight  302
+#define miniScrWidth 366
+#define miniScrHeight 118
 
 // visualizer variables
 static float exponent = 0.88f;                 // Audio exponentiation value
@@ -222,8 +222,7 @@ void GetTitle (int idx){
     if (!file) fprintf(stderr, "Errore apertura file\n");
 
     tag = id3_file_tag(file);
-    // show ID3 tag
-    if (isID3) {
+    if (isID3) { // show ID3 tag
         getID3tags(tag, "TPE1", "Artist");
         strcpy(titleStr, ID3tag );
         strcat (titleStr, " - ");
@@ -246,7 +245,7 @@ void GetTitle (int idx){
         strcat (titleStr, tmpInfo);
         strcat (titleStr, " , ");
         // sample rate
-        snprintf(tmpInfo, sizeof(tmpInfo),"%i HZ",music.stream.sampleRate);
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i Hz",music.stream.sampleRate);
         strcat (titleStr, tmpInfo);
         strcat (titleStr, " , ");
         // sample size
@@ -254,7 +253,7 @@ void GetTitle (int idx){
         strcat (titleStr, tmpInfo);
         strcat (titleStr, " , ");
         // channels
-        snprintf(tmpInfo, sizeof(tmpInfo),"%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "Mono" : (music.stream.channels == 2)? "Stereo" : "Multi");
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi");
         strcat (titleStr, tmpInfo);
         strcat (titleStr, " ] ");
 
@@ -277,8 +276,6 @@ void LoadMusicByIndex(int idx, FilePathList files) {
     music = LoadMusicStream(files.paths[idx]);
     GetTitle(idx);
 }
-
-
 
 //------------------------------------------------------------------------------------
 // Audio processing function
@@ -406,10 +403,10 @@ int main (int argc, char *argv[])
     float speed = 60.0f;
 
     // filelist variables
-    Rectangle filesArea = { 8,118,screenWidth-16,100 };
+    Rectangle filesArea = { 8,118,screenWidth-16,139 };
     int rowHeight = 20;
-    int visibleRows = 5;
-    const int centerRow = 2;
+    int visibleRows = 7;
+    const int centerRow = 3;
     int scrollOffset = 0;     // primo file visualizzato
 
 
@@ -717,11 +714,12 @@ if (!isMini) {// when mini view is active all  keybindings are not active
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE);
 
-            // if miniwindow is active draw a border windows
-            if (isMini) {
-                DrawRectangleLinesEx((Rectangle){0,0,miniScrWidth,miniScrHeight},1,GRAY);
-                DrawLine(0,1,miniScrWidth,1,WHITE);
-                DrawLine(1,0,1,miniScrHeight,WHITE);
+            // if miniwindow is active draw a border hack
+            if (isMini) { 
+                DrawRectangle(miniScrWidth-2,1,2,miniScrHeight,GRAY);
+                DrawRectangle(1,miniScrHeight-2,miniScrWidth,2,GRAY);
+                DrawLine(0,miniScrHeight,3,miniScrHeight-3,LIGHTGRAY);
+                DrawLine(miniScrWidth-3,3,miniScrWidth,0,LIGHTGRAY);
             }
 
             // grid flags
