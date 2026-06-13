@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.3"
+#define TOOL_VERSION            "1.7.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -298,7 +298,7 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -491,7 +491,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             GetTitle(currPlay);
         }
 
-        if (IsKeyPressed(KEY_V)) {
+        if (IsKeyPressed(KEY_F)) {
             isMini= !isMini;
             if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
             else SetWindowSize(screenWidth,screenHeight);
@@ -727,6 +727,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
+            //for (int i = 0; i < (timePlayed * 128); i+=5) DrawRectangleLinesEx((Rectangle){369+i,90,3,19},2,textColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -745,7 +746,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, textColor);
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, DarkenColor(textColor, 0.7f));
             DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, accentColor);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
@@ -757,7 +758,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             time_t now = time (NULL);
             struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
-            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, textColor);
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, DarkenColor(textColor, 0.7f));
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
@@ -826,6 +827,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
                     for (int i = 0; i < visibleRows; ++i) {
                         DrawLine(filesArea.x,filesArea.y + (i*rowHeight) ,screenWidth-8,filesArea.y +(i*rowHeight),borderColor);
+                        //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, DarkenColor(textColor,0.4f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1, onColor);
