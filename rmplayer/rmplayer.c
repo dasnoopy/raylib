@@ -747,14 +747,16 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             //volume bar
-                DrawRectangleRec((Rectangle){508,109-(volume*100),23,(volume*100) +1 },accentColor);
-                char tmp[] = "+VOLUME-";
-                for (int i = 0; i < strlen(tmp); ++i)
-                    DrawTextEx(textFnt,TextFormat("%c", tmp[i]),(Vector2){515,10+i*12},16,0, textColor);
+                //DrawRectangleRec((Rectangle){508,109-(volume*100),23,(volume*100) + 1 },accentColor);
+                for (int i = 0; i < (volume*100); i+=5) DrawRectangleLinesEx((Rectangle){509,105-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
+
+                // char tmp[] = "+VOLUME-";
+                // for (int i = 0; i < strlen(tmp); ++i)
+                //     DrawTextEx(textFnt,TextFormat("%c", tmp[i]),(Vector2){515,10+i*12},16,0, textColor);
 
             // pan slider
             DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*125), 89, 6, 21},3,accentColor);
-            DrawTextEx(textFnt,"[(<         PAN        >)]",(Vector2){370,91},16,0, textColor);
+            DrawTextEx(textFnt,"[(<----- PAN ----->)]",(Vector2){370,91},16,0, textColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -789,13 +791,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
-            BeginScissorMode(223,43,135,80);
+            BeginScissorMode(223,44,135,80);
                 // // grid lines
                 for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
                 for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
                 // grid points
-                // for (int h = 0; h<138 ; h+=3) 
-                //     for (int v = 0; v < 36; v+=3)
+                // for (int h = 0; h<138 ; h+=4) 
+                //     for (int v = 0; v < 36; v+=4)
                 //         DrawPixel(225 + h, 45 + v,textColor);
                 // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa

@@ -1,7 +1,6 @@
 // ******************************************
 // **         rmplayer Keybindigs          **
 // ******************************************
-//
 // cursor up/down : select file in library
 // Enter : play selected file
 // Page UP/DOWN : volume UP / DOWN
