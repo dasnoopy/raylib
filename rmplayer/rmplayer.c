@@ -17,7 +17,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.0"
+#define TOOL_VERSION            "1.7.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,7 +36,7 @@
 
 // window initial size
 #define screenWidth   540
-#define screenHeight  302
+#define screenHeight  279
 #define miniScrWidth 367
 #define miniScrHeight 118
 
@@ -58,10 +58,8 @@ float currentTime = 0.0f;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
-bool isPan = false;
 bool isRepeat = false;
 bool isID3 = true;
-float pan = 0.0f;               // Default audio pan center [-1.0f..1.0f]
 float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
@@ -488,28 +486,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 }
 }  // all above keybindigs are disable in mini view modo
 
-        // Set audio pan
-        if (IsKeyDown(KEY_LEFT))
-        {
-            isPan = true;
-            pan -= 0.01f;
-            if (pan < -1.0f) pan = -1.0f;
-            SetMusicPan(music, pan);
-        }
-        if (IsKeyDown(KEY_RIGHT))
-        {
-            isPan = true;
-            pan += 0.01f;
-            if (pan > 1.0f) pan = 1.0f;
-            SetMusicPan(music, pan);
-        }
-         if (IsKeyPressed(KEY_C))
-        {
-            isPan = false;
-            pan = 0.0f;
-            SetMusicPan(music, pan);
-        }
-            
         if (IsKeyPressed(KEY_I)) {
             isID3 = !isID3;
             GetTitle(currPlay);
@@ -591,7 +567,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             else ResumeMusicStream(music);
         }
 
-        if (btnAction[4] && isPlay) // seek -10sec
+        if ((btnAction[4] || (IsKeyPressed(KEY_LEFT))) && isPlay) // seek -10sec
         {
                     if (currentTime < 10.0f) {
                         currentTime = 0.0f; 
@@ -601,7 +577,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     else SeekMusicStream(music, currentTime - SEEK_TIME);
 
         }
-        if (btnAction[5] && isPlay) // seek +10sec
+        if ((btnAction[5] || (IsKeyPressed(KEY_RIGHT))) && isPlay) // seek +10sec
         {
                     if (currentTime + SEEK_TIME >= GetMusicTimeLength(music)) {
                         currentTime = 0.0f;
@@ -703,8 +679,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 PlayMusicStream(music);
             }
     
-        // set initial volume and panning
-        SetMusicPan(music, pan);
+        // set initial volume 
         SetMasterVolume(volume);
     
         // Get normalized time played for current music stream
@@ -747,16 +722,11 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             //volume bar
-                //DrawRectangleRec((Rectangle){508,109-(volume*100),23,(volume*100) + 1 },accentColor);
                 for (int i = 0; i < (volume*100); i+=5) DrawRectangleLinesEx((Rectangle){509,105-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
+                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
 
-                // char tmp[] = "+VOLUME-";
-                // for (int i = 0; i < strlen(tmp); ++i)
-                //     DrawTextEx(textFnt,TextFormat("%c", tmp[i]),(Vector2){515,10+i*12},16,0, textColor);
-
-            // pan slider
-            DrawRectangleLinesEx((Rectangle){(int)(368 + (pan + 1.0f)/2.0f*125), 89, 6, 21},3,accentColor);
-            DrawTextEx(textFnt,"[(<----- PAN ----->)]",(Vector2){370,91},16,0, textColor);
+            // only progressbar
+            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -824,9 +794,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawRectangle(435,46,64,16,isMute ? onColor:bgColor);
             DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:offColor);
             
-            // PAN flag
-            DrawRectangle(435,65,64,16,isPan ? onColor:bgColor);
-            DrawTextEx(textFnt,"Panning",(Vector2){438,64},16,0, isPan ? bgColor : offColor);
             
             // REPEAT flag
             DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);
@@ -839,8 +806,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // song of songs
             DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
 
-            // only progressbar
-            DrawRectangleRec((Rectangle){9,screenHeight-37, (int)((screenWidth-18) * timePlayed), 14}, accentColor);  // riempimento
+            
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 

@@ -4,8 +4,7 @@
 // cursor up/down : select file in library
 // Enter : play selected file
 // Page UP/DOWN : volume UP / DOWN
-// cursor left/right : Pan audio left/right
-// C : center Pan
+// cursor left/right : seek -10sec/+10sec
 // M : Mute audio
 // S : Shuffle play on / off
 // R : repeat song on / off
@@ -15,6 +14,6 @@
 // X : goto current playing file 
 // I : switch title info between ID3 tags and complete filename + size in Mbytes  and sample infos
 // V : mini window mode : all keybindigs are active but the filelist selection
-// 1 to 4 : set windows position to center, bottom/left , bottom/middle, bottom/right
+// F1 to F4 : set windows position to center, bottom/left , bottom/middle, bottom/right
 // Q : leave app
 // *****************************************************************************
