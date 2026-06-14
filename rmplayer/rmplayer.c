@@ -7,7 +7,6 @@
 *
 ********************************************************************************
 * 
-* font diverso lista file?
 * ordinamento file
 * ricerca con finestra input
 * utf8 per il titolo oppure sprite font? 
@@ -17,7 +16,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.5"
+#define TOOL_VERSION            "1.7.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -122,7 +121,7 @@ static Color ParseColor(const char *value) {
     return color;
 }
 
-Color DarkenColor(Color color, float factor)
+Color darkenColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
     if (factor > 1.0f) factor = 1.0f;
@@ -409,9 +408,9 @@ int main (int argc, char *argv[])
 
 
     // set colors darker starting from fg color
-    Color bgColor = DarkenColor(accentColor,0.15f);
-    Color textColor = DarkenColor(accentColor, 0.60f);
-    Color borderColor = DarkenColor(accentColor,0.30f);
+    Color bgColor = darkenColor(accentColor,0.15f);
+    Color textColor = darkenColor(accentColor, 0.60f);
+    Color borderColor = darkenColor(accentColor,0.30f);
 
     // set window size and center on screen
     if (isMini) {
@@ -722,8 +721,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             //volume bar
-                for (int i = 0; i < (volume*100); i+=5) DrawRectangleLinesEx((Rectangle){509,105-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
+                for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
+                //DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
@@ -746,7 +745,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
-            if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, DarkenColor(textColor, 0.7f));
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, accentColor);
             int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
             int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
@@ -758,7 +757,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             time_t now = time (NULL);
             struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
-            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, DarkenColor(textColor, 0.7f));
+            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, borderColor);
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
@@ -767,8 +766,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
                 for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
                 // grid points
-                // for (int h = 0; h<138 ; h+=4) 
-                //     for (int v = 0; v < 36; v+=4)
+                // for (int h = 0; h<138 ; h+=3) 
+                //     for (int v = 0; v < 36; v+=3)
                 //         DrawPixel(225 + h, 45 + v,textColor);
                 // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
@@ -802,12 +801,10 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // ID3/INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
-            DrawTextEx(textFnt, "File Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
+            DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
 
             // song of songs
             DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
-
-            
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
@@ -827,7 +824,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
                     for (int i = 0; i < visibleRows; ++i) {
                         DrawLine(filesArea.x,filesArea.y + (i*rowHeight) ,screenWidth-8,filesArea.y +(i*rowHeight),borderColor);
-                        //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, DarkenColor(textColor,0.4f));
+                        //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1, onColor);
