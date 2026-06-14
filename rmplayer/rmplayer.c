@@ -16,7 +16,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.6"
+#define TOOL_VERSION            "1.7.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -240,15 +240,15 @@ void GetTitle (int idx){
         // file size in bytes
         snprintf(tmpInfo, sizeof(tmpInfo),"%d KBytes",GetFileLength(files.paths[idx])/1024);
         strcat (titleStr, tmpInfo);
-        strcat (titleStr, " , ");
+        strcat (titleStr, ", ");
         // sample rate
         snprintf(tmpInfo, sizeof(tmpInfo),"%i Hz",music.stream.sampleRate);
         strcat (titleStr, tmpInfo);
-        strcat (titleStr, " , ");
+        strcat (titleStr, ", ");
         // sample size
         snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
         strcat (titleStr, tmpInfo);
-        strcat (titleStr, " , ");
+        strcat (titleStr, ", ");
         // channels
         snprintf(tmpInfo, sizeof(tmpInfo),"%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi");
         strcat (titleStr, tmpInfo);
@@ -355,8 +355,8 @@ int main (int argc, char *argv[])
         .isShuffle = false,
         .accentColor = {255,255,255,255}, //green
         .musicDir = "/home/public/Music", //default music folder
-        .titleFnt = "fonts/macano.otf", // title font
-        .digitFnt = "fonts/segment-lcd.otf", // title font
+        .titleFnt = "fonts/rmplayer.otf", // title font
+        .digitFnt = "fonts/segment.otf", // title font
         .dgtEffect = false,
         .isMini = false
     };
@@ -621,25 +621,29 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 isPause=false;
             }
 
-        if (IsKeyPressed(KEY_F1)) {
+        if (IsKeyPressed(KEY_ONE)) {
             if (!isMini) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
             else SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
         }
 
-        if (IsKeyPressed(KEY_F2)) {
+        if (IsKeyPressed(KEY_TWO)) {
             if (!isMini) SetWindowPosition(0,GetMonitorHeight(0) - screenHeight); //bottom-left;
             else SetWindowPosition(0,GetMonitorHeight(0) - miniScrHeight); //bottom-left;
         }
 
-        if (IsKeyPressed(KEY_F3)) {
+        if (IsKeyPressed(KEY_THREE)) {
             if (!isMini) SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2,GetMonitorHeight(0) - screenHeight); //bottom-middle
             else SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2,GetMonitorHeight(0) - miniScrHeight); 
         }
         
-        if (IsKeyPressed(KEY_F4)) {
+        if (IsKeyPressed(KEY_FOUR)) {
             if (!isMini) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
         }
+
+        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F3)) titleFnt = LoadFontEx("fonts/rmplayersquare.otf", 28, NULL, 0);
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
