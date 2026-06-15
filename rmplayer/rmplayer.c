@@ -641,7 +641,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
         }
 
-        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayerfull.otf", 28, NULL, 0);
         if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
         if (IsKeyPressed(KEY_F3)) titleFnt = LoadFontEx("fonts/rmplayersquare.otf", 28, NULL, 0);
 
@@ -726,7 +726,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             //volume bar
                 for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-                //DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
+                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
