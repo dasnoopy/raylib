@@ -16,7 +16,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.8.0"
+#define TOOL_VERSION            "1.8.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -729,7 +729,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // only progressbar
             //DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-                        for (int i = 0; i < (timePlayed * 128); i+=4) DrawRectangleLinesEx((Rectangle){369+i,90,3,19},2,accentColor);
+            for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
