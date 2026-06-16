@@ -16,7 +16,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.8"
+#define TOOL_VERSION            "1.8.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -641,9 +641,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
         }
 
-        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayerfull.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
         if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
-        if (IsKeyPressed(KEY_F3)) titleFnt = LoadFontEx("fonts/rmplayersquare.otf", 28, NULL, 0);
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
@@ -729,8 +728,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
 
             // only progressbar
-            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-            //for (int i = 0; i < (timePlayed * 128); i+=5) DrawRectangleLinesEx((Rectangle){369+i,90,3,19},2,textColor);
+            //DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
+                        for (int i = 0; i < (timePlayed * 128); i+=4) DrawRectangleLinesEx((Rectangle){369+i,90,3,19},2,accentColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
