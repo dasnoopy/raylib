@@ -10,13 +10,17 @@
 * ordinamento file
 * ricerca con finestra input
 * utf8 per il titolo oppure sprite font? 
+*
+* BUGS
+* ho aumentato il buffer e posso evitare windows topmost!!  (riga 366)
+* ma se finestra e' coperta del tutto oppure se sono in altro workspace non fa avanzamento automatico... perche?
 * 
 *******************************************************************************/
         
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.8.1"
+#define TOOL_VERSION            "1.8.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -29,6 +33,7 @@
 #include <ctype.h>
 #include <id3tag.h>  
 #include <unistd.h>
+#include <pthread.h>
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -50,7 +55,7 @@ static float averageVolume[134] = { 0.0f };   // Average volume history
 #define MAX_FONTS 8
 
 // define stream 
-Music music;
+static Music music;
 
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
@@ -303,7 +308,6 @@ int main (int argc, char *argv[])
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-    //SetTextureFilter(background, TEXTURE_FILTER_BILINEAR);  // Texture scale filter to use
       
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
@@ -346,7 +350,7 @@ int main (int argc, char *argv[])
 
     // init Audio
     InitAudioDevice();
-    SetAudioStreamBufferSizeDefault(4096);
+    SetAudioStreamBufferSizeDefault(65535);
     AttachAudioMixedProcessor(ProcessAudio);
     
     // default config value
@@ -356,7 +360,7 @@ int main (int argc, char *argv[])
         .accentColor = {255,255,255,255}, //green
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
-        .digitFnt = "fonts/segment.otf", // title font
+        .digitFnt = "fonts/rmdigit.otf", // title font
         .dgtEffect = false,
         .isMini = false
     };
@@ -392,7 +396,7 @@ int main (int argc, char *argv[])
     }
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    // SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
+    SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
     // scroll title / id3
     Rectangle displayArea = { 9, 8, 349,30 };
@@ -444,6 +448,7 @@ int main (int argc, char *argv[])
         Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
 
+        
         // rileva e memorizza stato per ogni bottone della toolbar
         for (int i = 0; i < NUM_BUTTONS; ++i)
         {
@@ -641,8 +646,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
         }
 
-        if (IsKeyPressed(KEY_F1)) titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
-        if (IsKeyPressed(KEY_F2)) titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
+        if (IsKeyPressed(KEY_F1)) { // theme nr.1
+            dgtEffect=false;
+            titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
+            digitFnt = LoadFontEx("fonts/squaredot.otf", 20, NULL, 0);
+
+        }
+        if (IsKeyPressed(KEY_F2)) {
+            dgtEffect=true;
+            titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
+            digitFnt= LoadFontEx("fonts/rmdigit.otf", 20, NULL, 0);
+        }
 
         // set toolbar button status in stop, play, pause
         if (isStop) {
@@ -689,7 +703,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
-        // //do someting whe window loses focus
+        // // //do someting whe window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         else SetWindowOpacity(1.0f);
 
@@ -728,8 +742,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
 
             // only progressbar
-            //DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-            for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
+            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -814,8 +828,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
+            // file selection
             {
-
               BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
                 if (files.count < visibleRows) visibleRows = files.count;
 
