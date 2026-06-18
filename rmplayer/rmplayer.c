@@ -20,7 +20,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.8.5"
+#define TOOL_VERSION            "1.8.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -315,7 +315,7 @@ int main (int argc, char *argv[])
     // Custom GUI font loading
     Font titleFnt;
     Font digitFnt;
-    Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    Font textFnt = LoadFontEx("fonts/PixelOperatorSC.ttf", 16, NULL, 0); // all other text
     //Font filesFnt = LoadFontEx("fonts/computer-says-no.otf", 16, NULL, 0);
 
     // Load texture for toolbar buttons
@@ -357,7 +357,7 @@ int main (int argc, char *argv[])
     Config cfg = {
         .isPlay = false,
         .isShuffle = false,
-        .accentColor = {255,255,255,255}, //green
+        .accentColor = {245,245,245,255}, //green
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .digitFnt = "fonts/rmdigit.otf", // title font
@@ -721,7 +721,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawRectangle(0,0,screenWidth,screenHeight,bgColor);
             
             //load player background image
-            DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE);
+            DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
 
             // if miniwindow is active draw a border hack
             if (isMini) { 
@@ -753,8 +753,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // Draw buttons bar
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
-                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, accentColor);
-                    DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame
+                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, accentColor); // buttons background for transparency
+                    DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
             char timeStr[32];
@@ -764,10 +764,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, accentColor);
-            int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
-            int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
-            int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
-            snprintf(timeStr,sizeof(timeStr),"-%02d:%02d:%02d", hours, minutes, seconds);
+            // int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
+            // int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
+            // int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
+            int hours   = (int)GetMusicTimeLength(music) / 3600;
+            int minutes = (int)GetMusicTimeLength(music) / 60 % 60;
+            int seconds = (int)GetMusicTimeLength(music) % 60;
+            snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
             DrawTextEx(textFnt,timeStr,(Vector2){10,41},16,0, textColor);
 
             // clock
