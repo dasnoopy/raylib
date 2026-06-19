@@ -1,4 +1,4 @@
-[ cursor up/down ] : select file in library
+[ cursor up/down ( mouse wheel )] : select file in library
 [ Enter ] : play selected file
 [ Page UP/DOWN ] : volume UP / DOWN
 [ cursor left/right] : audio seek -10sec/+10sec

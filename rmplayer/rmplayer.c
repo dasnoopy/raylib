@@ -20,7 +20,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.8.6"
+#define TOOL_VERSION            "1.8.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -723,28 +723,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
 
-            // if miniwindow is active draw a border hack
-            if (isMini) { 
+                // border hack
                 DrawRectangle(miniScrWidth-2,1,2,miniScrHeight,GRAY);
                 DrawRectangle(1,miniScrHeight-2,miniScrWidth,2,GRAY);
                 DrawLine(0,miniScrHeight,3,miniScrHeight-3,LIGHTGRAY);
                 DrawLine(miniScrWidth-3,3,miniScrWidth,0,LIGHTGRAY);
-            }
-
-            // grid flags
-            DrawLine(434,8,434,81,borderColor);
-            DrawLine(367,26,500,26,borderColor);
-            DrawLine(367,45,500,45,borderColor);
-            DrawLine(367,64,500,64,borderColor);
-
-            //volume bar
-                for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
-
-            // only progressbar
-            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
-
+            
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
                 if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, accentColor);
@@ -782,17 +766,36 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,44,135,80);
-                // // grid lines
+                // backgrpund grid
                 for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
                 for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
-                // grid points
-                // for (int h = 0; h<138 ; h+=3) 
-                //     for (int v = 0; v < 36; v+=3)
-                //         DrawPixel(225 + h, 45 + v,textColor);
                 // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                     DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
             EndScissorMode();
+
+            // song of songs
+            DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
+
+    if (!isMini) { // draw all control when mini window is disabled
+            //  flags grid
+            DrawLine(434,8,434,81,borderColor);
+            DrawLine(367,26,500,26,borderColor);
+            DrawLine(367,45,500,45,borderColor);
+            DrawLine(367,64,500,64,borderColor);
+
+            // progressbar background grid points
+                for (int h = 0; h<131 ; h+=2) 
+                     for (int v = 0; v < 20; v+=2)
+                         DrawPixel(369 + h, 90 + v,textColor);
+
+            //volume bar
+                for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
+                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
+
+            // only progressbar
+            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
+            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
@@ -819,17 +822,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);
             DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
 
-            // ID3/INFO flag
+            // INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
             DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
-
-            // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
-
-            //statusbar with some info
-            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
-            DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
             // file selection
             {
@@ -843,7 +838,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
                     for (int i = 0; i < visibleRows; ++i) {
-                        DrawLine(filesArea.x,filesArea.y + (i*rowHeight) ,screenWidth-8,filesArea.y +(i*rowHeight),borderColor);
+                        DrawLineDashed((Vector2){filesArea.x, filesArea.y + (i*rowHeight)}, (Vector2){screenWidth-8, filesArea.y +(i*rowHeight)},1,1,textColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
@@ -853,7 +848,14 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
                 //DrawLine(82,118,82,276,borderColor);
                 EndScissorMode();
-            }           
+            }
+        }
+
+            //statusbar with some info
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+            DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+
         EndDrawing();
     }
     
