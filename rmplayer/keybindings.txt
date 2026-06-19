@@ -12,5 +12,5 @@
 [ P ] : play previous song
 [ X ] : goto current played song (filelist)
 [ I ] : switch title info between ID3 tags and file details.
-[ F ] : mini window mode: when active, all keybindings are active but fileselection list.
+[ F ] : show / hide file library
 [ Q ] : leave app

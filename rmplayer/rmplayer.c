@@ -12,8 +12,9 @@
 * utf8 per il titolo oppure sprite font? 
 *
 * BUGS
-* ho aumentato il buffer e posso evitare windows topmost!!  (riga 366)
-* ma se finestra e' coperta del tutto oppure se sono in altro workspace non fa avanzamento automatico... perche?
+* 
+* ma se finestra e' coperta del tutto oppure se sono in altro workspace non fa avanzamento automatico..
+fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 * 
 *******************************************************************************/
         
@@ -41,7 +42,7 @@
 // window initial size
 #define screenWidth   540
 #define screenHeight  279
-#define miniScrWidth 367
+#define miniScrWidth 540 // 367
 #define miniScrHeight 118
 
 // visualizer variables
@@ -434,7 +435,7 @@ int main (int argc, char *argv[])
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
-
+        currentTime = GetMusicTimePlayed(music); //just to simplify some checks
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 28, 0);
         float titleWidth = titleSize.x;
@@ -673,10 +674,15 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             btnState[2] = 1;
             srcRect[2].y = btnState[2]*frameHeight;   
             }
+    
+        // Get normalized time played for current music stream
+        // used for the progressbar
+        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
         // auto move on next song
-        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.05f)
-            {
+        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.150f)
+           {
                 prevPlay = selectedIndex;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
@@ -697,13 +703,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     
         // set initial volume 
         SetMasterVolume(volume);
-    
-        // Get normalized time played for current music stream
-        currentTime = GetMusicTimePlayed(music); //just to simplify some checks
-        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
-        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
-        // // //do someting whe window loses focus
+        // do someting whe window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         else SetWindowOpacity(1.0f);
 
@@ -716,18 +717,19 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
         BeginDrawing();
             ClearBackground(BLACK);
-
             // Draw background at first
             DrawRectangle(0,0,screenWidth,screenHeight,bgColor);
             
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
 
-                // border hack
-                DrawRectangle(miniScrWidth-2,1,2,miniScrHeight,GRAY);
-                DrawRectangle(1,miniScrHeight-2,miniScrWidth,2,GRAY);
-                DrawLine(0,miniScrHeight,3,miniScrHeight-3,LIGHTGRAY);
-                DrawLine(miniScrWidth-3,3,miniScrWidth,0,LIGHTGRAY);
+            // border hack
+            if (isMini){
+            DrawRectangle(miniScrWidth-2,1,2,miniScrHeight,GRAY);
+            DrawRectangle(1,miniScrHeight-2,miniScrWidth,2,GRAY);
+            DrawLine(0,miniScrHeight,3,miniScrHeight-3,LIGHTGRAY);
+            DrawLine(miniScrWidth-3,3,miniScrWidth,0,LIGHTGRAY);
+            }
             
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -777,7 +779,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // song of songs
             DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
 
-    if (!isMini) { // draw all control when mini window is disabled
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
             DrawLine(367,26,500,26,borderColor);
@@ -817,7 +818,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawRectangle(435,46,64,16,isMute ? onColor:bgColor);
             DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:offColor);
             
-            
             // REPEAT flag
             DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);
             DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
@@ -826,6 +826,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
             DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
 
+    if (!isMini) { // draw all control when mini window is disabled
             // file selection
             {
               BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
@@ -855,7 +856,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-
+            //DrawFPS(screenWidth-100,screenHeight-50);
         EndDrawing();
     }
     
