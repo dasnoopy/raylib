@@ -4,7 +4,6 @@
 [ cursor left/right] : audio seek -10sec/+10sec
 [ SPACE ]: play/stop song
 [ 1 to 4 ] : set windows position to center, bottom/left , bottom/middle, bottom/right
-[ F1 to F2] : choose  main title font : full vs dotted
 [ M ] : mute audio
 [ S ] : shuffle play on / off
 [ R ] : repeat song on / off

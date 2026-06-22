@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.9.2"
+#define TOOL_VERSION            "1.9.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -93,7 +93,6 @@ typedef struct Config
     Color accentColor;
     char musicDir[256];
     char titleFnt[256];
-    char digitFnt[256];
     bool dgtEffect;
     bool isMini;
 } Config;
@@ -179,7 +178,6 @@ bool LoadConfig(const char* filename, Config* cfg) {
         else if (strcmp(currentSection, "style") == 0) {
             if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
             else if (strcmp(key, "titleFnt") == 0) strncpy(cfg->titleFnt, value, sizeof(cfg->titleFnt) - 1);
-            else if (strcmp(key, "digitFnt") == 0) strncpy(cfg->digitFnt, value, sizeof(cfg->digitFnt) - 1);
             else if (strcmp(key, "dgtEffect") == 0) cfg->dgtEffect = ParseBool(value);
 
         }
@@ -313,7 +311,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font titleFnt;
-    Font digitFnt;
+    Font digitFnt= LoadFontEx("fonts/rmdigit.otf", 20, NULL, 0); // all other text
     Font textFnt = LoadFontEx("fonts/PixelOperatorSC.ttf", 16, NULL, 0); // all other text
 
     // Load texture for toolbar buttons
@@ -358,7 +356,6 @@ int main (int argc, char *argv[])
         .accentColor = {245,245,245,255}, //green
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
-        .digitFnt = "fonts/rmdigit.otf", // title font
         .dgtEffect = false,
         .isMini = false
     };
@@ -375,7 +372,6 @@ int main (int argc, char *argv[])
     Color accentColor = cfg.accentColor;
     char *musicDir = cfg.musicDir;
     titleFnt = LoadFontEx(cfg.titleFnt, 28, NULL, 0);
-    digitFnt = LoadFontEx(cfg.digitFnt, 20, NULL, 0);
     bool dgtEffect = cfg.dgtEffect;
 
     // Load music files
@@ -695,18 +691,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         if (IsKeyPressed(KEY_FOUR)) {
             if (!isMini) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
-        }
-
-        if (IsKeyPressed(KEY_F1)) { // theme nr.1
-            dgtEffect=false;
-            titleFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0);
-            digitFnt = LoadFontEx("fonts/squaredot.otf", 20, NULL, 0);
-
-        }
-        if (IsKeyPressed(KEY_F2)) {
-            dgtEffect=true;
-            titleFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0);
-            digitFnt= LoadFontEx("fonts/rmdigit.otf", 20, NULL, 0);
         }
 
         // set toolbar button status in stop, play, pause
