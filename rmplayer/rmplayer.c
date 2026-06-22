@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.8.7"
+#define TOOL_VERSION            "1.9.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -42,7 +42,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 // window initial size
 #define screenWidth   540
 #define screenHeight  279
-#define miniScrWidth 540 // 367
+#define miniScrWidth 367
 #define miniScrHeight 118
 
 // visualizer variables
@@ -55,11 +55,9 @@ static float averageVolume[134] = { 0.0f };   // Average volume history
 #define NUM_FRAMES  3       // Number of frames (rectangles) for the button sprite texture
 #define MAX_FONTS 8
 
-// define stream 
-static Music music;
-
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
+bool isPlay=false;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
@@ -85,6 +83,8 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 FilePathList files;
+// define stream 
+static Music music;
 
 typedef struct Config
 {
@@ -272,8 +272,7 @@ FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, boo
 }
 
 void LoadMusicByIndex(int idx, FilePathList files) {
-    if (idx < 0 ) idx=0;
-    else if (idx >= files.count) idx = files.count-1;
+    if (idx < 0 || idx >= files.count) return;
     selectedIndex = idx;
     currPlay = idx;
     music = LoadMusicStream(files.paths[idx]);
@@ -309,7 +308,6 @@ int main (int argc, char *argv[])
 
     Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
     Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-      
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
     // Set UI style
@@ -317,7 +315,6 @@ int main (int argc, char *argv[])
     Font titleFnt;
     Font digitFnt;
     Font textFnt = LoadFontEx("fonts/PixelOperatorSC.ttf", 16, NULL, 0); // all other text
-    //Font filesFnt = LoadFontEx("fonts/computer-says-no.otf", 16, NULL, 0);
 
     // Load texture for toolbar buttons
     Texture2D btnTexture[NUM_BUTTONS]; //  immagine e' 49 x 69 e contiene 3 stati ; ogni stato (FRAME) è quindi  49x23
@@ -384,12 +381,12 @@ int main (int argc, char *argv[])
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
     
-    // always start with a random song
+    // always start loading a random song
         selectedIndex = GetRandomValue(0,files.count);
         LoadMusicByIndex(selectedIndex,musicFiles);
         prevPlay=selectedIndex;
 
-    // auto start song on open
+    // auto play song based on cfg setting
     if (isPlay) {
         isStop=false;
         isPause =false;
@@ -397,10 +394,10 @@ int main (int argc, char *argv[])
     }
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
+    //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
     // scroll title / id3
-    Rectangle displayArea = { 9, 8, 349,30 };
+    Rectangle displayArea = { 8, 8, 352,36 };
     float titleX = displayArea.x ;
     float speed = 60.0f;
 
@@ -445,7 +442,59 @@ int main (int argc, char *argv[])
             titleX -= (speed * dt);
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
+        // Get normalized time played for current music stream
+        // used for the progressbar
+        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
+        // calculating song times
+          char curTimeStr[32];
+          char totTimeStr[32];
+            int hour   = (int)GetMusicTimePlayed(music) / 3600;
+            int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
+            int second = (int)GetMusicTimePlayed(music) % 60;
+            snprintf(curTimeStr,sizeof(curTimeStr),"%02d:%02d:%02d", hour , minute, second);
+
+            // int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
+            // int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
+            // int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
+            int hours   = (int)GetMusicTimeLength(music) / 3600;
+            int minutes = (int)GetMusicTimeLength(music) / 60 % 60;
+            int seconds = (int)GetMusicTimeLength(music) % 60;
+            snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
+
+            // clock
+            time_t now = time (NULL);
+            struct tm *t = localtime(&now);
+            Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
+
+        // auto move on next song
+        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.200f)
+        //if (hour == hours && minute  == minutes && second == seconds && isPlay && !isPause)
+           {
+                prevPlay = selectedIndex;
+                StopMusicStream(music);
+                UnloadMusicStream(music);
+                    if (isShuffle) {
+                        int shuffleIndex = GetRandomValue(0,files.count);
+                        //if (shuffleIndex == files.count) --shuffleIndex;
+                        if (files.count > 1 && shuffleIndex == selectedIndex)
+                            shuffleIndex = (shuffleIndex + 1) % files.count;
+                        selectedIndex = shuffleIndex;
+                    } else {
+                        selectedIndex++;
+                        if (selectedIndex >= files.count) selectedIndex = 0;
+                    }
+                    if (isRepeat) selectedIndex = prevPlay;
+                LoadMusicByIndex(selectedIndex,musicFiles);
+                PlayMusicStream(music);
+                selectedIndex = currPlay;
+            }
+    
+        // set initial volume 
+        SetMasterVolume(volume);
+
+        // mouse position and update sound stream
         Vector2 mousePos = GetMousePosition();
         UpdateMusicStream(music);   // Update music buffer with new stream data
 
@@ -675,34 +724,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             srcRect[2].y = btnState[2]*frameHeight;   
             }
     
-        // Get normalized time played for current music stream
-        // used for the progressbar
-        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
-        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
-
-        // auto move on next song
-        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.150f)
-           {
-                prevPlay = selectedIndex;
-                StopMusicStream(music);
-                UnloadMusicStream(music);
-                    if (isShuffle) {
-                        int shuffleIndex = GetRandomValue(0,files.count);
-                        if (shuffleIndex == files.count) --shuffleIndex;
-                        if (files.count > 1 && shuffleIndex == selectedIndex)
-                            shuffleIndex = (shuffleIndex + 1) % files.count;
-                        selectedIndex = shuffleIndex;
-                    } else {
-                        selectedIndex++;
-                        if (selectedIndex >= files.count) selectedIndex = 0;
-                    }
-                    if (isRepeat) selectedIndex = prevPlay;
-                LoadMusicByIndex(selectedIndex,musicFiles);
-                PlayMusicStream(music);
-            }
-    
-        // set initial volume 
-        SetMasterVolume(volume);
 
         // do someting whe window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
@@ -723,7 +744,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
 
-            // border hack
+            // mini window borders hack
             if (isMini){
             DrawRectangle(miniScrWidth-2,1,2,miniScrHeight,GRAY);
             DrawRectangle(1,miniScrHeight-2,miniScrWidth,2,GRAY);
@@ -743,32 +764,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
-            char timeStr[32];
-            int hour   = (int)GetMusicTimePlayed(music) / 3600;
-            int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
-            int second = (int)GetMusicTimePlayed(music) % 60;
-            snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hour , minute, second);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
-            DrawTextEx(digitFnt,timeStr,(Vector2){10,58},20,0, accentColor);
-            // int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
-            // int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
-            // int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
-            int hours   = (int)GetMusicTimeLength(music) / 3600;
-            int minutes = (int)GetMusicTimeLength(music) / 60 % 60;
-            int seconds = (int)GetMusicTimeLength(music) % 60;
-            snprintf(timeStr,sizeof(timeStr),"%02d:%02d:%02d", hours, minutes, seconds);
-            DrawTextEx(textFnt,timeStr,(Vector2){10,41},16,0, textColor);
+            DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
+            DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
 
             // clock
-            time_t now = time (NULL);
-            struct tm *t = localtime(&now);
-            Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, borderColor);
             DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,44,135,80);
-                // backgrpund grid
+                // background grid
                 for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
                 for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
                 // visualizer
@@ -777,8 +783,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d of %04d",currPlay + 1 , files.count),(Vector2){136,41},16,0, textColor);
-
+            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){116,44},16,0, textColor);
+            DrawLine(116,62,144,62,textColor); // separator
+            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){116,62},16,0, textColor);
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
             DrawLine(367,26,500,26,borderColor);
@@ -786,17 +793,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             // progressbar background grid points
-                for (int h = 0; h<131 ; h+=2) 
-                     for (int v = 0; v < 20; v+=2)
-                         DrawPixel(369 + h, 90 + v,textColor);
+                // for (int h = 0; h<131 ; h+=2) 
+                //      for (int v = 0; v < 20; v+=2)
+                //          DrawPixel(369 + h, 90 + v,textColor);
 
             //volume bar
                 for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){438,64},16,0,(volume > 0.75f)?accentColor:textColor);
+                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){154,41},16,0,(volume > 0.75f)?accentColor:textColor);
 
             // only progressbar
-            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, textColor);  // riempimento
+            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,textColor);
 
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
@@ -847,7 +854,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
-                //DrawLine(82,118,82,276,borderColor);
                 EndScissorMode();
             }
         }
