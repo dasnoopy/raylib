@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.9.0"
+#define TOOL_VERSION            "1.9.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -463,10 +463,11 @@ int main (int argc, char *argv[])
             int seconds = (int)GetMusicTimeLength(music) % 60;
             snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
-            // clock
+            // clock & vol text size
             time_t now = time (NULL);
             struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
+            Vector2 volumeSize = MeasureTextEx(digitFnt, "v100%", 20, 0);
 
         // auto move on next song
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.200f)
@@ -769,8 +770,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
 
             // clock
-            if (dgtEffect) DrawTextEx(digitFnt,"88:88",(Vector2){215-clockSize.x, 58}, 20,0, borderColor);
-            DrawTextEx(digitFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){215-clockSize.x, 58}, 20,0, accentColor);
+             DrawTextEx(textFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){244-clockSize.x, 41}, 16,0, textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,44,135,80);
@@ -783,9 +783,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){116,44},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){114,44},16,0, textColor);
             DrawLine(116,62,144,62,textColor); // separator
-            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){116,62},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){114,62},16,0, textColor);
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
             DrawLine(367,26,500,26,borderColor);
@@ -799,7 +799,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             //volume bar
                 for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-                DrawTextEx(textFnt,TextFormat("Vol. %02.f%%",volume*100),(Vector2){154,41},16,0,(volume > 0.75f)?accentColor:textColor);
+               DrawTextEx(digitFnt,TextFormat("v%03.f%%",volume*100),(Vector2){216-volumeSize.x,58}, 20,0, accentColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, textColor);  // riempimento
