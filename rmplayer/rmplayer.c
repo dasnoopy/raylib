@@ -32,7 +32,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #include <stdint.h>
 #include <math.h>
 #include <ctype.h>
-#include <id3tag.h>  
+#include <id3tag.h>
 #include <unistd.h>
 #include <pthread.h>
 
@@ -82,7 +82,10 @@ char titleStr[1024] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
-FilePathList files;
+
+static FilePathList files;
+
+
 // define stream 
 static Music music;
 
@@ -265,7 +268,6 @@ void GetTitle (int idx){
 FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
     files = LoadDirectoryFilesEx(basePath, filter, includeSubdirs);
     if (files.count == 0) printf("Nessun file trovato in '%s' con filtro '%s'\n", basePath, filter);
-    else files.count = files.count;
     return files; 
 }
 
@@ -460,10 +462,8 @@ int main (int argc, char *argv[])
             snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
             // clock & vol text size
-            time_t now = time (NULL);
-            struct tm *t = localtime(&now);
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
-            Vector2 volumeSize = MeasureTextEx(digitFnt, "v100", 20, 0);
+            Vector2 volumeSize = MeasureTextEx(digitFnt, "v 100", 20, 0);
 
         // auto move on next song
         if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.200f)
@@ -753,8 +753,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
             DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
 
-            // clock
-             DrawTextEx(textFnt,TextFormat("%02i:%02i", t->tm_hour, t->tm_min),(Vector2){243-clockSize.x, 41}, 16,0, textColor);
+            // time since app started
+            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){222-clockSize.x, 41},16,0,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,44,135,80);
@@ -767,12 +767,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){120,43},16,0, accentColor);
+            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){118,43},16,0, accentColor);
             // separators
-            DrawLine(116,62,153,62,textColor); 
-            DrawLine(155,45,155,79,textColor);
+            DrawLine(113,62,150,62,textColor); 
+            DrawLine(152,45,153,79,textColor);
             //
-            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){120,63},16,0, textColor);
+            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){118,63},16,0, textColor);
             
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
@@ -787,7 +787,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             //volume bar
                 for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
-               DrawTextEx(digitFnt,TextFormat("v%03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               DrawTextEx(digitFnt,TextFormat("v %03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
 
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, textColor);  // riempimento
