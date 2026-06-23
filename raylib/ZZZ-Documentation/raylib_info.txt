@@ -1,0 +1,5 @@
+per vedere struttura raylib.h: #bat /usr/include/raylib.h
+
+compilazione digital-clock: # gcc -Wall digital-clock.c -o digiclock -lraylib
+compilazione analog-clock : # gcc -Wall analog-clock.c -o analog-clock -lraylib -lm
+

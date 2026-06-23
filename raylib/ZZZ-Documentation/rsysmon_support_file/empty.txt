@@ -1,0 +1,26 @@
+widget to show on desktop some system monitor info like conky vitals etc etc maybe the weather
+
+ovvimanete usando il matrix display
+
+dagli esempi LCD602 riesco a vedere
+https://www.circuitbasics.com/raspberry-pi-lcd-set-up-and-programming-in-c-with-wiringpi/
+
+1) data ora OK
+2) uptime OK
+3) kernel version
+4) hostname OK
+5) ip pubblico
+
+6) netdev name and status
+7) local ip address OK
+8) net mac address
+9) cpu load
+10) memoria
+11) cpu temp
+12) spazio disco / e /home
+------
+
+8) hdd temp
+10) meteo in breve
+mpd info
+

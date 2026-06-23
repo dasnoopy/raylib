@@ -1,0 +1,33 @@
+farlo da 4 a 6 bande
+
+selezione del numero di bande
+
+resistenza coon colori in tempo reale
+---|       |----
+
+valore resistenza BEN EVIDENZIATO
+magari usando matrix Display
+
+matrice con colori e bande
+    1a 2a 3a 4a 5a 6a
+nero
+marro
+rosso
+....
+
+
+indicare documento di riferimento
+
+
+
+Esempi :
+
+https://resistorcolorcodecalc.com/
+https://elektr1x.github.io/resistor-decoder/
+
+mouse painting examples
+
+formule per il calcolo del valore
+https://github.com/dimitrispoulos/Resistor-Color-Code-Calculator
+
+
