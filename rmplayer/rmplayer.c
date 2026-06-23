@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.9.4"
+#define TOOL_VERSION            "1.9.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -770,7 +770,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){118,43},16,0, accentColor);
             // separators
             DrawLine(113,62,150,62,textColor); 
-            DrawLine(152,45,153,79,textColor);
+            DrawLine(151,45,151,79,textColor);
             //
             DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){118,63},16,0, textColor);
             
