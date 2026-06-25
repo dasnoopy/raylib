@@ -46,7 +46,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define miniScrHeight 118
 
 // visualizer variables
-static float exponent = 0.88f;                 // Audio exponentiation value
+static float exponent = 1.00f;                 // Audio exponentiation value
 static float averageVolume[134] = { 0.0f };   // Average volume history
 
 // Texture variables
@@ -302,7 +302,7 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -754,7 +754,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
 
             // time since app started
-            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){222-clockSize.x, 41},16,0,textColor);
+            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){225-clockSize.x, 41},16,0,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,44,135,80);
@@ -770,7 +770,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){118,43},16,0, accentColor);
             // separators
             DrawLine(113,62,150,62,textColor); 
-            DrawLine(151,45,151,79,textColor);
+            //DrawLine(151,45,151,79,textColor);
             //
             DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){118,63},16,0, textColor);
             
