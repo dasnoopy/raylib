@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.5"
+#define TOOL_VERSION            "1.7.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -133,7 +133,6 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // grid and checkerboard
 #define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
-#define CHECKB_COLOR CLITERAL(Color){ 244, 249, 249, 255} 
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
@@ -173,18 +172,6 @@ typedef struct {
 //----------------------------------------------------------------------------------
 // Functions
 //----------------------------------------------------------------------------------
-
-// Draw checkerboard (default)
-void drawCheckerboard(void)
-{
-        for (int row = 0; row < numRows-1; row+=2)
-            for (int col = 0; col < numCols-1; col+=2)
-                {
-                DrawRectangleRec((Rectangle){spriteGridPos.x + ( col * cellSize), spriteGridPos.y + ( row * cellSize), cellSize, cellSize},CHECKB_COLOR);
-                DrawRectangleRec((Rectangle){spriteGridPos.x + cellSize+ (col * cellSize), spriteGridPos.y + cellSize + (row * cellSize), cellSize, cellSize},CHECKB_COLOR);
-                }
-        DrawRectangleLinesEx(scissorArea,1,CHECKB_COLOR);
-    }
 
 // Draw grid lines 
 void drawGridLines(void)
@@ -344,6 +331,12 @@ int main (int argc, char *argv[])
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
     GuiSetIconScale(1);
+
+// make a checkerboard grid for sprite area
+    Image img = GenImageChecked(numRows*cellSize, numCols*cellSize, cellSize, cellSize, WHITE, RAYWHITE);
+    Texture checkerboard = LoadTextureFromImage(img);
+    UnloadImage(img);
+
 
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
 
@@ -673,8 +666,8 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
     BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
         BeginMode2D(camera);
-        drawCheckerboard(); // just to emulate a transparent background
-        
+        //drawCheckerboard(); // just to emulate a transparent background
+        DrawTexture(checkerboard, spriteGridPos.x, spriteGridPos.y, WHITE);
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
         if (debug) showArrayVal();  // enable just to debug content of matrix
