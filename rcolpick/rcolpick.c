@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "0.7.0"
+#define TOOL_VERSION            "0.9.9"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -44,7 +44,7 @@
     Vector2 barPos = {0,screenHeight-txtOffset};
     //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
     Rectangle rectPixel = { 932,8,260,160 };
-    Rectangle rectHist = { 932,174,260,116 };
+    Rectangle rectHist = { 10,570,260,110 };
             
 // 'fake' background
 void drawRectangleRounded (Rectangle recSize, Color color)  
@@ -60,7 +60,7 @@ int main(void)
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rColorPicker");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
-    Font txtFont = LoadFontEx("fonts/computer-says-no.otf", 20,NULL, 0); // all other text
+    Font txtFont = LoadFontEx("fonts/computer-says-no.otf", 18,NULL, 0); // all other text
 
         strcpy(fName,"./resources/default.png");
         Image img = LoadImage(fName);
@@ -158,7 +158,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.target = (Vector2){ 0,0 };
                 }
                 
-                if (IsKeyPressed(KEY_R)) {
+                if (IsKeyPressed(KEY_C)) {
                           snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
@@ -254,8 +254,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		      
 		      if (cam.zoom >= 12.0f) {
           	      // mirino cursore centerd
-                        DrawLine(center.x, 0, center.x, screenHeight, RED);
-                        DrawLine(0, center.y, screenWidth, center.y, RED);
+                        DrawLine(center.x-16, center.y, center.x + 16, center.y, RED);
+                        DrawLine(center.x, center.y-16, center.x, center.y+16, RED);
                       }
                       else  {
 		       // mirino cursore libero
@@ -265,26 +265,26 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             //EndScissorMode();	      
 
             //file info (bottom panel)
-            DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.9f));
+            DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.7f));
             //filename and size
-            DrawTextEx(txtFont,TextFormat("File: %s | %ix%i (%i pixels) | %d Bytes | %s",fName,img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){8,barPos.y + 6}, 20,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("File: %s | %ix%i (%i pixels) | %d Bytes | %s",fName,img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){8,barPos.y + 6}, 18,0,WHITE);
      
             // pixel panel ("floating")
-            drawRectangleRounded (rectPixel, Fade(BLACK,0.9f));
+            drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i,%i,%02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},20,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},18,0,WHITE);
             // RGBA
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i,%03i,%03i,%03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},20,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},18,0,WHITE);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 8, rectPixel.y + 52},20,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 8, rectPixel.y + 52},18,0,WHITE);
            // HSV
-           DrawTextEx(txtFont,TextFormat("HSV: %.1f,%.1f%%,%.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},20,0,WHITE);   
+           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},18,0,WHITE);   
             
             // riquadro colore 
             drawRectangleRounded ((Rectangle){rectPixel.x +8 ,rectPixel.y + 104,rectPixel.width - 16, 48}, pixelCol);
 
 	  //istogramma RGB      
-       drawRectangleRounded (rectHist, Fade(BLACK,0.9f));
+       drawRectangleRounded (rectHist, Fade(BLACK,0.7f));
         for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.2f));
         for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.2f));
           
@@ -294,11 +294,15 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
           float hB = (float)histB[i] / maxB;
           float hA = (float)histA[i] / maxA;
           
-            DrawLine( 934 + i, 288, 934 + i, 288 - (int)(hR*100), Fade(RED, 0.5f));
-            DrawLine( 934 + i, 288, 934 + i, 288 - (int)(hG*100), Fade(LIME, 0.5f));
-            DrawLine( 934 + i, 288, 934 + i, 288 - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
-            DrawLine( 934 + i, 288, 934 + i, 288 - (int)(hA*100), Fade(WHITE, 0.5f));    
+            DrawLine((rectHist.x + 3) + i, (rectHist.y + 107), (rectHist.x + 3) + i, (rectHist.y + 107) - (int)(hR*100), Fade(RED, 0.5f));
+            DrawLine( (rectHist.x + 3) + i, (rectHist.y + 107), (rectHist.x + 3) + i, (rectHist.y + 107) - (int)(hG*100), Fade(LIME, 0.5f));
+            DrawLine( (rectHist.x + 3) + i, (rectHist.y + 107), (rectHist.x + 3) + i, (rectHist.y + 107) - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
+            DrawLine( (rectHist.x + 3) + i, (rectHist.y + 107), (rectHist.x + 3) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));    
           }
+
+                //statusbar with some info
+            DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-124, screenHeight-22, 10, WHITE); 
+            DrawText(TextFormat("version %s", TOOL_VERSION), screenWidth-72, screenHeight-22, 10, LIGHTGRAY); 
         EndDrawing();
 	}
 	// De-Initialization
