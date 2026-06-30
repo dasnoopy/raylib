@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "0.9.9"
+#define TOOL_VERSION            "1.0.0"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -298,8 +298,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 	  //istogramma RGB      
        drawRectangleRounded (rectHist, Fade(BLACK,0.7f));
-        for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.2f));
-        for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.2f));
+        for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.6f));
+        for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.6f));
           
       for (int i = 0; i < 256; i++) {
        	  float hR = (float)histR[i] / maxR;

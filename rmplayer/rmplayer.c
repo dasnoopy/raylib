@@ -838,7 +838,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
-                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1, onColor);
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, onColor);
                         DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
