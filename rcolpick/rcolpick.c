@@ -54,6 +54,18 @@ void drawRectangleRounded (Rectangle recSize, Color color)
   DrawRectangleRounded ( recSize, radius, segs, color );
 }
 
+Color darkenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char)(color.r * factor),
+        (unsigned char)(color.g * factor),
+        (unsigned char)(color.b * factor),
+        color.a
+    };
+}
 int main(void)
 {
 	 // Set configuration flags for window creation
@@ -281,7 +293,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
            DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},18,0,WHITE);   
             
             // riquadro colore 
-            drawRectangleRounded ((Rectangle){rectPixel.x +8 ,rectPixel.y + 104,rectPixel.width - 16, 48}, pixelCol);
+            for (int i = 0; i < 5; ++i)
+                DrawRectangle(rectPixel.x + 8 + (i * 50) ,rectPixel.y + 104,46, 46, darkenColor(pixelCol,(1.0f-(i*0.2f) ) ) );
 
 	  //istogramma RGB      
        drawRectangleRounded (rectHist, Fade(BLACK,0.7f));
