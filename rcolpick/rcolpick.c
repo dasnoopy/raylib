@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.1"
+#define TOOL_VERSION            "1.2.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -215,7 +215,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
                       
-                if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_H)) {
+                if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_C)) {
                           snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
@@ -290,14 +290,14 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		        DrawTexture(background, 0, 0, WHITE);
 		          //DrawRectangleLinesEx(screenInWorldRect, 4 / cam.zoom, Fade(BLACK,0.8f));
 		        
-                      if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(GRAY,0.5f)); 
+                      if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
 		      
 		      if (cam.zoom >=12.0f) {
 		        showGrid=true;
                           // linee verticali
-                          for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(GRAY, 0.5f));
+                          for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(BLACK, 0.5f));
                           // linee orizzontali
-                         for (int y = 0; y <= background.height; y++) DrawLine(0, y, background.width, y, Fade(GRAY, 0.5f));
+                         for (int y = 0; y <= background.height; y++) DrawLine(0, y, background.width, y, Fade(BLACK, 0.5f));
                       }
                       else showGrid = false;
           

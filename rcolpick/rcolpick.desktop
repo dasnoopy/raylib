@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=rcolpick
+GenericName=raylib Color Picker
+Type=Application
+Version=1.0
+Comment=A simple image viewer / pixel info tools made with raaylib 6.0
+Path=/home/andrea/Projects/raylib/rcolpick
+Exec=/home/andrea/Projects/raylib/rcolpick/rcolpick
+Icon=/home/andrea/Projects/raylib/rcolpick/rcolpick.svg
+Terminal=false
+StartupNotify=false
+Categories=Graphics;2DGraphics;RasterGraphics;Viewer;
+Keywords=Picture;Graphics;
+MimeType=image/apng;image/png;
+X-Desktop-File-Install-Version=0.28
+
