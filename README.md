@@ -17,6 +17,10 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
 
 4) run executable and enjoy!
 
+#### Color Picker  
+
+![rcolpick](https://raw.github.com/dasnoopy/raylib/main/screenshot/rcolpick.png)
+
 #### PixelArt Editor  
 
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
