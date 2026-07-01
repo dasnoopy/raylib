@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.6"
+#define TOOL_VERSION            "1.7.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -327,7 +327,7 @@ int main (int argc, char *argv[])
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
     // load TTF font with better antialiasing
-    Font font = LoadFontEx("assets/OSD-Mono.ttf", 16, 0, 0);
+    Font font = LoadFontEx("assets/computer-says-no.otf", 16, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
     GuiSetIconScale(1);
@@ -702,13 +702,13 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         for (int row = 0; row < numRows; row++)
         {
-        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 9, 0, FG_COLOR); //sinistra
-        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 9, 0, FG_COLOR);//destra
+        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 12, 0, FG_COLOR); //sinistra
+        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 12, 0, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
-        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},9,0,FG_COLOR);//sopra
-        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,9,0,FG_COLOR);//sotto
+        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
+        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,12,0,FG_COLOR);//sotto
         }
 
         //----------------------------------------------------------------------
@@ -717,7 +717,7 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},12,0,FG_COLOR);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},16,0,FG_COLOR);
         // draw current color frame
         DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 342 , 22,22,BORDER_COLOR);
         DrawRectangle(colorsBarPos.x-18 ,colorsBarPos.y + 344, 18 , 18, colors[currentColor]);
