@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.0.1"
+#define TOOL_VERSION            "1.2.1"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -67,6 +67,39 @@ Color darkenColor(Color color, float factor)
         color.a
     };
 }
+
+void getHistogram (Image image, Color *pixels)
+{
+       //read pixels color e populate color histogram values -----------
+	        for (int i = 0; i < 256; i++) {
+            histR[i]=0;
+            histG[i]=0;
+            histB[i]=0;
+            histA[i]=0;
+        }
+        
+        maxR = 1;
+        maxG = 1;
+        maxB = 1;
+        maxA = 1;
+
+       // leggi tutti i pixel dell' immagine
+       for (int i = 0; i < image.width * image.height; i++)  {
+            histR[pixels[i].r]++;
+            histG[pixels[i].g]++;
+            histB[pixels[i].b]++;
+            histA[pixels[i].a]++;
+        }
+
+        // trova il valore 
+        for (int i = 0; i < 256; i++) {
+          if (histR[i] > maxR) maxR = histR[i];
+          if (histG[i] > maxG) maxG = histG[i];
+          if (histB[i] > maxB) maxB = histB[i];
+          if (histA[i] > maxA) maxA = histA[i];
+          }
+}
+
 int main(void)
 {
 	 // Set configuration flags for window creation
@@ -101,66 +134,71 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 	{
         // Load a dropped TTF file dynamically (at current fontSize)
         if (IsFileDropped()) {
-        FilePathList droppedFiles = LoadDroppedFiles();
+            FilePathList droppedFiles = LoadDroppedFiles();
         
          if (droppedFiles.count == 1) // Only support one file dropped
             {
-            // NOTE: We only support first ttf file dropped
-            if (IsFileExtension(droppedFiles.paths[0], ".png"))
-            {
-    	        UnloadTexture(background);
-    	        UnloadTexture(checkerBoard);
-    	        UnloadImageColors(pixels);
-    	        UnloadImage(img);
-    	        UnloadImage(img1);
-    	        strcpy(fName, droppedFiles.paths[0]);
-                    img = LoadImage(droppedFiles.paths[0]);
-                    img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
-    	        background = LoadTextureFromImage(img);
-    	        checkerBoard = LoadTextureFromImage(img1);
-    	        //carica  pixels color in ram
-    	        pixels = LoadImageColors(img);
-                // reset camera settings
-               
-               //read pixels color e populate color histogram values -----------
-       	        for (int i = 0; i < 256; i++)
-                {
-                    histR[i]=0;
-                    histG[i]=0;
-                    histB[i]=0;
-                    histA[i]=0;
-                }
+                // NOTE: We only support first ttf file dropped
+                if (IsFileExtension(droppedFiles.paths[0], ".png"))
                 
-                maxR = 1;
-                maxG = 1;
-                maxB = 1;
-                maxA = 1;
-               // leggi tutti i pixel dell' immagine
-               for (int i = 0; i < img.width * img.height; i++)  {
-                    histR[pixels[i].r]++;
-                    histG[pixels[i].g]++;
-                    histB[pixels[i].b]++;
-                    histA[pixels[i].a]++;
-                }
-                // trova il valore 
-                for (int i = 0; i < 256; i++) {
-                  if (histR[i] > maxR) maxR = histR[i];
-                  if (histG[i] > maxG) maxG = histG[i];
-                  if (histB[i] > maxB) maxB = histB[i];
-                  if (histA[i] > maxA) maxA = histA[i];
-                  }
-            //------------------------------------------------------------------
-                cam.zoom = 1.0f; 
-                cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
-                cam.target = (Vector2){ 0,0 };
+                {
+        	        UnloadTexture(background);
+        	        UnloadTexture(checkerBoard);
+        	        UnloadImageColors(pixels);
+        	        UnloadImage(img);
+        	        UnloadImage(img1);
+        	        
+        	        strcpy(fName, droppedFiles.paths[0]);
+                        img = LoadImage(droppedFiles.paths[0]);
+                        img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
+        	        background = LoadTextureFromImage(img);
+        	        checkerBoard = LoadTextureFromImage(img1);
+        	        //carica  pixels color in ram
+        	        pixels = LoadImageColors(img);
+                   
+                   //read pixels color e populate color histogram values
+                     getHistogram(img,pixels);
+
+                    // reset camera settings
+                    cam.zoom = 1.0f; 
+                    cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
+                    cam.target = (Vector2){ 0,0 };
+                    }
             }
-        }
             UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
         }
 
 //----------------------------------------------------------------------------------
 // Update
 //----------------------------------------------------------------------------------
+      if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V)) {
+            if (IsImageValid(GetClipboardImage()))  {
+
+                UnloadTexture(background);
+                UnloadTexture(checkerBoard);
+                UnloadImageColors(pixels);
+                UnloadImage(img);
+                UnloadImage(img1);
+    	        
+    	        strcpy(fName, "Image pasted from clipboard");
+                img = GetClipboardImage();
+                img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
+    	        background = LoadTextureFromImage(img);
+    	        checkerBoard = LoadTextureFromImage(img1);
+    	        //carica  pixels color in ram
+    	        pixels = LoadImageColors(img);
+                
+                //read pixels color e populate color histogram values
+                getHistogram(img,pixels);
+                // reset camera settings
+                cam.zoom = 1.0f; 
+                cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
+                cam.target = (Vector2){ 0,0 };
+                }
+                else TraceLog(LOG_INFO, "IMAGE: Could not retrieve image from clipboard");
+            }
+            
+        Vector2 fnameSize = MeasureTextEx(txtFont, fName, fntSize, 0);
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
         // Get the world point that is under the mouse
         Vector2 world = GetScreenToWorld2D(GetMousePosition(), cam);
@@ -171,13 +209,13 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.target = (Vector2){ 0,0 };
                 }
                 
-                if (IsKeyPressed(KEY_C)) {
+                if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C)) {
                           snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
                       
-                if (IsKeyPressed(KEY_H)) {
+                if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_H)) {
                           snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
@@ -280,18 +318,18 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             //file info (bottom panel)
             DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.7f));
             //filename and size
-            DrawTextEx(txtFont,TextFormat("File: %s | %ix%i (%i pixels) | %d Bytes | %s",fName,img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
-     
+            DrawTextEx(txtFont,TextFormat("File: %s",fName),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);   
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
             DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},fntSize,0,WHITE);
             // RGBA
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},fntSize,0,LIGHTGRAY);
             // HEXA 
             DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 8, rectPixel.y + 52},fntSize,0,WHITE);
            // HSV
-           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},fntSize,0,WHITE);   
+           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},fntSize,0,LIGHTGRAY);   
             
             // riquadro colore 
             for (int i = 0; i < 5; ++i)
@@ -299,8 +337,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 	  //istogramma RGB      
        drawRectangleRounded (rectHist, Fade(BLACK,0.7f));
-        for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.6f));
-        for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.6f));
+        //for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.6f));
+        //for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.6f));
           
       for (int i = 0; i < 256; i++) {
        	  float hR = (float)histR[i] / maxR;
