@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.4"
+#define TOOL_VERSION            "1.2.5"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -44,7 +44,7 @@
     	
     Vector2 barPos = {0,screenHeight-txtOffset};
     //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-    Rectangle rectPixel = { 8,8,272,268 }; //932
+    Rectangle rectPixel = { 8,8,272,240 }; //932
     Rectangle rectHist = { 8,106,272,110 };
             
 // 'fake' background
@@ -180,7 +180,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 UnloadImage(img);
                 UnloadImage(img1);
     	        
-    	        strcpy(fName, "Image pasted from clipboard");
+    	        strcpy(fName, " (Image pasted from clipboard)");
                 img = GetClipboardImage();
                 img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
     	        background = LoadTextureFromImage(img);
@@ -210,13 +210,13 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 }
 
                 if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C)) {
-                          snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
+                          snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA color", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
                       
                 if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_C)) {
-                          snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
+                          snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA color", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
@@ -320,6 +320,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             //filename and size
             DrawTextEx(txtFont,TextFormat("File: %s",fName),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
             DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);   
+            
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
@@ -332,8 +333,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
            DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,LIGHTGRAY);   
             
             // riquadro colore 
-            for (int i = 0; i < 5; ++i)
-                DrawRectangle(rectPixel.x + 12 + (i * 52) ,rectPixel.y + 218,40, 40, darkenColor(pixelCol,(1.0f-(i*0.2f) ) ) );
+            for (int i = 0; i < 10; ++i)
+                DrawRectangle(rectPixel.x + 8 + (i * 26) ,rectPixel.y + 210, 24, 24, darkenColor(pixelCol,(1.0f-(i*0.1f) ) ) );
                 //DrawCircle(rectPixel.x + 30 + (i * 53) ,rectPixel.y + 236,24, darkenColor(pixelCol,(1.0f-(i*0.2f) ) ) );
 	  //istogramma RGB      
        
