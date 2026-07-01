@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.2"
+#define TOOL_VERSION            "1.2.3"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -26,7 +26,7 @@
     const int txtOffset = 32;
     const int fntSize = 18;
     char buffer[64];
-      const char *clipboardText = NULL;
+    const char *clipboardText = NULL;
     Color pixelCol;
     Color *pixels;
     char fName[384] = { '\0' };
@@ -44,13 +44,13 @@
     	
     Vector2 barPos = {0,screenHeight-txtOffset};
     //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-    Rectangle rectPixel = { 932,8,260,160 };
-    Rectangle rectHist = { 932,570,260,110 };
+    Rectangle rectPixel = { 8,8,260,160 }; //932
+    Rectangle rectHist = { 8,570,260,110 };
             
 // 'fake' background
 void drawRectangleRounded (Rectangle recSize, Color color)  
 {
-  float radius = 0.072; // no radius
+  float radius = 0.100f; // no radius
   int   segs   = 12; // non segments
   DrawRectangleRounded ( recSize, radius, segs, color );
 }
@@ -103,7 +103,7 @@ void getHistogram (Image image, Color *pixels)
 int main(void)
 {
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rColorPicker");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
@@ -208,7 +208,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
                     cam.target = (Vector2){ 0,0 };
                 }
-                
+
                 if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C)) {
                           snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA format", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
