@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.0.0"
+#define TOOL_VERSION            "1.0.1"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -24,6 +24,7 @@
     const float stepZoom = 0.2f;
     const float maxZoom = 24.0f;
     const int txtOffset = 32;
+    const int fntSize = 18;
     char buffer[64];
       const char *clipboardText = NULL;
     Color pixelCol;
@@ -44,7 +45,7 @@
     Vector2 barPos = {0,screenHeight-txtOffset};
     //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
     Rectangle rectPixel = { 932,8,260,160 };
-    Rectangle rectHist = { 10,570,260,110 };
+    Rectangle rectHist = { 932,570,260,110 };
             
 // 'fake' background
 void drawRectangleRounded (Rectangle recSize, Color color)  
@@ -72,7 +73,7 @@ int main(void)
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rColorPicker");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
-    Font txtFont = LoadFontEx("fonts/computer-says-no.otf", 18,NULL, 0); // all other text
+    Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
         strcpy(fName,"./resources/default.png");
         Image img = LoadImage(fName);
@@ -221,6 +222,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         //cursor centered
         Vector2 cursor = { x + 0.5f, y + 0.5f };
         Vector2 center = GetWorldToScreen2D(cursor, cam);
+       
         // funzione di conversione HSV di raylib
         Vector3 hsv = ColorToHSV(pixelCol);
 
@@ -228,7 +230,6 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
        time_t rawtime = GetFileModTime(fName);
        struct tm  ts;
        char timeMod[80];
-
         // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
         ts = *localtime(&rawtime);
         strftime(timeMod, sizeof(timeMod), "%a %d-%m-%Y %H:%M:%S %Z", &ts);
@@ -279,18 +280,18 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             //file info (bottom panel)
             DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.7f));
             //filename and size
-            DrawTextEx(txtFont,TextFormat("File: %s | %ix%i (%i pixels) | %d Bytes | %s",fName,img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){8,barPos.y + 6}, 18,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("File: %s | %ix%i (%i pixels) | %d Bytes | %s",fName,img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
      
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},18,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},fntSize,0,WHITE);
             // RGBA
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},18,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},fntSize,0,WHITE);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 8, rectPixel.y + 52},18,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 8, rectPixel.y + 52},fntSize,0,WHITE);
            // HSV
-           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},18,0,WHITE);   
+           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 8, rectPixel.y + 76},fntSize,0,WHITE);   
             
             // riquadro colore 
             for (int i = 0; i < 5; ++i)
