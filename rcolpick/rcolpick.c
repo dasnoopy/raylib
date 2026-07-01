@@ -323,7 +323,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom),(Vector2){rectPixel.x + 8, rectPixel.y + 4},fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom*100),(Vector2){rectPixel.x + 8, rectPixel.y + 4},fntSize,0,WHITE);
             // RGBA
             DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 8, rectPixel.y + 28},fntSize,0,LIGHTGRAY);
             // HEXA 

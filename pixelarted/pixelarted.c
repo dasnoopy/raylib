@@ -717,7 +717,7 @@ while (!WindowShouldClose())
         drawThumbnail();
         //display cursor position and selected color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%.02f",px,py,camera.zoom),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},16,0,FG_COLOR);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%02.f%%",px,py,camera.zoom*100),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},16,0,FG_COLOR);
         // draw current color frame
         DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 342 , 22,22,BORDER_COLOR);
         DrawRectangle(colorsBarPos.x-18 ,colorsBarPos.y + 344, 18 , 18, colors[currentColor]);
