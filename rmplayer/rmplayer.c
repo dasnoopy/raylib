@@ -740,7 +740,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
                 if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, accentColor);
-                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 28,0, accentColor);
+                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x + 2, displayArea.y}, 28,0, accentColor);
             EndScissorMode();
 
             // Draw buttons bar
