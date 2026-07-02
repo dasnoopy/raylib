@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.5"
+#define TOOL_VERSION            "1.2.6"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -104,7 +104,7 @@ int main(void)
 {
 	 // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
-    InitWindow(screenWidth, screenHeight, "rColorPicker");
+    InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
@@ -180,7 +180,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 UnloadImage(img);
                 UnloadImage(img1);
     	        
-    	        strcpy(fName, " (Image pasted from clipboard)");
+    	        strcpy(fName, "(Image pasted from clipboard)");
                 img = GetClipboardImage();
                 img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
     	        background = LoadTextureFromImage(img);
@@ -334,7 +334,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             
             // riquadro colore 
             for (int i = 0; i < 10; ++i)
-                DrawRectangle(rectPixel.x + 8 + (i * 26) ,rectPixel.y + 210, 24, 24, darkenColor(pixelCol,(1.0f-(i*0.1f) ) ) );
+                DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.y + 210, 26, 24, darkenColor(pixelCol,(1.0f-(i*0.1f) ) ) );
                 //DrawCircle(rectPixel.x + 30 + (i * 53) ,rectPixel.y + 236,24, darkenColor(pixelCol,(1.0f-(i*0.2f) ) ) );
 	  //istogramma RGB      
        
