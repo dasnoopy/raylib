@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.7"
+#define TOOL_VERSION            "1.5.0"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -20,8 +20,10 @@
 
     const int screenWidth = 1200;
     const int screenHeight = 720;
-    const float minZoom = 1.0f;
     const float stepZoom = 0.2f;
+    float minZoomX;
+    float minZoomY;
+    float minZoom;
     const float maxZoom = 24.0f;
     const int txtOffset = 32;
     const int fntSize = 18;
@@ -46,6 +48,16 @@
     //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
     Rectangle rectPixel = { 8,8,272,240 }; //932
     Rectangle rectHist = { 8,106,272,110 };
+
+    //mimimap vaariables
+    const float maxMapSize = 196.0f; 
+    float mapWidth;
+    float mapHeight;
+    float aspectRatio;
+    float mapPosX ;
+    float mapPosY ;
+    float scaleX;
+    float scaleY;
             
 // 'fake' background
 void drawRectangleRounded (Rectangle recSize, Color color)  
@@ -100,6 +112,35 @@ void getHistogram (Image image, Color *pixels)
           }
 }
 
+void calcMinimap (Texture2D background) {
+
+    // --- CALCOLO DINAMICO DELLE PROPORZIONI DELLA MINI-MAPPA ---
+    // Definiamo la dimensione massima che vogliamo occupare sullo schermo
+    mapWidth = maxMapSize;
+    mapHeight = maxMapSize;
+
+    // Calcoliamo il rapporto d'aspetto (Es: 4000.0 / 3000.0 = 1.333)
+    aspectRatio = (float)background.width / (float)background.height;
+
+    if (aspectRatio > 1.0f) {
+        // Immagine Orizzontale (Landscape): larghezza massima, altezza ridotta proporzionalmente
+        mapHeight = maxMapSize / aspectRatio;
+    } else {
+        // Immagine Verticale (Portrait) o Quadrata: altezza massima, larghezza ridotta
+        mapWidth = maxMapSize * aspectRatio;
+    }
+
+    // Calcolo della posizione nell'angolo in basso a destra usando i nuovi valori proporzionali
+    mapPosX = screenWidth - mapWidth - 10.0f;   
+    mapPosY = screenHeight - mapHeight - 40.0f; 
+    
+    // Fattori di scala aggiornati con le dimensioni corrette
+    scaleX = mapWidth / (float)background.width;
+    scaleY = mapHeight / (float)background.height;
+}
+
+
+
 int main (int argc, char *argv[])
 {
 
@@ -110,31 +151,40 @@ int main (int argc, char *argv[])
     }
 
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED  ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
         
     Image img = LoadImage(fName);
-    Image img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
 	Texture2D background = LoadTextureFromImage(img);
-	Texture2D checkerBoard = LoadTextureFromImage(img1);
+
+    // Fallback automatico se l'immagine non è presente (Esempio: 4000x3000 -> 4:3)
+    if (background.id == 0) {
+        Image imgTest = GenImageChecked(screenWidth, screenHeight, 64, 64, BLUE, SKYBLUE);
+        background = LoadTextureFromImage(imgTest);
+        UnloadImage(imgTest);
+    }
+
 	Color *pixels = LoadImageColors(img);
-    
     //read pixels color e populate color histogram values
     getHistogram(img,pixels);
 	
 	RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
-	//SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
 
-        // setup a camera
-        Camera2D cam = { 0 };
-        cam.zoom = minZoom;
-        // center the camera on the middle of the screen
-        cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
-        cam.target = (Vector2){ 0,0 };
-        cam.rotation = 0;        // rotation in deg
+    // setup a camera
+    Camera2D cam = { 0 };
+    cam.target = (Vector2){ 0.0f, 0.0f };
+    cam.offset = (Vector2){ 0.0f, 0.0f };
+    cam.rotation = 0.0f;
+    // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
+    minZoomX = (float)screenWidth / background.width;
+    minZoomY = (float)screenHeight / background.height;
+    minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
+    cam.zoom = minZoom;
+
+    calcMinimap(background);
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -153,27 +203,29 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 
                 {
         	        UnloadTexture(background);
-        	        UnloadTexture(checkerBoard);
         	        UnloadImageColors(pixels);
         	        UnloadImage(img);
-        	        UnloadImage(img1);
-        	        
+    	        
         	        strcpy(fName, droppedFiles.paths[0]);
-                        img = LoadImage(droppedFiles.paths[0]);
-                        img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
+                    img = LoadImage(droppedFiles.paths[0]);
         	        background = LoadTextureFromImage(img);
-        	        checkerBoard = LoadTextureFromImage(img1);
         	        //carica  pixels color in ram
         	        pixels = LoadImageColors(img);
-                   
-                   //read pixels color e populate color histogram values
-                     getHistogram(img,pixels);
+                    //read pixels color e populate color histogram values
+                    getHistogram(img,pixels);
 
-                    // reset camera settings
-                    cam.zoom = 1.0f; 
-                    cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
-                    cam.target = (Vector2){ 0,0 };
-                    }
+                    // Camera reset
+                    cam.target = (Vector2){ 0.0f, 0.0f };
+                    cam.offset = (Vector2){ 0.0f, 0.0f };
+                    cam.rotation = 0.0f;
+                    // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
+                    minZoomX = (float)screenWidth / background.width;
+                    minZoomY = (float)screenHeight / background.height;
+                    minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
+                    cam.zoom = minZoom;
+                    // ricalcola minimap
+                    calcMinimap(background);
+                }
             }
             UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
         }
@@ -184,39 +236,47 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
       if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V)) {
             if (IsImageValid(GetClipboardImage()))  {
 
-                UnloadTexture(background);
-                UnloadTexture(checkerBoard);
-                UnloadImageColors(pixels);
-                UnloadImage(img);
-                UnloadImage(img1);
-    	        
-    	        strcpy(fName, "(Image pasted from clipboard)");
-                img = GetClipboardImage();
-                img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
-    	        background = LoadTextureFromImage(img);
-    	        checkerBoard = LoadTextureFromImage(img1);
-    	        //carica  pixels color in ram
-    	        pixels = LoadImageColors(img);
-                
-                //read pixels color e populate color histogram values
-                getHistogram(img,pixels);
-                // reset camera settings
-                cam.zoom = 1.0f; 
-                cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
-                cam.target = (Vector2){ 0,0 };
+                    UnloadTexture(background);
+                    UnloadImageColors(pixels);
+                    UnloadImage(img);
+        	        
+        	        strcpy(fName, "(Image pasted from clipboard)");
+                    img = GetClipboardImage();
+        	        background = LoadTextureFromImage(img);
+        	        //carica  pixels color in ram
+        	        pixels = LoadImageColors(img);
+                    //read pixels color e populate color histogram values
+                    getHistogram(img,pixels);
+
+                    // Camera reset
+                    cam.target = (Vector2){ 0.0f, 0.0f };
+                    cam.offset = (Vector2){ 0.0f, 0.0f };
+                    cam.rotation = 0.0f;
+                    // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
+                    minZoomX = (float)screenWidth / background.width;
+                    minZoomY = (float)screenHeight / background.height;
+                    minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
+                    cam.zoom = minZoom;
+                    // ricalcola minimap
+                    calcMinimap(background);
                 }
                 else TraceLog(LOG_INFO, "IMAGE: Could not retrieve image from clipboard");
             }
             
         Vector2 fnameSize = MeasureTextEx(txtFont, fName, fntSize, 0);
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
-        // Get the world point that is under the mouse
-        Vector2 world = GetScreenToWorld2D(GetMousePosition(), cam);
-        
+        Vector2 world  = GetScreenToWorld2D(GetMousePosition(), cam);
+
                 if (IsKeyPressed(KEY_X)) {
-                    cam.zoom = 1.0f; 
-                    cam.offset = (Vector2){ (screenWidth - img.width)/2,(screenHeight-img.height)/2 };
-                    cam.target = (Vector2){ 0,0 };
+                     // Camera reset
+                    cam.target = (Vector2){ 0.0f, 0.0f };
+                    cam.offset = (Vector2){ 0.0f, 0.0f };
+                    cam.rotation = 0.0f;
+                    // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
+                    minZoomX = (float)screenWidth / background.width;
+                    minZoomY = (float)screenHeight / background.height;
+                    minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
+                    cam.zoom = minZoom;
                 }
 
                 if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C)) {
@@ -231,76 +291,88 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
                       
-                //pan immagine con tast sx del mouse premuto..
-              	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            			Vector2 delta = Vector2Scale(GetMouseDelta(), -1.0f / cam.zoom);
-            			// set the camera target to follow the player
-            			cam.target = Vector2Add(cam.target, delta);
-            		}
-
-            float wheel = GetMouseWheelMove();
+        // --- GESTIONE ZOOM (Rotella del Mouse) ---
+        float wheel = GetMouseWheelMove();
             int x = (int)world.x;
             int y = (int)world.y;
             
             // leggi colore pixel 
-            if (x >= 0 && x < img.width && y >= 0 && y < img.height) pixelCol = pixels[y * img.width + x];
-                  
-            if (wheel != 0) {
-                //https://www.reddit.com/r/raylib/comments/1plbm84/how_to_zoom_a_2d_camera_on_mouse_position/
-                // 1. Get mouse position in world coordinates before zoom
-                Vector2 mouseScreen = GetMousePosition();
-                Vector2 preZoomWorldPos = GetScreenToWorld2D(mouseScreen, cam);
-            
-        		// 2. Apply zoom change
-                //cam.zoom += wheel * 1.0f;           		
-        	   // Camera zoom controls
-                // Uses log scaling to provide consistent zoom speed
-                cam.zoom = expf(logf(cam.zoom) + ((float)wheel*stepZoom));
-                if (cam.zoom > maxZoom) cam.zoom = maxZoom;
-                else if (cam.zoom < minZoom) cam.zoom = minZoom;
+            if (x >= 0 && x < background.width && y >= 0 && y < background.height) pixelCol = pixels[y * background.width + x];
+                
+            if (wheel != 0.0f) {
+                    Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), cam);
+                    cam.offset = GetMousePosition();
+                    cam.target = mouseWorldPos;
 
-        		// 3. Get mouse position in world coordinates after zoom
-		          Vector2 postZoomWorldPos = GetScreenToWorld2D(mouseScreen, cam);
+                    const float zoomIncrement = 0.15f;
+                    if (wheel > 0) cam.zoom += cam.zoom * zoomIncrement;
+                    if (wheel < 0) cam.zoom -= cam.zoom * zoomIncrement;
 
-    		// 4. Offset camera.target so the world position under the cursor stays fixed
-    		cam.target.x += roundf(preZoomWorldPos.x - postZoomWorldPos.x);
-    		cam.target.y += roundf(preZoomWorldPos.y - postZoomWorldPos.y);
-    	}	
-		
-        //cursor centered
-        Vector2 cursor = { x + 0.5f, y + 0.5f };
-        Vector2 center = GetWorldToScreen2D(cursor, cam);
-       
-        // funzione di conversione HSV di raylib
-        Vector3 hsv = ColorToHSV(pixelCol);
+                    // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
+                    minZoomX = (float)screenWidth / background.width;
+                    minZoomY = (float)screenHeight / background.height;
+                    minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
+                    
+                    if (cam.zoom < minZoom) cam.zoom = minZoom;
+                    if (cam.zoom > maxZoom) cam.zoom = maxZoom;
+                }
 
-        // modified time convert
-       time_t rawtime = GetFileModTime(fName);
-       struct tm  ts;
-       char timeMod[80];
-        // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
-        ts = *localtime(&rawtime);
-        strftime(timeMod, sizeof(timeMod), "%a %d-%m-%Y %H:%M:%S %Z", &ts);
+                // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                    Vector2 delta = GetMouseDelta();
+                    cam.target.x -= delta.x / cam.zoom;
+                    cam.target.y -= delta.y / cam.zoom;
+                }
+
+                // --- CONTROLLO DEI LIMITI DELL'IMMAGINE ---
+                Vector2 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
+                Vector2 bottomRight = GetScreenToWorld2D((Vector2){ (float)screenWidth, (float)screenHeight }, cam);
+
+                if (topLeft.x < 0.0f) cam.target.x += (0.0f - topLeft.x);
+                else if (bottomRight.x > (float)background.width) cam.target.x -= (bottomRight.x - (float)background.width);
+
+                if (topLeft.y < 0.0f) cam.target.y += (0.0f - topLeft.y);
+                else if (bottomRight.y > (float)background.height) cam.target.y -= (bottomRight.y - (float)background.height);
+
+                // Ricalcolo coordinate reali per sincronizzare il rettangolo rosso della mappa
+                topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
+                bottomRight = GetScreenToWorld2D((Vector2){ (float)screenWidth, (float)screenHeight }, cam);
+
+                //cursor centered
+                Vector2 cursor = { x + 0.5f, y + 0.5f };
+                Vector2 center = GetWorldToScreen2D(cursor, cam);
+               
+                // funzione di conversione HSV di raylib
+                Vector3 hsv = ColorToHSV(pixelCol);
+
+                // modified time convert
+               time_t rawtime = GetFileModTime(fName);
+               struct tm  ts;
+               char timeMod[80];
+                // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
+                ts = *localtime(&rawtime);
+                strftime(timeMod, sizeof(timeMod), "%a %d-%m-%Y %H:%M:%S %Z", &ts);
+
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
         BeginTextureMode(target);
-            ClearBackground(RAYWHITE);
+            ClearBackground(LIGHTGRAY);
         EndTextureMode();
         
 		BeginDrawing();
             HideCursor();
             // sfondo fuori dall' immagine
-            ClearBackground(RAYWHITE);
+            ClearBackground(LIGHTGRAY);
                   
             //BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);   
     		    BeginMode2D(cam);
 	           	// draw the entire background image for the entire world. The camera will clip it to the screen
-		        DrawTexture(checkerBoard, 0, 0, WHITE);
+
 		        DrawTexture(background, 0, 0, WHITE);
 		          //DrawRectangleLinesEx(screenInWorldRect, 4 / cam.zoom, Fade(BLACK,0.8f));
 		        
-                      if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
+                      //if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
 		      
 		      if (cam.zoom >=8.0f) {
 		        showGrid=true;
@@ -364,6 +436,29 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));    
           }
 
+            // --- DISEGNO DELLA MINI-MAPPA (In proporzione perfetta) ---
+            // Sfondo/Bordo
+            DrawRectangle(mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4, GRAY);
+            
+            // Disegno della mini-map
+            DrawTexturePro(
+                background, 
+                (Rectangle){ 0, 0, (float)background.width, (float)background.height }, 
+                (Rectangle){ mapPosX, mapPosY, mapWidth, mapHeight },                 
+                (Vector2){ 0, 0 }, 0.0f, WHITE
+            );
+
+            // Calcolo geometrico del rettangolo rosso di selezione
+            float rectX = mapPosX + (topLeft.x * scaleX);
+            float rectY = mapPosY + (topLeft.y * scaleY);
+            float rectW = (bottomRight.x - topLeft.x) * scaleX;
+            float rectH = (bottomRight.y - topLeft.y) * scaleY;
+
+            // Disegno del rettangolo rosso (con limiti visivi per non uscire dalla mini-mappa)
+            DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, RED);
+            DrawRectangle(rectX, rectY, rectW, rectH, Fade(RED, 0.15f));
+            //--------------------------------------------------------------------------------------------------------------
+
                 //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-124, screenHeight-22, 10, WHITE); 
             DrawText(TextFormat("version %s", TOOL_VERSION), screenWidth-72, screenHeight-22, 10, LIGHTGRAY); 
@@ -372,13 +467,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 	// De-Initialization
 	//--------------------------------------------------------------------------------------
 	UnloadTexture(background);
-	UnloadTexture(checkerBoard);
 	UnloadImageColors(pixels);
 	UnloadImage(img);
-	UnloadImage(img1);
-        UnloadFont(txtFont);
+    UnloadFont(txtFont);
 	CloseWindow();        // Close window and OpenGL context
 	//--------------------------------------------------------------------------------------
 
-        return 0;
+    return 0;
 }
