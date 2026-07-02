@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.5.0"
+#define TOOL_VERSION            "1.5.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -49,7 +49,7 @@
     Rectangle rectPixel = { 8,8,272,240 }; //932
     Rectangle rectHist = { 8,106,272,110 };
 
-    //mimimap vaariables
+    //mimimap variables
     const float maxMapSize = 196.0f; 
     float mapWidth;
     float mapHeight;
@@ -59,7 +59,7 @@
     float scaleX;
     float scaleY;
             
-// 'fake' background
+
 void drawRectangleRounded (Rectangle recSize, Color color)  
 {
   float radius = 0.064f; // no radius
@@ -114,36 +114,32 @@ void getHistogram (Image image, Color *pixels)
 
 void calcMinimap (Texture2D background) {
 
-    // --- CALCOLO DINAMICO DELLE PROPORZIONI DELLA MINI-MAPPA ---
-    // Definiamo la dimensione massima che vogliamo occupare sullo schermo
+    // dimensione minimap 
     mapWidth = maxMapSize;
     mapHeight = maxMapSize;
 
-    // Calcoliamo il rapporto d'aspetto (Es: 4000.0 / 3000.0 = 1.333)
+    //  aspect ratio (Es: 4000.0 / 3000.0 = 1.333)
     aspectRatio = (float)background.width / (float)background.height;
 
-    if (aspectRatio > 1.0f) {
+    if (aspectRatio >= 1.0f) {
         // Immagine Orizzontale (Landscape): larghezza massima, altezza ridotta proporzionalmente
         mapHeight = maxMapSize / aspectRatio;
     } else {
-        // Immagine Verticale (Portrait) o Quadrata: altezza massima, larghezza ridotta
+        // Immagine Verticale (Portrait) o Quadrata: altezza massima, larghezza aumentata proporzionalmente
         mapWidth = maxMapSize * aspectRatio;
     }
 
-    // Calcolo della posizione nell'angolo in basso a destra usando i nuovi valori proporzionali
+    // posizione nell'angolo in basso a destra 
     mapPosX = screenWidth - mapWidth - 10.0f;   
     mapPosY = screenHeight - mapHeight - 40.0f; 
     
-    // Fattori di scala aggiornati con le dimensioni corrette
-    scaleX = mapWidth / (float)background.width;
-    scaleY = mapHeight / (float)background.height;
+    // Fattore di scala 
+    scaleX = mapWidth / background.width;
+    scaleY = mapHeight / background.height;
 }
-
-
 
 int main (int argc, char *argv[])
 {
-
     if ( (IsPathFile(argv[1])) && FileExists(argv[1]))  strcpy(fName , argv[1]);
     else {
         TraceLog(LOG_INFO, "Invalid argument (wrong path/filename? Default image will be loaded.");
@@ -151,7 +147,7 @@ int main (int argc, char *argv[])
     }
 
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED  ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
@@ -438,25 +434,26 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             // --- DISEGNO DELLA MINI-MAPPA (In proporzione perfetta) ---
             // Sfondo/Bordo
-            DrawRectangle(mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4, GRAY);
+            DrawRectangleRec((Rectangle){mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4}, GRAY);
             
             // Disegno della mini-map
             DrawTexturePro(
                 background, 
-                (Rectangle){ 0, 0, (float)background.width, (float)background.height }, 
+                (Rectangle){ 0, 0, background.width, background.height }, 
                 (Rectangle){ mapPosX, mapPosY, mapWidth, mapHeight },                 
                 (Vector2){ 0, 0 }, 0.0f, WHITE
             );
 
-            // Calcolo geometrico del rettangolo rosso di selezione
+            // Coordinate e sizing del rettangolo di evidenziazione sulla minimap
             float rectX = mapPosX + (topLeft.x * scaleX);
             float rectY = mapPosY + (topLeft.y * scaleY);
             float rectW = (bottomRight.x - topLeft.x) * scaleX;
             float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
             // Disegno del rettangolo rosso (con limiti visivi per non uscire dalla mini-mappa)
-            DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, RED);
-            DrawRectangle(rectX, rectY, rectW, rectH, Fade(RED, 0.15f));
+
+            DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.15f));
+            DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
             //--------------------------------------------------------------------------------------------------------------
 
                 //statusbar with some info
