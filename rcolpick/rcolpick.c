@@ -116,11 +116,14 @@ int main (int argc, char *argv[])
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
         
-        Image img = LoadImage(fName);
-        Image img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
+    Image img = LoadImage(fName);
+    Image img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
 	Texture2D background = LoadTextureFromImage(img);
 	Texture2D checkerBoard = LoadTextureFromImage(img1);
 	Color *pixels = LoadImageColors(img);
+    
+    //read pixels color e populate color histogram values
+    getHistogram(img,pixels);
 	
 	RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 	//SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
@@ -299,7 +302,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		        
                       if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
 		      
-		      if (cam.zoom >=12.0f) {
+		      if (cam.zoom >=8.0f) {
 		        showGrid=true;
                           // linee verticali
                           for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(BLACK, 0.5f));
@@ -310,7 +313,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
           
 		          EndMode2D();
 		      
-		      if (cam.zoom >= 12.0f) {
+		      if (cam.zoom >= 8.0f) {
           	      // mirino cursore centerd
                         DrawLine(center.x-16, center.y, center.x + 16, center.y, RED);
                         DrawLine(center.x, center.y-16, center.x, center.y+16, RED);
