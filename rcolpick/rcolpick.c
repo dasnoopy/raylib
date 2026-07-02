@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.5.6"
+#define TOOL_VERSION            "1.5.7"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -35,6 +35,7 @@ Color pixelCol;
 Color *pixels;
 char fName[384] = { '\0' };
 bool showGrid = false;
+bool showMinimap = true;
 
 int histR[256] = {0};
 int histG[256] = {0};
@@ -267,6 +268,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
         Vector2 world  = GetScreenToWorld2D(GetMousePosition(), cam);
 
+                if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
+
                 if (IsKeyPressed(KEY_X)) {
                      // Camera reset
                     cam.target = (Vector2){ 0.0f, 0.0f };
@@ -432,7 +435,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));    
                   }
 
-                // --- DISEGNO DELLA MINI-MAPPA (In proporzione perfetta) ---
+                // --- Minimap show/hide with M key
+            if (showMinimap) {
                 // Sfondo/Bordo
                 DrawRectangleRec((Rectangle){mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4}, Fade(BLACK,0.7f));
                 
@@ -453,6 +457,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 // Disegno del rettangolo rosso (con limiti visivi per non uscire dalla mini-mappa)
                 DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.15f));
                 DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
+                }
                 //--------------------------------------------------------------------------------------------------------------
 
 
