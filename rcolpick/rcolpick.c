@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.2.6"
+#define TOOL_VERSION            "1.2.7"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -100,15 +100,22 @@ void getHistogram (Image image, Color *pixels)
           }
 }
 
-int main(void)
+int main (int argc, char *argv[])
 {
+
+    if ( (IsPathFile(argv[1])) && FileExists(argv[1]))  strcpy(fName , argv[1]);
+    else {
+        TraceLog(LOG_INFO, "Invalid argument (wrong path/filename? Default image will be loaded.");
+        strcpy(fName,"./resources/default.png");
+    }
+
 	 // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
-        strcpy(fName,"./resources/default.png");
+        
         Image img = LoadImage(fName);
         Image img1 = GenImageChecked((int)img.width, (int)img.height, 12,12, WHITE, RAYWHITE);
 	Texture2D background = LoadTextureFromImage(img);
