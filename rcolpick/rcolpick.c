@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.5.7"
+#define TOOL_VERSION            "1.5.9"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -49,7 +49,7 @@ int maxA=1;
 	
 Vector2 barPos = {0,screenHeight-txtOffset};
 //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-Rectangle rectPixel = { 8,8,272,240 }; //932
+Rectangle rectPixel = { 8,8,272,240 }; // 1002 - right  / 8 left
 Rectangle rectHist = { 8,106,272,110 };
 
 //mimimap variables
@@ -150,7 +150,7 @@ int main (int argc, char *argv[])
     }
 
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
@@ -377,7 +377,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		        
                       //if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
 		      
-		      if (cam.zoom >=8.0f) {
+		      if (cam.zoom >=10.0f) {
 		        showGrid=true;
                           // linee verticali
                           for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(BLACK, 0.5f));
@@ -388,15 +388,15 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
           
 		          EndMode2D();
 		      
-		      if (cam.zoom >= 8.0f) {
+		      if (cam.zoom >= 10.0f) {
           	      // mirino cursore centerd
-                        DrawLine(center.x-16, center.y, center.x + 16, center.y, RED);
-                        DrawLine(center.x, center.y-16, center.x, center.y+16, RED);
+                        DrawRectangle(center.x-16, center.y, 33, 2, RED);
+                        DrawRectangle(center.x, center.y-16, 2, 33, RED);
                       }
                       else  {
 		       // mirino cursore libero
-                        DrawLine(mousePos.x-16, mousePos.y, mousePos.x+16 , mousePos.y, RED);
-                        DrawLine(mousePos.x, mousePos.y-16 , mousePos.x,mousePos.y+16, RED);
+                        DrawRectangle(mousePos.x-16, mousePos.y, 33 , 2, RED);
+                        DrawRectangle(mousePos.x, mousePos.y-16 , 2,33, RED);
                       }                      
             //EndScissorMode();	      
 
@@ -455,7 +455,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
                 // Disegno del rettangolo rosso (con limiti visivi per non uscire dalla mini-mappa)
-                DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.15f));
+                DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.25f));
                 DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
                 }
                 //--------------------------------------------------------------------------------------------------------------
