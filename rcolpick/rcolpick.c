@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.5.9"
+#define TOOL_VERSION            "1.6.1"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -36,21 +36,22 @@ Color *pixels;
 char fName[384] = { '\0' };
 bool showGrid = false;
 bool showMinimap = true;
+bool showHist = true;
 
 int histR[256] = {0};
 int histG[256] = {0};
 int histB[256] = {0};
 int histA[256] = {0};
-                    
+
 int maxR=1;
 int maxG=1;
 int maxB=1;
 int maxA=1;
-	
+
 Vector2 barPos = {0,screenHeight-txtOffset};
 //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-Rectangle rectPixel = { 8,8,272,240 }; // 1002 - right  / 8 left
-Rectangle rectHist = { 8,106,272,110 };
+Rectangle rectPixel = { 8,8,272,184 }; // 1002 - right  / 8 left
+Rectangle rectHist = { 8,570,272,110 };
 
 //mimimap variables
 const float maxMapSize = 196.0f; 
@@ -61,7 +62,57 @@ float mapPosX ;
 float mapPosY ;
 float scaleX;
 float scaleY;
-            
+
+// color conversion variables
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
+typedef struct hsl {
+  float h, s, l;
+} HSL;
+
+
+ // * Converts an RGB color value to HSL. Conversion formula
+ // * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ // * Assumes r, g, and b are contained in the set [0, 255] and
+ // * returns HSL in the set [0, 1].
+
+HSL rgb2hsl(float r, float g, float b) {
+  
+  HSL result;
+  
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  
+  float max = MAX(MAX(r,g),b);
+  float min = MIN(MIN(r,g),b);
+  
+  result.h = result.s = result.l = (max + min) / 2;
+
+  if (max == min) {
+    result.h = result.s = 0; // achromatic
+  }
+  else {
+    float d = max - min;
+    result.s = (result.l > 0.5) ? d / (2 - max - min) : d / (max + min);
+    
+    if (max == r) {
+      result.h = (g - b) / d + (g < b ? 6 : 0);
+    }
+    else if (max == g) {
+      result.h = (b - r) / d + 2;
+    }
+    else if (max == b) {
+      result.h = (r - g) / d + 4;
+    }
+    
+    result.h /= 6;
+  }
+
+  return result;
+  
+}
 
 void drawRectangleRounded (Rectangle recSize, Color color)  
 {
@@ -76,9 +127,22 @@ Color darkenColor(Color color, float factor)
     if (factor > 1.0f) factor = 1.0f;
 
     return (Color){
-        (unsigned char)(color.r * factor),
-        (unsigned char)(color.g * factor),
-        (unsigned char)(color.b * factor),
+        (unsigned char)(color.r * (1 - factor)),
+        (unsigned char)(color.g * (1 - factor)),
+        (unsigned char)(color.b * (1 - factor)),
+        color.a
+    };
+}
+
+Color lightenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char) ( color.r + (255-color.r) * factor ),
+        (unsigned char) ( color.g + (255-color.g) * factor ),
+        (unsigned char) ( color.b + (255-color.b) * factor ),
         color.a
     };
 }
@@ -269,6 +333,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         Vector2 world  = GetScreenToWorld2D(GetMousePosition(), cam);
 
                 if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
+                if (IsKeyPressed(KEY_H)) showHist = !showHist;
 
                 if (IsKeyPressed(KEY_X)) {
                      // Camera reset
@@ -347,6 +412,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                
                 // funzione di conversione HSV di raylib
                 Vector3 hsv = ColorToHSV(pixelCol);
+                // funzione di conversione HSL da RGB color
+                HSL res = rgb2hsl(pixelCol.r, pixelCol.g, pixelCol.b);
 
                 // modified time convert
                time_t rawtime = GetFileModTime(fName);
@@ -409,31 +476,36 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LIGHTGRAY);
             // HEXA 
             DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,WHITE);
-           // HSV
-           DrawTextEx(txtFont,TextFormat("HSV: %.1f, %.1f%%, %.1f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,LIGHTGRAY);   
+           // HSVLighter variations created by adding white to your base color.
+           DrawTextEx(txtFont,TextFormat("HSV: %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,LIGHTGRAY);
+           // HSL
+           DrawTextEx(txtFont,TextFormat("HSL: %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,WHITE);   
             
             // riquadro colore principale e 9 più scuri
-            for (int i = 0; i < 10; ++i)
-                DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.y + 210, 26, 24, darkenColor(pixelCol,(1.0f-(i*0.1f) ) ) );
-                //DrawCircle(rectPixel.x + 30 + (i * 53) ,rectPixel.y + 236,24, darkenColor(pixelCol,(1.0f-(i*0.2f) ) ) );
+            for (int i = 0; i < 10; ++i) {
+                DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.height - 48, 24, 24, darkenColor(pixelCol,( i*0.1f )));
+                 DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.height - 22, 24, 24, lightenColor(pixelCol,( i * 0.1f )));
+            }
 
-        	  //istogramma RGBA
+        	  // disegna istogramma RGBA 
               // sfondo 
-               DrawRectangleRec(rectHist, Fade(BLACK,0.3f));
-                //for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.6f));
-                //for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.6f));
-              // disegno istrogramma
-              for (int i = 0; i < 256; i++) {
-               	  float hR = (float)histR[i] / maxR;
-                  float hG = (float)histG[i] / maxG;
-                  float hB = (float)histB[i] / maxB;
-                  float hA = (float)histA[i] / maxA;
-                  
-                    DrawLine((rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hR*100), Fade(RED, 0.5f));
-                    DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hG*100), Fade(LIME, 0.5f));
-                    DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
-                    DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));    
-                  }
+            if (showHist) {
+                   drawRectangleRounded(rectHist, Fade(BLACK,0.7f));
+                    //for (int h = 1; h<10 ; h++) DrawLine(rectHist.x, rectHist.y + (h*12), rectHist.x + rectHist.width, rectHist.y + (h*12), Fade(DARKGRAY,0.6f));
+                    //for (int v = 1; v < 22; v++) DrawLine(rectHist.x + (v*12), rectHist.y, rectHist.x + (v*12), rectHist.y + rectHist.height, Fade(DARKGRAY,0.6f));
+                      // disegno istrogramma
+                      for (int i = 0; i < 256; i++) {
+                       	  float hR = (float)histR[i] / maxR;
+                          float hG = (float)histG[i] / maxG;
+                          float hB = (float)histB[i] / maxB;
+                          float hA = (float)histA[i] / maxA;
+                          
+                            DrawLine((rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hR*100), Fade(RED, 0.5f));
+                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hG*100), Fade(LIME, 0.5f));
+                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
+                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));    
+                      }
+            }
 
                 // --- Minimap show/hide with M key
             if (showMinimap) {
