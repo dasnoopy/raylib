@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.6.7"
+#define TOOL_VERSION            "1.6.8"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -26,7 +26,7 @@ float minZoomX;
 float minZoomY;
 float minZoom;
 const float stepZoom = 0.20f;
-const float maxZoom = 24.0f;
+const float maxZoom = 32.0f;
 const int txtOffset = 32;
 const int fntSize = 18;
 char buffer[64];
@@ -466,9 +466,9 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		      if (cam.zoom >=10.0f) {
 		        showGrid=true;
                           // linee verticali
-                          for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(BLACK, 0.5f));
+                          for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(DARKGRAY, 0.5f));
                           // linee orizzontali
-                         for (int y = 0; y <= background.height; y++) DrawLine(0, y, background.width, y, Fade(BLACK, 0.5f));
+                         for (int y = 0; y <= background.height; y++) DrawLine(0, y, background.width, y, Fade(DARKGRAY, 0.5f));
                       }
                       else showGrid = false;
           
