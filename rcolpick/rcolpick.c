@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.6.1"
+#define TOOL_VERSION            "1.6.5"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -32,6 +32,7 @@ const int fntSize = 18;
 char buffer[64];
 const char *clipboardText = NULL;
 Color pixelCol;
+Color clickCol = CLITERAL(Color){ 0, 0, 0, 255};
 Color *pixels;
 char fName[384] = { '\0' };
 bool showGrid = false;
@@ -50,7 +51,7 @@ int maxA=1;
 
 Vector2 barPos = {0,screenHeight-txtOffset};
 //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-Rectangle rectPixel = { 8,8,272,184 }; // 1002 - right  / 8 left
+Rectangle rectPixel = { 8,8,272,152 }; // 1002 - right  / 8 left , height 208 with shaaded/tinted color
 Rectangle rectHist = { 8,570,272,110 };
 
 //mimimap variables
@@ -241,6 +242,7 @@ int main (int argc, char *argv[])
     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
     cam.zoom = minZoom;
 
+    //generate mini-map
     calcMinimap(background);
 
     // fai riapparire finestra dopo caricamento iniziale
@@ -334,6 +336,15 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
                 if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
                 if (IsKeyPressed(KEY_H)) showHist = !showHist;
+                
+                // if (IsKeyPressed(KEY_ONE)) {
+                //      // Camera reset
+                //     cam.target = (Vector2){ 0.0f, 0.0f };
+                //     cam.offset = (Vector2){ 0.0f, 0.0f };
+                //     cam.rotation = 0.0f;
+                //     cam.zoom = 1.0f;
+                // }
+
 
                 if (IsKeyPressed(KEY_X)) {
                      // Camera reset
@@ -364,7 +375,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             int x = (int)world.x;
             int y = (int)world.y;
             
-            // leggi colore pixel 
+            // leggi colore pixel (on hove mouse color) 
             if (x >= 0 && x < background.width && y >= 0 && y < background.height) pixelCol = pixels[y * background.width + x];
                 
             if (wheel != 0.0f) {
@@ -385,12 +396,18 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     if (cam.zoom > maxZoom) cam.zoom = maxZoom;
                 }
 
+                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                    clickCol = pixelCol;
+                }
+
                 // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
                 if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                     Vector2 delta = GetMouseDelta();
                     cam.target.x -= delta.x / cam.zoom;
                     cam.target.y -= delta.y / cam.zoom;
                 }
+
+
 
                 // --- CONTROLLO DEI LIMITI DELL'IMMAGINE ---
                 Vector2 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
@@ -471,21 +488,30 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 4},fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom*100),(Vector2){rectPixel.x + 32, rectPixel.y + 4},fntSize,0,WHITE);
             // RGBA
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LIGHTGRAY);
+            DrawRectangleRounded ((Rectangle){rectPixel.x + 6 ,rectPixel.y + 25 ,260, 108},0.096f,12, pixelCol);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("HSV: %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,LIGHTGRAY);
+           DrawTextEx(txtFont,TextFormat("HSV: %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSL
-           DrawTextEx(txtFont,TextFormat("HSL: %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,WHITE);   
+           DrawTextEx(txtFont,TextFormat("HSL: %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
             
-            // riquadro colore principale e 9 più scuri
-            for (int i = 0; i < 10; ++i) {
-                DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.height - 48, 24, 24, darkenColor(pixelCol,( i*0.1f )));
-                 DrawRectangle(rectPixel.x + 6 + (i * 26) ,rectPixel.height - 22, 24, 24, lightenColor(pixelCol,( i * 0.1f )));
-            }
+            //  stored color (right click mouse)
+            DrawRectangle (rectPixel.x + 6,rectPixel.height - 22 ,260, 24, clickCol);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+34,rectPixel.y + 125},fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
+            
+            // shaded and tinted colors (starting from hover color)
+            // for (int i = 1; i < 10; ++i) {
+            //     // shaded -10% / -90%
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, darkenColor(pixelCol,( i*0.1f )));
+            //     //DrawText(TextFormat("-%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-41,10,WHITE);
+            //     // tinted +10% / +90%                
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, lightenColor(pixelCol,( i * 0.1f )));
+            //     //DrawText(TextFormat("+%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-14,10,BLACK);
+            // }
 
         	  // disegna istogramma RGBA 
               // sfondo 
