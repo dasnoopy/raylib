@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.7"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -337,13 +337,15 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
                 if (IsKeyPressed(KEY_H)) showHist = !showHist;
                 
-                // if (IsKeyPressed(KEY_ONE)) {
-                //      // Camera reset
-                //     cam.target = (Vector2){ 0.0f, 0.0f };
-                //     cam.offset = (Vector2){ 0.0f, 0.0f };
-                //     cam.rotation = 0.0f;
-                //     cam.zoom = 1.0f;
-                // }
+                if (IsKeyPressed(KEY_ONE)) {
+                     // Camera reset
+                    if (minZoom <=1.00f) {
+                        cam.target = (Vector2){ 0.0f, 0.0f };
+                        cam.offset = (Vector2){ 0.0f, 0.0f };
+                        cam.rotation = 0.0f;
+                        cam.zoom = 1.0f;
+                    }
+                }
 
 
                 if (IsKeyPressed(KEY_X)) {
@@ -488,16 +490,16 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // pixel panel ("floating")
             drawRectangleRounded (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("X,Y,Zoom: %i, %i, %02.f%%", x, y,cam.zoom*100),(Vector2){rectPixel.x + 32, rectPixel.y + 4},fntSize,0,WHITE);
+            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (Zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 3},fntSize,0,LIGHTGRAY);
             // RGBA
-            DrawRectangleRounded ((Rectangle){rectPixel.x + 6 ,rectPixel.y + 25 ,260, 108},0.096f,12, pixelCol);
+            DrawRectangle (rectPixel.x + 6 ,rectPixel.y + 25 ,260, 108, pixelCol);
             DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
             // HEXA 
             DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("HSV: %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("HSV : %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSL
-           DrawTextEx(txtFont,TextFormat("HSL: %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("HSL : %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
             
             //  stored color (right click mouse)
             DrawRectangle (rectPixel.x + 6,rectPixel.height - 22 ,260, 24, clickCol);
