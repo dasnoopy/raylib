@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.7.0"
+#define TOOL_VERSION            "1.7.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -486,7 +486,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // cursor x,y
             DrawTextEx(txtFont,TextFormat("x: %i, y: %i (Zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 4},fntSize,0,LIGHTGRAY);
             // RGBA
-            DrawRectangleRec((Rectangle){rectPixel.x + 6 ,rectPixel.y + 26,260, 96}, pixelCol);
+            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 26,270, 96}, pixelCol);
 
             DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
             // HEXA 
@@ -497,8 +497,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
            DrawTextEx(txtFont,TextFormat("HSL : %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
             
             //  stored color (right click mouse)
-            DrawRectangleRec((Rectangle){rectPixel.x + 6,(rectPixel.y + rectPixel.height) - 30 ,260, 24}, clickCol);
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+34,(rectPixel.y + rectPixel.height) - 28 },fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
+            DrawRectangleRec((Rectangle){rectPixel.x + 1,(rectPixel.y + rectPixel.height) - 25 ,270, 24}, clickCol);
+            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+10,(rectPixel.y + rectPixel.height) - 23},fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
             
             // shaded and tinted colors (starting from hover color)
             // for (int i = 1; i < 10; ++i) {
@@ -513,7 +513,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         	  // disegna istogramma RGBA 
               // sfondo 
             if (showHist) {
-                rectPixel.height = 272;
+                rectPixel.height = 268;
                    //DrawRectangleRec(rectHist, Fade(BLACK,0.7f));
                       // disegno istrogramma
                       for (int i = 0; i < 256; i++) {
@@ -528,7 +528,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                             DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));
                       }
             }
-            else rectPixel.height = 158;
+            else rectPixel.height = 148;
 
                 // --- Minimap show/hide with M key
             if (showMinimap) {
