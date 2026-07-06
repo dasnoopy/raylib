@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.7.2"
+#define TOOL_VERSION            "1.7.3"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -38,6 +38,9 @@ char fName[384] = { '\0' };
 bool showGrid = false;
 bool showMinimap = true;
 bool showHist = true;
+bool isPasted = false;
+bool isDragged = false;
+time_t rawtime;
 
 int histR[256] = {0};
 int histG[256] = {0};
@@ -115,7 +118,7 @@ HSL rgb2hsl(float r, float g, float b) {
   
 }
 
-Color darkenColor(Color color, float factor)
+Color shadesColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
     if (factor > 1.0f) factor = 1.0f;
@@ -128,7 +131,7 @@ Color darkenColor(Color color, float factor)
     };
 }
 
-Color lightenColor(Color color, float factor)
+Color tintedColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
     if (factor > 1.0f) factor = 1.0f;
@@ -234,7 +237,7 @@ int main (int argc, char *argv[])
     minZoomY = (float)screenHeight / background.height;
     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
     cam.zoom = minZoom;
-
+    rawtime = GetFileModTime(fName);
     //generate mini-map
     calcMinimap(background);
 
@@ -259,6 +262,9 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     UnloadImageColors(pixels);
                     UnloadImage(img);
                     UnloadImage(img1);
+
+                    isPasted = false;
+                    isDragged = true;
                     
                     strcpy(fName, droppedFiles.paths[0]);
                     img = LoadImage(droppedFiles.paths[0]);
@@ -281,6 +287,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.zoom = minZoom;
                     // ricalcola minimap
                     calcMinimap(background);
+                    rawtime = GetFileModTime(fName);
                 }
             }
             UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
@@ -297,7 +304,10 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     UnloadImageColors(pixels);
                     UnloadImage(img);
                     UnloadImage(img1);
-                    
+
+                    isPasted = true;
+                    isDragged = false;
+
                     strcpy(fName, "(Image pasted from clipboard)");
                     img = GetClipboardImage();
                     img1 = GenImageChecked((int)img.width, (int)img.height, 8,8, WHITE, RAYWHITE);
@@ -319,11 +329,12 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.zoom = minZoom;
                     // ricalcola minimap
                     calcMinimap(background);
+                    rawtime = time (NULL);
                 }
                 else TraceLog(LOG_INFO, "IMAGE: Could not retrieve image from clipboard");
             }
             
-        Vector2 fnameSize = MeasureTextEx(txtFont, fName, fntSize, 0);
+        Vector2 fnameSize = MeasureTextEx(txtFont, GetFileName(fName), fntSize, 0);
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
         Vector2 world  = GetScreenToWorld2D(GetMousePosition(), cam);
 
@@ -331,7 +342,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 if (IsKeyPressed(KEY_H)) showHist = !showHist;
                 
                 if (IsKeyPressed(KEY_ONE)) {
-                     // Camera reset
+                     // Camera reset to 1:1 zoom
                     if (minZoom <=1.00f) {
                         cam.target = (Vector2){ 0.0f, 0.0f };
                         cam.offset = (Vector2){ 0.0f, 0.0f };
@@ -429,7 +440,6 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 HSL res = rgb2hsl(pixelCol.r, pixelCol.g, pixelCol.b);
 
                 // modified time convert
-               time_t rawtime = GetFileModTime(fName);
                struct tm  ts;
                char timeMod[80];
                 // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
@@ -484,21 +494,21 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // pixel panel ("floating")
             DrawRectangleRec (rectPixel, Fade(BLACK,0.7f));
             // cursor x,y
-            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (Zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 4},fntSize,0,LIGHTGRAY);
+            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 4},fntSize,0,LIGHTGRAY);
             // RGBA
             DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 26,270, 96}, pixelCol);
 
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("HEXA: #%02X%02X%02X%02X", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("HSV : %3.02f, %3.02f%%, %3.02f%%", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
            // HSL
-           DrawTextEx(txtFont,TextFormat("HSL : %3.02f, %3.02f%%, %3.02f%%", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
             
             //  stored color (right click mouse)
             DrawRectangleRec((Rectangle){rectPixel.x + 1,(rectPixel.y + rectPixel.height) - 25 ,270, 24}, clickCol);
-            DrawTextEx(txtFont,TextFormat("RGBA: %03i, %03i, %03i, %03i",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+10,(rectPixel.y + rectPixel.height) - 23},fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+10,(rectPixel.y + rectPixel.height) - 23},fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
             
             // shaded and tinted colors (starting from hover color)
             // for (int i = 1; i < 10; ++i) {
@@ -559,8 +569,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 //file info (bottom panel)
                 DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.7f));
                 //filename and size
-                DrawTextEx(txtFont,TextFormat("File: %s",fName),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
-                DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, GetFileLength(fName),timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
+                DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
+                DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-124, screenHeight-22, 10, WHITE); 
