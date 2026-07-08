@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.9.5"
+#define TOOL_VERSION            "1.9.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -42,7 +42,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 // window initial size
 #define screenWidth   540
 #define screenHeight  279
-#define miniScrWidth 367
+#define miniScrWidth 540 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -453,9 +453,6 @@ int main (int argc, char *argv[])
             int second = (int)GetMusicTimePlayed(music) % 60;
             snprintf(curTimeStr,sizeof(curTimeStr),"%02d:%02d:%02d", hour , minute, second);
 
-            // int hours   = ((int)GetMusicTimeLength(music) -(int)GetMusicTimePlayed(music)) / 3600;
-            // int minutes = ((int)GetMusicTimeLength(music)- (int)GetMusicTimePlayed(music)) / 60 % 60;
-            // int seconds = ((int)GetMusicTimeLength(music)-(int)GetMusicTimePlayed(music)) % 60;
             int hours   = (int)GetMusicTimeLength(music) / 3600;
             int minutes = (int)GetMusicTimeLength(music) / 60 % 60;
             int seconds = (int)GetMusicTimeLength(music) % 60;
@@ -466,9 +463,7 @@ int main (int argc, char *argv[])
             Vector2 volumeSize = MeasureTextEx(digitFnt, "v 100", 20, 0);
 
         // auto move on next song
-        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.200f)
-        //if (hour == hours && minute  == minutes && second == seconds && isPlay && !isPause)
-           {
+        if (GetMusicTimePlayed(music) >= (GetMusicTimeLength(music) - 0.450f)) {
                 prevPlay = selectedIndex;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
@@ -814,7 +809,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:offColor);
             
             // REPEAT flag
-            DrawRectangle(435,27,64,15,isRepeat ? onColor:bgColor);
+            DrawRectangle(435,27,64,16,isRepeat ? onColor:bgColor);
             DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
 
             // INFO flag
