@@ -23,7 +23,7 @@
 
 #define TOOL_NAME               "Binary Converter"
 #define TOOL_SHORT_NAME         "binconv"
-#define TOOL_VERSION            "1.3"
+#define TOOL_VERSION            "1.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -299,8 +299,7 @@ int main (int argc, char *argv[])
                     player.cell.x = (GetMouseX() - grid_bin_XY.x) / gridSpacing ;
                     player.cell.y = (GetMouseY() - grid_bin_XY.y) / gridSpacing;
                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
-                    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = 1;  
-                    if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) matrice[player.cell.x][player.cell.y] = 0; 
+                    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) matrice[player.cell.x][player.cell.y] = !matrice[player.cell.x][player.cell.y];  
                 }
             }
    
@@ -327,17 +326,23 @@ int main (int argc, char *argv[])
             // print titles and some heaaders
             DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), grid_bin_XY.x, 24, 20, FG_COLOR); 
             //DrawText("When mouse cursor is inside matrix use mouse buttons to set/unset bit.", 140, 52, 10, GRID_COLOR);
-            DrawText(TextFormat("BIN"), grid_bin_XY.x + 8 , grid_bin_XY.y-24, 20, SKYBLUE);
             DrawText(TextFormat("HEX"), grid_hex_XY.x - 16 - gridSpacing, grid_hex_XY.y, 20, SKYBLUE);
             DrawText(TextFormat("DEC"), grid_hex_XY.x + gridSpacing*5 - 16, grid_hex_XY.y, 20, SKYBLUE);
             DrawText(TextFormat("OCT"), grid_hex_XY.x + gridSpacing*10 - 16, grid_hex_XY.y, 20, SKYBLUE);
             
             // intestazioni riga/colonna matrice binaria
-            for (int z = MAX_GRID_BIN_X - 1;z> -1; z--)
+            for (int z = MAX_GRID_BIN_X - 1; z> -1; z--)
             {
                 DrawText(TextFormat("%02d",z+1),grid_bin_XY.x + ( 12 + z * gridSpacing),grid_bin_XY.y + 4 + gridSpacing,10,SKYBLUE); // bit decimal value
-                if (z % 4 == 0 ) DrawLine(grid_bin_XY.x + z*gridSpacing,grid_bin_XY.y - 22 ,grid_bin_XY.x + (z * gridSpacing),grid_bin_XY.y - 8, SKYBLUE);
+                if (z % 4 == 0 ) {
+                    DrawText("8      4        2        1", grid_bin_XY.x + 16 + (z * 36),grid_bin_XY.y -12, 10, SKYBLUE);
+                    DrawLine(grid_bin_XY.x + z*gridSpacing,grid_bin_XY.y - 22 ,grid_bin_XY.x + (z * gridSpacing),grid_bin_XY.y - 8, SKYBLUE);
+                }
+
+
             }
+
+
 
             drawGrids (); // disegna o meno laa griglia della matrice binaria
     

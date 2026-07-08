@@ -217,6 +217,7 @@ int main (int argc, char *argv[])
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
 
     Image img = LoadImage(fName);
+    ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);    
     Image img1 = GenImageChecked((int)img.width, (int)img.height, 8,8, WHITE, RAYWHITE);
     Texture2D background = LoadTextureFromImage(img);
     Texture2D checkerBoard = LoadTextureFromImage(img1);
@@ -413,8 +414,6 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.target.x -= delta.x / cam.zoom;
                     cam.target.y -= delta.y / cam.zoom;
                 }
-
-
 
                 // --- CONTROLLO DEI LIMITI DELL'IMMAGINE ---
                 Vector2 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
