@@ -42,7 +42,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 // window initial size
 #define screenWidth   540
 #define screenHeight  279
-#define miniScrWidth 540 // 367 mini
+#define miniScrWidth 367 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -302,7 +302,7 @@ void ProcessAudio(void *buffer, unsigned int frames)
 int main (int argc, char *argv[])
 {
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -836,6 +836,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, onColor);
                         DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
+                //vertical divider
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
                 EndScissorMode();
             }
