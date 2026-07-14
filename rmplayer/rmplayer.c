@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.1.5"
+#define TOOL_VERSION            "2.2.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -40,9 +40,9 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 // archlinux : pacman -S raylib libid3tag
 
 // window initial size
-#define screenWidth   540
+#define screenWidth   508
 #define screenHeight  279
-#define miniScrWidth 367 // 367 mini
+#define miniScrWidth 508 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -913,17 +913,16 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             // progressbar background grid points
-                // for (int h = 0; h<131 ; h+=2) 
-                //      for (int v = 0; v < 20; v+=2)
-                //          DrawPixel(369 + h, 90 + v,textColor);
-
-            //volume bar
-                for (int i = 0; i < (volume*100); i+=2) DrawLine(509, 109-i, 530, 109-i,(volume > 0.75f)?accentColor:textColor);
-               DrawTextEx(digitFnt,TextFormat("v %03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
-
+                for (int h = 0; h<131 ; h+=2) 
+                     for (int v = 0; v < 20; v+=2)
+                         DrawPixel(369 + h, 90 + v,textColor);
             // only progressbar
-            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, textColor);  // riempimento
-            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,textColor);
+            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
+            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+
+
+            //volume value
+               DrawTextEx(digitFnt,TextFormat("v %03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
 
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
