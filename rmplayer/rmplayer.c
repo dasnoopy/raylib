@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.1.3"
+#define TOOL_VERSION            "2.1.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -475,10 +475,9 @@ int main (int argc, char *argv[]) {
 
  //  vumeter
     Complex fftBuffer[MAX_SAMPLES];
-
     // Parametri dinamici di calibrazione
     float minDb = -55.0f; 
-    float maxDb = -0.0f;
+    float maxDb = -0.0f; // sensibilita Decibel
     float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
     // fai riapparire finestra dopo caricamento iniziale
@@ -868,42 +867,35 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
-        if (isVumeter) {
-            // vumeter
-            float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
-            float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barrw)
-            
-            const int maxSegments = 18;       
-            const float segmentHeight = 1.0f; 
-            const float segmentGap = 1.0f;    
-            float baseYPos = 80; //base del vumeter
+                    if (isVumeter) {
+                        // draw vumeter
+                        float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
+                        float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+                        
+                        const int maxSegments = 18; //nr. segmente singola barra
+                        const float segmentHeight = 1.0f; //altezza segmento... anche se e' linea 
+                        const float segmentGap = 1.0f;   // distanza tra i segmenty 
+                        float baseYPos = 81; //base del vumeter
 
-            for (int i = 0; i < NUM_BARS; i++) {
-                float xPos = 224 + i * barWidth;
-                int segmentsToLight = (int)(barValues[i] * maxSegments); 
+                        for (int i = 0; i < NUM_BARS; i++) {
+                            float xPos = 224 + i * barWidth; // posizione X iniziale vumeter
+                            int segmentsToLight = (int)(barValues[i] * maxSegments); 
 
-                for (int s = 0; s < maxSegments; s++) {
-                    float segYPos = baseYPos - (s * (segmentHeight + segmentGap)) - segmentHeight;
-
-                    Color segColor = accentColor;  
-
-                    if (s >= segmentsToLight) {
-                        segColor = darkenColor(accentColor,0.25f);
+                            for (int j = 0; j < maxSegments; j++) {
+                                float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (j >= segmentsToLight) ? borderColor : accentColor );
+                            }
+                        }
                     }
-
-                    DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, segColor );
-                }
-            }
-        }
-         else {
-            // visualizer
-                // background grid
-                for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
-                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
-                // visualizer
-                for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
-                    DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
-        }
+                     else {
+                        // visualizer
+                            // background grid
+                            for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
+                            for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
+                            // visualizer
+                            for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
+                                DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
+                    }
             EndScissorMode();
 
             // song of songs
@@ -926,7 +918,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,textColor);
 
             //volume bar
-                for (int i = 0; i < (volume*100); i+=4) DrawRectangleLinesEx((Rectangle){509,106-i,21,3},2,(volume > 0.75f)?accentColor:textColor);
+                for (int i = 0; i < (volume*100); i+=2) DrawLine(509, 109-i, 530, 109-i,(volume > 0.75f)?accentColor:textColor);
                DrawTextEx(digitFnt,TextFormat("v %03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
 
             // only progressbar
