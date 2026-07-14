@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "1.9.6"
+#define TOOL_VERSION            "2.1.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -85,7 +85,6 @@ int prevPlay = 0; //previous played song when shuffle is ON
 
 static FilePathList files;
 
-
 // define stream 
 static Music music;
 
@@ -98,7 +97,19 @@ typedef struct Config
     char titleFnt[256];
     bool dgtEffect;
     bool isMini;
+    bool isVumeter;
 } Config;
+
+// vumeter
+#define MAX_SAMPLES          512
+#define NUM_BARS             20 // numero di barre verticali
+#define SMOOTHING_FACTOR     0.18f  
+#define PI                   3.14159265358979323846f
+
+typedef struct { float real; float imag; } Complex;
+
+float rawSamples[MAX_SAMPLES] = { 0 };
+float barValues[NUM_BARS] = { 0 };
 
 static char *Trim(char *str)
 {
@@ -176,6 +187,7 @@ bool LoadConfig(const char* filename, Config* cfg) {
             else if (strcmp(key, "isShuffle") == 0) cfg->isShuffle = ParseBool(value);
             else if (strcmp(key, "musicDir") == 0) strncpy(cfg->musicDir, value, sizeof(cfg->musicDir) - 1);
             else if (strcmp(key, "isMini") == 0) cfg->isMini = ParseBool(value);
+            else if (strcmp(key, "isVumeter") == 0) cfg->isVumeter = ParseBool(value);
         }
         // Style / UI section
         else if (strcmp(currentSection, "style") == 0) {
@@ -299,8 +311,41 @@ void ProcessAudio(void *buffer, unsigned int frames)
     averageVolume[133] = average;         // Adding last average value
 }
 
-int main (int argc, char *argv[])
-{
+// Struttura FFT In-Place
+void FFT(Complex *X, int n) {
+    if (n <= 1) return;
+    Complex *even = malloc(n / 2 * sizeof(Complex));
+    Complex *odd  = malloc(n / 2 * sizeof(Complex));
+    for (int i = 0; i < n / 2; i++) {
+        even[i] = X[2 * i];
+        odd[i]  = X[2 * i + 1];
+    }
+    FFT(even, n / 2);
+    FFT(odd, n / 2);
+    for (int k = 0; k < n / 2; k++) {
+        float angle = -2.0f * PI * k / n;
+        Complex t = {
+            .real = cosf(angle) * odd[k].real - sinf(angle) * odd[k].imag,
+            .imag = sinf(angle) * odd[k].real + cosf(angle) * odd[k].imag
+        };
+        X[k] = (Complex){ .real = even[k].real + t.real, .imag = even[k].imag + t.imag };
+        X[k + n / 2] = (Complex){ .real = even[k].real - t.real, .imag = even[k].imag - t.imag };
+    }
+    free(even);
+    free(odd);
+}
+
+void AudioProcessCallback(void *buffer, unsigned int frames) {
+    float *samples = (float *)buffer;
+    for (unsigned int i = 0; i < frames && i < MAX_SAMPLES; i++) {
+        // Attenuazione preventiva di sicurezza (0.1f) per evitare saturazione hardware
+        rawSamples[i] = samples[i * 2] * 0.1f; 
+    }
+}
+
+
+int main (int argc, char *argv[]) {
+    
     // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
@@ -349,8 +394,8 @@ int main (int argc, char *argv[])
     // init Audio
     InitAudioDevice();
     SetAudioStreamBufferSizeDefault(65535);
-    AttachAudioMixedProcessor(ProcessAudio);
     
+
     // default config value
     Config cfg = {
         .isPlay = false,
@@ -359,7 +404,8 @@ int main (int argc, char *argv[])
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .dgtEffect = false,
-        .isMini = false
+        .isMini = false,
+        .isVumeter = true
     };
 
     //load config from file
@@ -371,6 +417,7 @@ int main (int argc, char *argv[])
     bool isPlay = cfg.isPlay;
     bool isShuffle = cfg.isShuffle;
     bool isMini = cfg.isMini;
+    bool isVumeter = cfg.isVumeter;
     Color accentColor = cfg.accentColor;
     char *musicDir = cfg.musicDir;
     titleFnt = LoadFontEx(cfg.titleFnt, 28, NULL, 0);
@@ -390,6 +437,10 @@ int main (int argc, char *argv[])
         isPause =false;
         PlayMusicStream(music);  // autoplay at start
     }
+
+    // init Audio Processor
+    if (isVumeter) AttachAudioMixedProcessor(AudioProcessCallback);
+    else  AttachAudioMixedProcessor(ProcessAudio);
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
     //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
@@ -422,8 +473,19 @@ int main (int argc, char *argv[])
         SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
     }
 
+ //  vumeter
+    Complex fftBuffer[MAX_SAMPLES];
+
+    // Parametri dinamici di calibrazione
+    float minDb = -55.0f; 
+    float maxDb = -0.0f;
+    float maxSeenMagnitude = 0.01f; // Auto-gain tracker
+
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
+
+
+
 
  while (!WindowShouldClose())
 {
@@ -462,6 +524,14 @@ int main (int argc, char *argv[])
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
             Vector2 volumeSize = MeasureTextEx(digitFnt, "v 100", 20, 0);
 
+    
+        // set initial volume 
+        SetMasterVolume(volume);
+
+        // mouse position and update sound stream
+        Vector2 mousePos = GetMousePosition();
+        UpdateMusicStream(music);   // Update music buffer with new stream data
+
         // auto move on next song
         if (GetMusicTimePlayed(music) >= (GetMusicTimeLength(music) - 0.450f)) {
                 prevPlay = selectedIndex;
@@ -482,14 +552,6 @@ int main (int argc, char *argv[])
                 PlayMusicStream(music);
                 selectedIndex = currPlay;
             }
-    
-        // set initial volume 
-        SetMasterVolume(volume);
-
-        // mouse position and update sound stream
-        Vector2 mousePos = GetMousePosition();
-        UpdateMusicStream(music);   // Update music buffer with new stream data
-
         
         // rileva e memorizza stato per ogni bottone della toolbar
         for (int i = 0; i < NUM_BUTTONS; ++i)
@@ -542,7 +604,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
             else SetWindowSize(screenWidth,screenHeight);
         }
-
+        
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
          
@@ -704,10 +766,63 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             srcRect[2].y = btnState[2]*frameHeight;   
             }
     
+        //-----------------------------------------------------------------------------------------
+        // vumeter update
+        //-----------------------------------------------------------------------------------------
+        // 1. Finestra di Hann ed esecuzione FFT
+        for (int i = 0; i < MAX_SAMPLES; i++) {
+            float window = 0.5f * (1.0f - cosf(2.0f * PI * i / (MAX_SAMPLES - 1)));
+            fftBuffer[i] = (Complex){ .real = rawSamples[i] * window, .imag = 0.0f };
+        }
+
+        FFT(fftBuffer, MAX_SAMPLES);
+
+        // 2. Divisione logaritmica e calcolo spettro
+        for (int i = 0; i < NUM_BARS; i++) {
+            int indexStart = (int)powf(2.0f, (float)i * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            int indexEnd = (int)powf(2.0f, (float)(i + 1) * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            
+            if (indexEnd <= indexStart) indexEnd = indexStart + 1;
+            if (indexEnd > MAX_SAMPLES / 2) indexEnd = MAX_SAMPLES / 2;
+
+            float magnitudeSum = 0.0f;
+            int count = 0;
+
+            for (int j = indexStart; j < indexEnd; j++) {
+                float mag = sqrtf(fftBuffer[j].real * fftBuffer[j].real + 
+                                  fftBuffer[j].imag * fftBuffer[j].imag);
+                magnitudeSum += mag;
+                count++;
+            }
+
+            float averageMagnitude = (count > 0) ? (magnitudeSum / count) : 0.0f;
+
+            // Auto-Gain: Tracciamo il picco più alto mai registrato per scalare i dati di conseguenza
+            if (averageMagnitude > maxSeenMagnitude) maxSeenMagnitude = averageMagnitude;
+            // Lentamente facciamo decadere il picco massimo per adattarsi a parti più silenziose del brano
+            maxSeenMagnitude *= 0.9995f; 
+
+            // Normalizziamo l'ampiezza in base al massimo picco reale registrato
+            float normalizedMag = averageMagnitude / maxSeenMagnitude;
+
+            // Calcolo Decibel convertito
+            float db = 20.0f * log10f(normalizedMag + 0.00001f);
+            
+            // Mappatura lineare sui limiti dB
+            float targetValue = (db - minDb) / (maxDb - minDb);
+            if (targetValue < 0.0f) targetValue = 0.0f;
+            if (targetValue > 1.0f) targetValue = 1.0f;
+
+            // Applichiamo lo smoothing per frenare la discesa
+            barValues[i] += (targetValue - barValues[i]) * SMOOTHING_FACTOR;
+        }
 
         // do someting whe window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         else SetWindowOpacity(1.0f);
+
+
+
 
         //----------------------------------------------------------------------------------
         // Draw
@@ -752,13 +867,43 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){225-clockSize.x, 41},16,0,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
-            BeginScissorMode(223,44,135,80);
+            BeginScissorMode(223,43,136,40);
+        if (isVumeter) {
+            // vumeter
+            float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
+            float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barrw)
+            
+            const int maxSegments = 18;       
+            const float segmentHeight = 1.0f; 
+            const float segmentGap = 1.0f;    
+            float baseYPos = 80; //base del vumeter
+
+            for (int i = 0; i < NUM_BARS; i++) {
+                float xPos = 224 + i * barWidth;
+                int segmentsToLight = (int)(barValues[i] * maxSegments); 
+
+                for (int s = 0; s < maxSegments; s++) {
+                    float segYPos = baseYPos - (s * (segmentHeight + segmentGap)) - segmentHeight;
+
+                    Color segColor = accentColor;  
+
+                    if (s >= segmentsToLight) {
+                        segColor = darkenColor(accentColor,0.25f);
+                    }
+
+                    DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, segColor );
+                }
+            }
+        }
+         else {
+            // visualizer
                 // background grid
-                for (int h = 0; h<4 ; h++) DrawLine(224, 50 + (h*8), 357, 50 + (h*8), borderColor);
-                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 44, 227 + (v*8), 79, borderColor);
+                for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
+                for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
                 // visualizer
                 for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                     DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
+        }
             EndScissorMode();
 
             // song of songs
@@ -855,7 +1000,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     UnloadImage(image);
     UnloadTexture(background);
     UnloadRenderTexture(target);
-    DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor
+    DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor // visulizer
+    DetachAudioStreamProcessor(music.stream, AudioProcessCallback); // vumeter
     UnloadMusicStream(music); // Unloaad music stream
     // unload fonts
     UnloadFont(titleFnt);
