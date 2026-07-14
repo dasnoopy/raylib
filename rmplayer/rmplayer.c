@@ -5,23 +5,12 @@
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
-********************************************************************************
-* 
-* ordinamento file
-* ricerca con finestra input
-* utf8 per il titolo oppure sprite font? 
-*
-* BUGS
-* 
-* ma se finestra e' coperta del tutto oppure se sono in altro workspace non fa avanzamento automatico..
-fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
-* 
-*******************************************************************************/
+********************************************************************************/
         
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.3"
+#define TOOL_VERSION            "2.2.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -350,7 +339,7 @@ void AudioProcessCallback(void *buffer, unsigned int frames) {
 int main (int argc, char *argv[]) {
     
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -721,7 +710,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 } 
             else {
                 selectedIndex++;
-                if (selectedIndex > files.count) selectedIndex = 0;
+                if (selectedIndex >= files.count) selectedIndex = 0;
             }
                 StopMusicStream(music);
                 UnloadMusicStream(music);
@@ -995,7 +984,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     UnloadTexture(background);
     UnloadRenderTexture(target);
     DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor // visulizer
-    DetachAudioStreamProcessor(music.stream, AudioProcessCallback); // vumeter
+    DetachAudioMixedProcessor(AudioProcessCallback); // vumeter
     UnloadMusicStream(music); // Unloaad music stream
     // unload fonts
     UnloadFont(titleFnt);
