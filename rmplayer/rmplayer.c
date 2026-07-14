@@ -21,7 +21,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.1"
+#define TOOL_VERSION            "2.2.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -42,7 +42,7 @@ fps calano da 60 a 5 i meno e il controllo sul tempo non funzionaa..
 // window initial size
 #define screenWidth   508
 #define screenHeight  279
-#define miniScrWidth 508 // 367 mini
+#define miniScrWidth 367 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -77,6 +77,7 @@ Color borderColor; // grids color
 #define MAX_FILEPATH_SIZE       1024
 #define FILE_FILTER      ".mp3;.ogg"
 
+// file selection & id3 tag
 char ID3tag[1024] = { '\0' };
 char titleStr[1024] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
@@ -88,6 +89,7 @@ static FilePathList files;
 // define stream 
 static Music music;
 
+// config file
 typedef struct Config
 {
     bool isPlay;
@@ -111,6 +113,8 @@ typedef struct { float real; float imag; } Complex;
 float rawSamples[MAX_SAMPLES] = { 0 };
 float barValues[NUM_BARS] = { 0 };
 
+
+// Functions
 static char *Trim(char *str)
 {
     while (isspace((unsigned char)*str)) str++;
@@ -342,7 +346,6 @@ void AudioProcessCallback(void *buffer, unsigned int frames) {
         rawSamples[i] = samples[i * 2] * 0.1f; 
     }
 }
-
 
 int main (int argc, char *argv[]) {
     
@@ -888,7 +891,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         }
                     }
                      else {
-                        // visualizer
+                        // amplitude visualizer 
                             // background grid
                             for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
                             for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
@@ -913,9 +916,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             // progressbar background grid points
-                for (int h = 0; h<131 ; h+=2) 
-                     for (int v = 0; v < 20; v+=2)
-                         DrawPixel(369 + h, 90 + v,textColor);
+                // for (int h = 0; h<131 ; h+=2) 
+                //      for (int v = 0; v < 20; v+=2)
+                //          DrawPixel(369 + h, 90 + v,borderColor);
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
             //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
