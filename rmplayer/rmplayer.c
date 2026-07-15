@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.8"
+#define TOOL_VERSION            "2.3.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -430,7 +430,7 @@ int main (int argc, char *argv[]) {
 
 
             // always start loading a random song
-                selectedIndex = GetRandomValue(0,files.count);
+                selectedIndex = isShuffle ? GetRandomValue(0,files.count) : 0;
                 LoadMusicByIndex(selectedIndex,musicFiles);
                 prevPlay=selectedIndex;
 
