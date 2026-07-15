@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.5"
+#define TOOL_VERSION            "2.2.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -52,7 +52,7 @@ bool isPause = false;
 bool isMute = false;
 bool isRepeat = false;
 bool isID3 = true;
-float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
+float volume = 1.00f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.50f;
 
 // some custom colors
@@ -96,12 +96,17 @@ typedef struct Config
 #define NUM_BARS             20 // numero di barre verticali
 #define SMOOTHING_FACTOR     0.18f  
 #define PI                   3.14159265358979323846f
+// Parametri di comportamento del picco Hi-Fi
+#define PEAK_HOLD_FRAMES     20     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
+#define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
 
 typedef struct { float real; float imag; } Complex;
 
 float rawSamples[MAX_SAMPLES] = { 0 };
 float barValues[NUM_BARS] = { 0 };
-
+// Array per la gestione del picco massimo stile Hi-Fi
+float peakValues[NUM_BARS] = { 0 };
+int peakHoldTimers[NUM_BARS] = { 0 };
 
 // Functions
 static char *Trim(char *str)
@@ -806,6 +811,19 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // Applichiamo lo smoothing per frenare la discesa
             barValues[i] += (targetValue - barValues[i]) * SMOOTHING_FACTOR;
+
+            // Logica del Picco Massimo Hi-Fi
+            if (barValues[i] >= peakValues[i]) {
+                peakValues[i] = barValues[i];
+                peakHoldTimers[i] = PEAK_HOLD_FRAMES; // Resetta il timer di attesa in cima
+            } else {
+                if (peakHoldTimers[i] > 0) {
+                    peakHoldTimers[i]--; // Il picco resta fermo ad aspettare
+                } else {
+                    peakValues[i] -= PEAK_DECAY_SPEED; // Il picco scende per gravità
+                    if (peakValues[i] < barValues[i]) peakValues[i] = barValues[i];
+                }
+            }
         }
 
         // do someting whe window loses focus
@@ -871,15 +889,21 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
                         for (int i = 0; i < NUM_BARS; i++) {
                             float xPos = 224 + i * barWidth; // posizione X iniziale vumeter
+
                             int segmentsToLight = (int)(barValues[i] * maxSegments); 
+                            int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
+                            if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
                             for (int j = 0; j < maxSegments; j++) {
                                 float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
-                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (j >= segmentsToLight) ? borderColor : accentColor );
-                            }
+                                // Logica di disegno combinata barra + picco
+                                bool drawActiveSegment = (j < segmentsToLight);
+                                bool drawPeakSegment = (j == peakSegment);
+                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? accentColor:borderColor );
+                           }
                         }
                     }
-                     else {
+                    else {
                         // amplitude visualizer 
                             // background grid
                             for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
