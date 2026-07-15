@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.7"
+#define TOOL_VERSION            "2.2.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -97,7 +97,7 @@ typedef struct Config
 #define SMOOTHING_FACTOR     0.18f  
 #define PI                   3.14159265358979323846f
 // Parametri di comportamento del picco Hi-Fi
-#define PEAK_HOLD_FRAMES     20     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
+#define PEAK_HOLD_FRAMES     15     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
 #define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
 
 typedef struct { float real; float imag; } Complex;
@@ -277,7 +277,12 @@ void GetTitle (int idx){
 // Funzione che restituisce un FilePathList dei file in basePath con estensioni filter
 FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
     files = LoadDirectoryFilesEx(basePath, filter, includeSubdirs);
-    if (files.count == 0) printf("Nessun file trovato in '%s' con filtro '%s'\n", basePath, filter);
+    
+    if (files.count == 0) {
+        printf("Nessun file trovato in '%s' con filtro '%s'\n", basePath, filter);     
+        exit(0);
+    }
+    
     return files; 
 }
 
@@ -422,60 +427,61 @@ int main (int argc, char *argv[]) {
 
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
-    
-    // always start loading a random song
-        selectedIndex = GetRandomValue(0,files.count);
-        LoadMusicByIndex(selectedIndex,musicFiles);
-        prevPlay=selectedIndex;
-
-    // auto play song based on cfg setting
-    if (isPlay) {
-        isStop=false;
-        isPause =false;
-        PlayMusicStream(music);  // autoplay at start
-    }
-
-    // init Audio Processor
-    if (isVumeter) AttachAudioMixedProcessor(AudioProcessCallback);
-    else  AttachAudioMixedProcessor(ProcessAudio);
-
-    // set FPS (uso questo sistema per regolare la velocità di scorrimento)
-    //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
-
-    // scroll title / id3
-    Rectangle displayArea = { 8, 8, 352,36 };
-    float titleX = displayArea.x ;
-    float speed = 60.0f;
-
-    // filelist variables
-    Rectangle filesArea = { 8,118,screenWidth-16,139 };
-    int rowHeight = 20;
-    int visibleRows = 7;
-    const int centerRow = 3;
-    int scrollOffset = 0;     // primo file visualizzato
 
 
-    // set colors darker starting from fg color
-    Color bgColor = darkenColor(accentColor,0.15f);
-    Color textColor = darkenColor(accentColor, 0.60f);
-    Color borderColor = darkenColor(accentColor,0.30f);
+            // always start loading a random song
+                selectedIndex = GetRandomValue(0,files.count);
+                LoadMusicByIndex(selectedIndex,musicFiles);
+                prevPlay=selectedIndex;
 
-    // set window size and center on screen
-    if (isMini) {
-        SetWindowSize(miniScrWidth,miniScrHeight);
-        SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
-    }
-    else {
-        SetWindowSize(screenWidth,screenHeight);
-        SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
-    }
+            // auto play song based on cfg setting
+            if (isPlay) {
+                isStop=false;
+                isPause =false;
+                PlayMusicStream(music);  // autoplay at start
+            }
 
- //  vumeter
-    Complex fftBuffer[MAX_SAMPLES];
-    // Parametri dinamici di calibrazione
-    float minDb = -55.0f; 
-    float maxDb = -0.0f; // sensibilita Decibel
-    float maxSeenMagnitude = 0.01f; // Auto-gain tracker
+            // init Audio Processor
+            if (isVumeter) AttachAudioMixedProcessor(AudioProcessCallback);
+            else  AttachAudioMixedProcessor(ProcessAudio);
+
+            // set FPS (uso questo sistema per regolare la velocità di scorrimento)
+            //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
+
+            // scroll title / id3
+            Rectangle displayArea = { 8, 8, 352,36 };
+            float titleX = displayArea.x ;
+            float speed = 60.0f;
+
+            // filelist variables
+            Rectangle filesArea = { 8,118,screenWidth-16,139 };
+            int rowHeight = 20;
+            int visibleRows = 7;
+            const int centerRow = 3;
+            int scrollOffset = 0;     // primo file visualizzato
+
+
+            // set colors darker starting from fg color
+            Color bgColor = darkenColor(accentColor,0.15f);
+            Color textColor = darkenColor(accentColor, 0.60f);
+            Color borderColor = darkenColor(accentColor,0.30f);
+
+            // set window size and center on screen
+            if (isMini) {
+                SetWindowSize(miniScrWidth,miniScrHeight);
+                SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
+            }
+            else {
+                SetWindowSize(screenWidth,screenHeight);
+                SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
+            }
+
+         //  vumeter
+            Complex fftBuffer[MAX_SAMPLES];
+            // Parametri dinamici di calibrazione
+            float minDb = -55.0f; 
+            float maxDb = -0.0f; // sensibilita Decibel
+            float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -504,8 +510,8 @@ int main (int argc, char *argv[]) {
         if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
 
         // calculating song times
-          char curTimeStr[32];
-          char totTimeStr[32];
+          char curTimeStr[32]= { '\0' };
+          char totTimeStr[32]= { '\0' };
             int hour   = (int)GetMusicTimePlayed(music) / 3600;
             int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
             int second = (int)GetMusicTimePlayed(music) % 60;
