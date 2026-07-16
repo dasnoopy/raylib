@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.0"
+#define TOOL_VERSION            "2.3.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -97,7 +97,7 @@ typedef struct Config
 #define SMOOTHING_FACTOR     0.18f  
 #define PI                   3.14159265358979323846f
 // Parametri di comportamento del picco Hi-Fi
-#define PEAK_HOLD_FRAMES     15     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
+#define PEAK_HOLD_FRAMES     120     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
 #define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
 
 typedef struct { float real; float imag; } Complex;
@@ -402,7 +402,7 @@ int main (int argc, char *argv[]) {
     Config cfg = {
         .isPlay = false,
         .isShuffle = false,
-        .accentColor = {245,245,245,255}, //green
+        .accentColor = {128,255,0,255}, //green
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .dgtEffect = false,
@@ -879,7 +879,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
 
             // time since app started
-            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){225-clockSize.x, 41},16,0,textColor);
+            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){221-clockSize.x, 41},16,0,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
@@ -938,13 +938,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 // for (int h = 0; h<131 ; h+=2) 
                 //      for (int v = 0; v < 20; v+=2)
                 //          DrawPixel(369 + h, 90 + v,borderColor);
+
             // only progressbar
             DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
             //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
-
             //volume value
-               DrawTextEx(digitFnt,TextFormat("v %03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               DrawTextEx(digitFnt,TextFormat("%03.fv",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
 
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
