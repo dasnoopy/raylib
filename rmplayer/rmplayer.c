@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.1"
+#define TOOL_VERSION            "2.3.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -24,6 +24,7 @@
 #include <id3tag.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/stat.h>
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -77,6 +78,13 @@ static FilePathList files;
 
 // define stream 
 static Music music;
+
+/* [ DEFINES ] */
+
+#define APP_DIR_NAME "rmplayer"
+#define SAVE_FILE_NAME "rmplayer.cfg"
+#define PATH_BUF_SIZE 1024
+
 
 // config file
 typedef struct Config
@@ -151,9 +159,27 @@ Color darkenColor(Color color, float factor)
     };
 }
 
-bool LoadConfig(const char* filename, Config* cfg) {
-    FILE* fp = fopen(filename, "r");
-    if (!fp) return false;
+// Get path to the score file based on the os.
+static void get_config_path(char *buf, size_t len) {
+    char dir[PATH_BUF_SIZE];
+    const char *xdg = getenv("XDG_DATA_HOME");
+    if (xdg && xdg[0]) {
+        snprintf(dir, sizeof(dir), "%s/%s", xdg, APP_DIR_NAME);
+    } else {
+        const char *home = getenv("HOME");
+        if (!home)
+            home = ".";
+        snprintf(dir, sizeof(dir), "%s/.local/share/%s", home, APP_DIR_NAME);
+    }
+    mkdir(dir, 0755); // fails safely if already exists.
+    snprintf(buf, len, "%s/%s", dir, SAVE_FILE_NAME);
+}
+
+bool LoadConfig(Config* cfg) {
+    char path[PATH_BUF_SIZE];
+    get_config_path(path, sizeof(path));
+    FILE* fp = fopen(path, "r");
+        if (!fp) return false;
 
     char line[512];
     char currentSection[64] = "";
@@ -411,7 +437,7 @@ int main (int argc, char *argv[]) {
     };
 
     //load config from file
-    if (!LoadConfig("rmplayer.cfg", &cfg)) {
+    if (!LoadConfig(&cfg)) {
         printf("Errore durante apertura file di configurazione! Verrano usati valori di default.\n");
     }
 
