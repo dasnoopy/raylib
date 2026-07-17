@@ -944,7 +944,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
             //volume value
-               DrawTextEx(digitFnt,TextFormat("%03.fv",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               DrawTextEx(digitFnt,TextFormat("%03.f v",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
 
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
