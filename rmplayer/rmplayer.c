@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.3"
+#define TOOL_VERSION            "2.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -79,14 +79,12 @@ static FilePathList files;
 // define stream 
 static Music music;
 
-/* [ DEFINES ] */
 
+// config file
 #define APP_DIR_NAME "rmplayer"
 #define SAVE_FILE_NAME "rmplayer.cfg"
 #define PATH_BUF_SIZE 1024
 
-
-// config file
 typedef struct Config
 {
     bool isPlay;
@@ -105,7 +103,7 @@ typedef struct Config
 #define SMOOTHING_FACTOR     0.18f  
 #define PI                   3.14159265358979323846f
 // Parametri di comportamento del picco Hi-Fi
-#define PEAK_HOLD_FRAMES     120     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
+#define PEAK_HOLD_FRAMES     60     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
 #define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
 
 typedef struct { float real; float imag; } Complex;
