@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.7"
+#define TOOL_VERSION            "2.3.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -426,7 +426,7 @@ int main (int argc, char *argv[]) {
     Config cfg = {
         .isPlay = false,
         .isShuffle = false,
-        .accentColor = {128,255,0,255}, //green
+        .accentColor = {245,245,245,255}, //RAYWHITE
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .dgtEffect = false,
@@ -997,8 +997,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
     if (!isMini) { // draw all control when mini window is disabled
             // file selection
-            {
-              BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
+            BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
                 if (files.count < visibleRows) visibleRows = files.count;
 
                 scrollOffset = selectedIndex - centerRow;
@@ -1018,16 +1017,14 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //vertical divider
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
                 EndScissorMode();
+
+                //statusbar with some info
+                DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
+
+                DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+                DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),(screenWidth/2)-32,screenHeight-16,10,BLACK );
+                DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             }
-        }
-
-            //statusbar with some info
-            DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
-
-            DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-            DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),(screenWidth/2)-24,screenHeight-16,10,BLACK );
-            DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            //DrawFPS(screenWidth-100,screenHeight-50);
         EndDrawing();
     }
     
