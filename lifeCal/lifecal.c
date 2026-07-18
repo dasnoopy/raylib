@@ -139,7 +139,7 @@ struct tm *tm_info = localtime(&now);
 		  truncVal = 15;
 		  dotGap=16;
 		  dotSize=6;
-		  startX=14;
+		  startX=18;
 		  currPoint = abs(days2 - days1);
 		}
 		
