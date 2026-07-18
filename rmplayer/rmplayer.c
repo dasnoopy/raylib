@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.9"
+#define TOOL_VERSION            "2.4.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -32,7 +32,7 @@
 // window initial size
 #define screenWidth   508
 #define screenHeight  279
-#define miniScrWidth 508 // 367 mini
+#define miniScrWidth 367 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -547,7 +547,6 @@ int main (int argc, char *argv[]) {
             snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
             // clock & vol text size
-            Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
             Vector2 volumeSize = MeasureTextEx(digitFnt, "000vw", 20, 0);
 
     
@@ -902,9 +901,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
-
-            // time since app started
-            DrawText(TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),234-clockSize.x, 46,10,textColor);
+            // current song
+             DrawText(TextFormat("%04d",currPlay + 1),188, 46,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
@@ -961,8 +959,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,borderColor);
 
             // only progressbar
-            //DrawRectangleLinesEx((Rectangle){368,90, 131, 19},1, textColor);
-            for (int i = 0; i < (timePlayed * 126); i+=4) DrawRectangleLinesEx((Rectangle){370+i,92,3,15},2,accentColor);
+            for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,textColor);
 
 
             //volume value
@@ -1024,7 +1021,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
 
                 DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-                DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),(screenWidth/2)-32,screenHeight-16,10,BLACK );
+                DrawText(TextFormat("%04d songs",files.count),(screenWidth/2)-32,screenHeight-16,10,DARKGRAY );
                 DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             }
         EndDrawing();
