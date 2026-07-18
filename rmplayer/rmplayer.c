@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.5"
+#define TOOL_VERSION            "2.3.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -898,12 +898,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
+            DrawText(totTimeStr,10,46,10, textColor);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
-            DrawTextEx(textFnt,totTimeStr,(Vector2){10,41},16,0, textColor);
+
 
             // time since app started
-            DrawTextEx(textFnt,TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),(Vector2){221-clockSize.x, 41},16,0,textColor);
+            DrawText(TextFormat("%02i:%02i:%02i",(int) GetTime()/3600, (int) GetTime() / 60 % 60,(int) GetTime() % 60),234-clockSize.x, 46,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
@@ -944,13 +945,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     }
             EndScissorMode();
 
-            // song of songs
-            DrawTextEx(textFnt,TextFormat("%04d",currPlay + 1),(Vector2){118,43},16,0, accentColor);
-            // separators
-            DrawLine(113,62,150,62,textColor); 
-            //DrawLine(151,45,151,79,textColor);
-            //
-            DrawTextEx(textFnt,TextFormat("%04d",files.count),(Vector2){118,63},16,0, textColor);
+            // KHz / stereo - mono  of current song
+            DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),105,58,10, accentColor);
+            DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),105,69,10, accentColor);
             
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
@@ -1026,7 +1023,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
+
             DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+            DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),(screenWidth/2)-24,screenHeight-16,10,BLACK );
             DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             //DrawFPS(screenWidth-100,screenHeight-50);
         EndDrawing();
