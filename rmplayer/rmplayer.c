@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.1"
+#define TOOL_VERSION            "2.4.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -897,12 +897,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
-            DrawText(totTimeStr,10,46,10, textColor);
+            //DrawRectangle(9,44,205,12,accentColor);
+            DrawText(TextFormat("Lenght: %s",totTimeStr),11,45,10, textColor);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
             // current song
-             DrawText(TextFormat("%04d",currPlay + 1),188, 46,10,textColor);
+             DrawText(TextFormat("song %04d of %04d",currPlay + 1, files.count),118, 45,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
@@ -1019,9 +1020,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
                 //statusbar with some info
                 DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
-
                 DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-                DrawText(TextFormat("%04d songs",files.count),(screenWidth/2)-32,screenHeight-16,10,DARKGRAY );
                 DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             }
         EndDrawing();
