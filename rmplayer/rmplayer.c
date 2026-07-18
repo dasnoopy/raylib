@@ -898,12 +898,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 }
             // tempo attuale brano e durata totale brano
             //DrawRectangle(9,44,205,12,accentColor);
-            DrawText(TextFormat("Lenght: %s",totTimeStr),11,45,10, textColor);
+            DrawText(TextFormat("Len: %s",totTimeStr),11,45,10, textColor);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
             // current song
-             DrawText(TextFormat("song %04d of %04d",currPlay + 1, files.count),118, 45,10,textColor);
+             DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),148, 45,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
