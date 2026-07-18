@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.8"
+#define TOOL_VERSION            "2.3.9"
 
 #include <stdio.h>
 #include <time.h>
@@ -548,7 +548,7 @@ int main (int argc, char *argv[]) {
 
             // clock & vol text size
             Vector2 clockSize = MeasureTextEx(digitFnt, "88:88", 20, 0);
-            Vector2 volumeSize = MeasureTextEx(digitFnt, "v 100", 20, 0);
+            Vector2 volumeSize = MeasureTextEx(digitFnt, "000vw", 20, 0);
 
     
         // set initial volume 
@@ -961,12 +961,15 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,borderColor);
 
             // only progressbar
-            DrawRectangleRec((Rectangle){369,90, 128 * timePlayed, 19}, accentColor);  // riempimento
-            //for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+
+            DrawRectangleLinesEx((Rectangle){368,90, 131, 19},1, textColor);
+            for (int i = 0; i < (timePlayed * 126); i+=4) DrawRectangleLinesEx((Rectangle){370+i,92,3,15},2,accentColor);
+
 
             //volume value
-               DrawTextEx(digitFnt,TextFormat("%03.f v",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
-
+               if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.fvw",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               else DrawTextEx(digitFnt,TextFormat("%03.fv ",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
             DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : offColor);
@@ -989,7 +992,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             
             // REPEAT flag
             DrawRectangle(435,27,64,16,isRepeat ? onColor:bgColor);
-            DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
+            DrawTextEx(textFnt,"Repeat 1",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
 
             // INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
