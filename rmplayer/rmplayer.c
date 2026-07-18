@@ -32,7 +32,7 @@
 // window initial size
 #define screenWidth   508
 #define screenHeight  279
-#define miniScrWidth 367 // 367 mini
+#define miniScrWidth 508 // 367 mini
 #define miniScrHeight 118
 
 // visualizer variables
@@ -872,7 +872,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
         BeginDrawing();
             ClearBackground(BLACK);
-            // Draw background at first
+            // Draw background at first with a rectangle
             DrawRectangle(0,0,screenWidth,screenHeight,bgColor);
             
             //load player background image
@@ -913,7 +913,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
                         float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
                         
-                        const int maxSegments = 18; //nr. segmente singola barra
+                        const int maxSegments = 18; //nr. segmenti singola barra
                         const float segmentHeight = 1.0f; //altezza segmento... anche se e' linea 
                         const float segmentGap = 1.0f;   // distanza tra i segmenty 
                         float baseYPos = 81; //base del vumeter
@@ -961,8 +961,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,borderColor);
 
             // only progressbar
-
-            DrawRectangleLinesEx((Rectangle){368,90, 131, 19},1, textColor);
+            //DrawRectangleLinesEx((Rectangle){368,90, 131, 19},1, textColor);
             for (int i = 0; i < (timePlayed * 126); i+=4) DrawRectangleLinesEx((Rectangle){370+i,92,3,15},2,accentColor);
 
 
