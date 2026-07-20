@@ -53,8 +53,8 @@ bool isPause = false;
 bool isMute = false;
 bool isRepeat = false;
 bool isID3 = true;
-float volume = 1.00f;            // Default audio volume [0.0f..1.0f]
-float prev_volume = 0.50f;
+float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
+float prev_volume = 0.80f;
 
 // some custom colors
 Color bgColor; 
@@ -547,7 +547,7 @@ int main (int argc, char *argv[]) {
             snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
             // clock & vol text size
-            Vector2 volumeSize = MeasureTextEx(digitFnt, "000vw", 20, 0);
+            Vector2 volumeSize = MeasureTextEx(digitFnt, "000 vw", 20, 0);
 
     
         // set initial volume 
@@ -964,8 +964,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
 
             //volume value
-               if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.fvw",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
-               else DrawTextEx(digitFnt,TextFormat("%03.fv ",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.f vw",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               else DrawTextEx(digitFnt,TextFormat("%03.f v ",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
                
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
