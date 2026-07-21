@@ -430,11 +430,10 @@ int main (int argc, char *argv[]) {
         .isMini = false,
         .isVumeter = true
     };
-
+ 
     //load config from file
-    if (!LoadConfig(&cfg)) {
-        printf("Errore durante apertura file di configurazione! Verrano usati valori di default.\n");
-    }
+    if (!LoadConfig(&cfg)) printf(">> Errore durante apertura file di configurazione! Verrano usati valori di default.\n");
+    else printf(">> File di configurazione caricato correttamente.\n");
 
     // assign  values from config file
     bool isPlay = cfg.isPlay;
@@ -886,6 +885,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // Draw buttons bar
+                DrawRectangle(8,87,351,25,BLACK);
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
                     DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, accentColor); // buttons background for transparency
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
@@ -954,7 +954,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,accentColor);
 
             // only progressbar
-                for (int i = 0; i < (timePlayed * 130); i+=3) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+                for (int i = 0; i < (timePlayed * 128); i+=3) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
 
             //volume value
