@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.3"
+#define TOOL_VERSION            "2.4.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -43,7 +43,6 @@ static float averageVolume[134] = { 0.0f };   // Average volume history
 #define NUM_BUTTONS 7
 #define SEEK_TIME 10.0f
 #define NUM_FRAMES  3       // Number of frames (rectangles) for the button sprite texture
-#define MAX_FONTS 8
 
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
@@ -78,7 +77,6 @@ static FilePathList files;
 
 // define stream 
 static Music music;
-
 
 // config file
 #define APP_DIR_NAME "rmplayer"
@@ -306,7 +304,6 @@ FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, boo
         printf("Nessun file trovato in '%s' con filtro '%s'\n", basePath, filter);     
         exit(0);
     }
-    
     return files; 
 }
 
@@ -634,21 +631,18 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
          
         // Set audio volume
-        if (IsKeyDown(KEY_PAGE_DOWN))
-        {
+        if (IsKeyDown(KEY_PAGE_DOWN)) {
             volume -= (volume >= 0.0f) ? 0.01f : 0.0f;
             if (volume < 0.0f) volume = 0.0f, isMute=true;
-            SetMasterVolume(volume);
         }
-        if (IsKeyDown(KEY_PAGE_UP))
-        {
+
+        if (IsKeyDown(KEY_PAGE_UP)) {
             isMute = false;
             volume += (volume <= 1.0f) ? 0.01f : 0.0f;
             if (volume > 1.0f) volume = 1.0f;
-            SetMasterVolume(volume);
         }
-        if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
 
+        if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
 
         if (IsKeyPressed(KEY_M)) // MUTE
         {
@@ -855,7 +849,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             }
         }
 
-        // do someting whe window loses focus
+        // do something when  window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         else SetWindowOpacity(1.0f);
 
@@ -898,7 +892,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 }
             // tempo attuale brano e durata totale brano
             //DrawRectangle(9,44,205,12,accentColor);
-            DrawText(TextFormat("Len: %s",totTimeStr),11,45,10, textColor);
+            DrawText(TextFormat("%s",totTimeStr),11,45,10, textColor);
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
@@ -955,17 +949,18 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawLine(367,64,500,64,borderColor);
 
             // progressbar background grid points
-                // for (int h = 0; h<131 ; h+=2) 
+                // for (int h = 0; h<(timePlayed * 130) ; h+=2) 
                 //      for (int v = 0; v < 20; v+=2)
-                //          DrawPixel(369 + h, 90 + v,borderColor);
+                //          DrawPixel(369 + h, 90 + v,accentColor);
 
             // only progressbar
-            for (int i = 0; i < (timePlayed * 130); i+=4) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,textColor);
+                for (int i = 0; i < (timePlayed * 130); i+=3) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
 
 
             //volume value
+               if (dgtEffect) DrawTextEx(digitFnt,"888 vw",(Vector2){214-volumeSize.x,58},20,0, textColor);
                if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.f vw",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
-               else DrawTextEx(digitFnt,TextFormat("%03.f v ",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
+               else DrawTextEx(digitFnt,TextFormat("%03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
                
             // PLAY flag
             DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
@@ -1040,8 +1035,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     UnloadFont(digitFnt);
     // unload buttons texture 
     for (int i = 0; i < NUM_BUTTONS; ++i) UnloadTexture(btnTexture[i]);
-    
-    //cleanup
     CloseAudioDevice();
     CloseWindow();
     return 0;
