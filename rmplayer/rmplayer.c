@@ -867,7 +867,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             ClearBackground(BLACK);
             // Draw background at first with a rectangle
             DrawRectangle(0,0,screenWidth,screenHeight,bgColor);
-            
+
             //load player background image
             DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
 
@@ -958,7 +958,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
 
             //volume value
-               if (dgtEffect) DrawTextEx(digitFnt,"888 vw",(Vector2){214-volumeSize.x,58},20,0, textColor);
+               if (dgtEffect) DrawTextEx(digitFnt,"888 vw",(Vector2){214-volumeSize.x,58},20,0, borderColor);
                if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.f vw",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
                else DrawTextEx(digitFnt,TextFormat("%03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
                
