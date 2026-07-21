@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.5.1"
+#define TOOL_VERSION            "2.5.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -496,15 +496,14 @@ int main (int argc, char *argv[]) {
             int scrollOffset = 0;     // primo file visualizzato
 
 
-            // set colors darker starting from fg color
+            // colors themes
             if (lightTheme) { // use light theme
-                bgColor = lightenColor(accentColor,0.95f);
+                bgColor = lightenColor(accentColor,0.90f);
                 textColor = lightenColor(accentColor, 0.40f);
-                borderColor = lightenColor(accentColor,0.80f);
+                borderColor = lightenColor(accentColor,0.70f);
             }
             else { // use dark theme
-
-                bgColor = darkenColor(accentColor,0.15f);
+                bgColor = darkenColor(accentColor,0.10f);
                 textColor = darkenColor(accentColor, 0.60f);
                 borderColor = darkenColor(accentColor,0.30f);
             }
@@ -908,10 +907,10 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // Draw buttons bar
-                DrawRectangle(8,87,351,25,BLACK);
+                DrawRectangle(8,87,351,25,DARKGRAY);
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
                     DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, lightTheme?bgColor:accentColor); // buttons background for transparency
-                    DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
+                    DrawTextureRec(btnTexture[i],srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
             //DrawRectangle(9,44,205,12,accentColor);
@@ -1025,7 +1024,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
                     for (int i = 0; i < visibleRows; ++i) {
-                        DrawLineDashed((Vector2){filesArea.x, filesArea.y + (i*rowHeight)}, (Vector2){screenWidth-8, filesArea.y +(i*rowHeight)},1,1,textColor);
+                        DrawLineDashed((Vector2){filesArea.x, filesArea.y + (i*rowHeight)}, (Vector2){screenWidth-8, filesArea.y +(i*rowHeight)},1,1,borderColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
