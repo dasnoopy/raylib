@@ -22,6 +22,7 @@ isVumeter=true                 // false: amplitude audio analyzer
 musicDir=/where/your/Music     //set music folder where your mp3 files are located
 
 [style]
+lightTheme=false               // true:light theme, false:dark theme
 accentColor=139,229,157,255    // application accent color
 titleFnt=fonts/rmplayerdot.otf // custom ttf/otf font for MP3 infobar
 dgtEffect=true                 // shadow text for song time and volume value

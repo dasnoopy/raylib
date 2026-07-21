@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.5"
+#define TOOL_VERSION            "2.5.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -58,9 +58,7 @@ float prev_volume = 0.80f;
 // some custom colors
 Color bgColor; 
 Color textColor;
-Color borderColor; // grids color
-#define onColor      accentColor
-#define offColor     textColor
+Color borderColor; 
 
 // Music library
 #define MAX_FILEPATH_SIZE       1024
@@ -91,6 +89,7 @@ typedef struct Config
     char musicDir[256];
     char titleFnt[256];
     bool dgtEffect;
+    bool lightTheme;
     bool isMini;
     bool isVumeter;
 } Config;
@@ -155,6 +154,19 @@ Color darkenColor(Color color, float factor)
     };
 }
 
+Color lightenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char) ( color.r + (255-color.r) * factor ),
+        (unsigned char) ( color.g + (255-color.g) * factor ),
+        (unsigned char) ( color.b + (255-color.b) * factor ),
+        color.a
+    };
+}
+
 // Get path to the score file based on the os.
 static void get_config_path(char *buf, size_t len) {
     char dir[PATH_BUF_SIZE];
@@ -211,7 +223,8 @@ bool LoadConfig(Config* cfg) {
         }
         // Style / UI section
         else if (strcmp(currentSection, "style") == 0) {
-            if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
+            if (strcmp(key, "lightTheme") == 0) cfg->lightTheme = ParseBool(value);
+            else if (strcmp(key, "accentColor") == 0) cfg->accentColor = ParseColor(value);
             else if (strcmp(key, "titleFnt") == 0) strncpy(cfg->titleFnt, value, sizeof(cfg->titleFnt) - 1);
             else if (strcmp(key, "dgtEffect") == 0) cfg->dgtEffect = ParseBool(value);
 
@@ -427,10 +440,11 @@ int main (int argc, char *argv[]) {
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .dgtEffect = false,
+        .lightTheme = false,
         .isMini = false,
         .isVumeter = true
     };
- 
+
     //load config from file
     if (!LoadConfig(&cfg)) printf(">> Errore durante apertura file di configurazione! Verrano usati valori di default.\n");
     else printf(">> File di configurazione caricato correttamente.\n");
@@ -444,6 +458,7 @@ int main (int argc, char *argv[]) {
     char *musicDir = cfg.musicDir;
     titleFnt = LoadFontEx(cfg.titleFnt, 28, NULL, 0);
     bool dgtEffect = cfg.dgtEffect;
+    bool lightTheme = cfg.lightTheme;
 
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
@@ -482,9 +497,17 @@ int main (int argc, char *argv[]) {
 
 
             // set colors darker starting from fg color
-            Color bgColor = darkenColor(accentColor,0.15f);
-            Color textColor = darkenColor(accentColor, 0.60f);
-            Color borderColor = darkenColor(accentColor,0.30f);
+            if (lightTheme) { // use light theme
+                bgColor = lightenColor(accentColor,0.95f);
+                textColor = lightenColor(accentColor, 0.40f);
+                borderColor = lightenColor(accentColor,0.80f);
+            }
+            else { // use dark theme
+
+                bgColor = darkenColor(accentColor,0.15f);
+                textColor = darkenColor(accentColor, 0.60f);
+                borderColor = darkenColor(accentColor,0.30f);
+            }
 
             // set window size and center on screen
             if (isMini) {
@@ -887,7 +910,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // Draw buttons bar
                 DrawRectangle(8,87,351,25,BLACK);
                 for (int i = 0; i < NUM_BUTTONS; ++i) {
-                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, accentColor); // buttons background for transparency
+                    DrawRectangle(btnRect[i].x,btnRect[i].y,btnRect[i].width,btnRect[i].height, lightTheme?bgColor:accentColor); // buttons background for transparency
                     DrawTextureRec(btnTexture[i], srcRect[i], (Vector2){ btnRect[i].x, btnRect[i].y }, WHITE); // Draw button frame // WHITE
                 }
             // tempo attuale brano e durata totale brano
@@ -963,32 +986,32 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                else DrawTextEx(digitFnt,TextFormat("%03.f",volume*100),(Vector2){214-volumeSize.x,58}, 20,0, accentColor);
                
             // PLAY flag
-            DrawRectangle(368,27,64,16,isPlay ? onColor:bgColor);
-            DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : offColor);
+            DrawRectangle(368,27,64,16,isPlay ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Play",(Vector2){370,26},16,0, isPlay ? bgColor : textColor);
 
             // STOP flag
-            DrawRectangle(368,9,64,15,isStop ? onColor:bgColor);
-            DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? bgColor : offColor);
+            DrawRectangle(368,9,64,15,isStop ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Stop",(Vector2){370,8},16,0, isStop ? bgColor : textColor);
 
             // PAUSE flag
-            DrawRectangle(368,46,64,16,isPause ? onColor:bgColor);
-            DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? bgColor : offColor);
+            DrawRectangle(368,46,64,16,isPause ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Pause",(Vector2){370,45},16,0, isPause ? bgColor : textColor);
 
             // Shuffle flag
-            DrawRectangle(435,9,64,15,isShuffle ? onColor:bgColor);
-            DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : offColor);
+            DrawRectangle(435,9,64,15,isShuffle ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Shuffle",(Vector2){438,8},16,0, isShuffle ? bgColor : textColor);
             
             // Mute flag
-            DrawRectangle(435,46,64,16,isMute ? onColor:bgColor);
-            DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:offColor);
+            DrawRectangle(435,46,64,16,isMute ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Mute",(Vector2){438,45},16,0, isMute ? bgColor:textColor);
             
             // REPEAT flag
-            DrawRectangle(435,27,64,16,isRepeat ? onColor:bgColor);
-            DrawTextEx(textFnt,"Repeat 1",(Vector2){438,26},16,0, isRepeat ? bgColor : offColor);
+            DrawRectangle(435,27,64,16,isRepeat ? accentColor:bgColor);
+            DrawTextEx(textFnt,"Repeat 1",(Vector2){438,26},16,0, isRepeat ? bgColor : textColor);
 
             // INFO flag
-            DrawRectangle(368,65,64,15,!isID3 ? onColor:bgColor);
-            DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : offColor);
+            DrawRectangle(368,65,64,15,!isID3 ? accentColor:bgColor);
+            DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : textColor);
 
     if (!isMini) { // draw all control when mini window is disabled
             // file selection
@@ -1006,7 +1029,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > files.count) break;
-                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, onColor);
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
                         DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
                 //vertical divider
