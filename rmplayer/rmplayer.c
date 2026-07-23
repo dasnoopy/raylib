@@ -589,7 +589,7 @@ int main (int argc, char *argv[]) {
                 UnloadMusicStream(music);
                 if (isShuffle) {
                     int shuffleIndex = GetRandomValue(0,files.count);
-                    // if (shuffleIndex == files.count) --shuffleIndex;
+                    if (shuffleIndex == files.count) --shuffleIndex;
                     // if new song is equal to current , select next one
                     if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
                     selectedIndex = shuffleIndex;
@@ -760,7 +760,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffleIndex = GetRandomValue(0,files.count);
-                // if (shuffleIndex == files.count) --shuffleIndex;
+                if (shuffleIndex == files.count) --shuffleIndex;
                 // if new song is equal to current , select next one
                 if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
                 selectedIndex = shuffleIndex;
@@ -822,7 +822,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffleIndex = GetRandomValue(0,files.count);
-                // if (shuffleIndex == files.count) --shuffleIndex;
+                if (shuffleIndex == files.count) --shuffleIndex;
                 // if new song is equal to current , select next one
                 if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
                 selectedIndex = shuffleIndex;
