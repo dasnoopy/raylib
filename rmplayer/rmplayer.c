@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.0"
+#define TOOL_VERSION            "2.6.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -587,17 +587,16 @@ int main (int argc, char *argv[]) {
                 prevPlay = selectedIndex;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
-                    if (isShuffle) {
-                        int shuffleIndex = GetRandomValue(0,files.count);
-                        //if (shuffleIndex == files.count) --shuffleIndex;
-                        if (files.count > 1 && shuffleIndex == selectedIndex)
-                            shuffleIndex = (shuffleIndex + 1) % files.count;
-                        selectedIndex = shuffleIndex;
-                    } else {
-                        selectedIndex++;
-                        if (selectedIndex >= files.count) selectedIndex = 0;
-                    }
-                    if (isRepeat) selectedIndex = prevPlay;
+                if (isShuffle) {
+                    int shuffleIndex = GetRandomValue(0,files.count);
+                    // if (shuffleIndex == files.count) --shuffleIndex;
+                    // if new song is equal to current , select next one
+                    if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
+                    selectedIndex = shuffleIndex;
+                    } 
+                else selectedIndex = (selectedIndex + 1) % files.count;
+
+                if (isRepeat) selectedIndex = prevPlay;
                 LoadMusicByIndex(selectedIndex,musicFiles);
                 PlayMusicStream(music);
                 selectedIndex = currPlay;
@@ -1029,7 +1028,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,accentColor);
 
             // only progressbar
-                for (int i = 0; i < (timePlayed * 128); i+=3) DrawRectangleLinesEx((Rectangle){368+i,90,3,19},2,accentColor);
+                for (int i = 0; i < (timePlayed * 130); i+=3) DrawRectangleRec((Rectangle){368+i,89,2,21},textColor);
 
 
             //volume value
@@ -1059,7 +1058,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             
             // REPEAT flag
             DrawRectangle(435,27,64,16,isRepeat ? accentColor:bgColor);
-            DrawTextEx(textFnt,"Repeat 1",(Vector2){438,26},16,0, isRepeat ? bgColor : textColor);
+            DrawTextEx(textFnt,"Repeat",(Vector2){438,26},16,0, isRepeat ? bgColor : textColor);
 
             // INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? accentColor:bgColor);
@@ -1067,7 +1066,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // SCAN flag
             DrawRectangle(435,65,64,15,scanMode ? accentColor:bgColor);
-            DrawTextEx(textFnt, "Scan 10s.",(Vector2){438,64},16,0, scanMode ? bgColor : textColor);
+            DrawTextEx(textFnt, "Scan",(Vector2){438,64},16,0, scanMode ? bgColor : textColor);
 
     if (!isMini) { // draw all control when mini window is disabled
             // file selection
