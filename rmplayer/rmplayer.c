@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.4"
+#define TOOL_VERSION            "3.0.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -465,6 +465,15 @@ int main (int argc, char *argv[]) {
     bool dgtEffect = cfg.dgtEffect;
     bool lightTheme = cfg.lightTheme;
 
+
+    // Stato della linea di scansione (C99)
+    float scanX = 223.0f;          // Posizione X corrente della linea
+    float scanSpeed = 64.0f;    // Velocità di movimento (pixel al secondo)
+    int direction = 1;           // 1 = Destra, -1 = Sinistra
+    const float lineWidth = 3.0f; // Spessore della linea radar
+    const float trailWidth = 24.0f; // Ampiezza della scia di dissolvenza
+
+
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
 
@@ -553,6 +562,18 @@ int main (int argc, char *argv[]) {
             titleX -= (speed * dt);
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
+
+        scanX += scanSpeed * direction * dt;
+        // Inversione della marcia ai bordi dello schermo
+        if (scanX >= 358.0f) {
+            scanX = 358.0f;
+            direction = -1; // Cambia direzione verso sinistra
+        } else if (scanX <= 223.0f) {
+            scanX = 223.0f;
+            direction = 1;  // Cambia direzione verso destra
+        }
+
+
         // Get normalized time played for current music stream
         // used for the progressbar
         timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
@@ -978,7 +999,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(223,43,136,40);
-                    if (isVumeter) {
+                    if (isVumeter && !scanMode) {
                         // draw vumeter
                         float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
                         float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
@@ -1004,7 +1025,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                            }
                         }
                     }
-                    else {
+                    else if (!isVumeter && !scanMode) {
                         // amplitude visualizer 
                             // background grid
                             for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
@@ -1012,7 +1033,29 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             // visualizer
                             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                                 DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
-                    }
+                        }
+                     else {
+                        // background grid
+                        for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
+                        for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
+
+                        // draw trail 
+                        if (direction == 1) {
+                            // In movimento verso destra: la scia è a sinistra della linea
+                            DrawRectangleGradientH((int)(scanX - trailWidth), 43.0f, (int)trailWidth, 38.0f, 
+                                                   BLANK, ColorAlpha(accentColor, 0.3f));
+                        } else {
+                            // In movimento verso sinistra: la scia è a destra della linea
+                            DrawRectangleGradientH((int)scanX, 43.0f, (int)trailWidth,38.0f, 
+                                                   ColorAlpha(accentColor, 0.3f), BLANK);
+                        }
+
+                        Vector2 startPos = { scanX, 43.0f };
+                        Vector2 endPos = { scanX, 81.0f };
+                        DrawLineEx(startPos, endPos, lineWidth, accentColor);
+                        // Testo informativo opzionale
+                        DrawText("Scanning...", 245, 52, 20, textColor);
+                         }
             EndScissorMode();
 
             // KHz / stereo - mono  of current song
