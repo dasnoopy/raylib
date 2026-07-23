@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.2"
+#define TOOL_VERSION            "2.6.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -687,6 +687,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     isStop=true;
                     isPlay=false;
                     isPause=false;
+                    scanMode=false;
                     StopMusicStream(music);
                     }
                 else {
@@ -704,6 +705,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 isStop=true;
                 isPlay=false;
                 isPause=false;
+                scanMode=false;
                 }
 
         if (btnAction[1]) { // play button
@@ -817,6 +819,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             UnloadMusicStream(music);
 
             // Avanzamento brano
+            prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffleIndex = GetRandomValue(0,files.count);
                 // if (shuffleIndex == files.count) --shuffleIndex;
