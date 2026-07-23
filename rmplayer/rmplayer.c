@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "2.5.2"
+#define TOOL_VERSION            "2.6.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -54,6 +54,11 @@ bool isRepeat = false;
 bool isID3 = true;
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
+
+
+bool scanMode = false;
+float scanTimer = 0.0f;       // Timer indipendente per lo scan
+float scanDuration = 10.0f;   // Durata dello scan
 
 // some custom colors
 Color bgColor; 
@@ -537,6 +542,8 @@ int main (int argc, char *argv[]) {
         // Update
         //----------------------------------------------------------------------------------
         currentTime = GetMusicTimePlayed(music); //just to simplify some checks
+        float totalLength = GetMusicTimeLength(music);
+
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 28, 0);
         float titleWidth = titleSize.x;
@@ -752,15 +759,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
                 int shuffleIndex = GetRandomValue(0,files.count);
-                if (shuffleIndex == files.count) --shuffleIndex;
-                if (files.count > 1 && shuffleIndex == selectedIndex)
-                    shuffleIndex = (shuffleIndex + 1) % files.count;
+                // if (shuffleIndex == files.count) --shuffleIndex;
+                // if new song is equal to current , select next one
+                if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
                 selectedIndex = shuffleIndex;
                 } 
-            else {
-                selectedIndex++;
-                if (selectedIndex >= files.count) selectedIndex = 0;
-            }
+            else selectedIndex = (selectedIndex + 1) % files.count;
+
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                 LoadMusicByIndex(selectedIndex,musicFiles);
@@ -788,6 +793,54 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         if (IsKeyPressed(KEY_FOUR)) {
             if (!isMini) SetWindowPosition(GetMonitorWidth(0) - screenWidth ,GetMonitorHeight(0) - screenHeight); //bottom-right
             else SetWindowPosition(GetMonitorWidth(0) - miniScrWidth ,GetMonitorHeight(0) - miniScrHeight);
+        }
+
+        // SCAN 10 sec of every song (scanMode)
+        if (IsKeyPressed(KEY_Z) && !scanMode) {
+            scanMode = true;
+            scanTimer = 0.0f; // Resetta il timer dello scan
+            if (totalLength > scanDuration) SeekMusicStream(music, totalLength / 2.0f);
+            else SeekMusicStream(music, 0.0f);
+        }
+
+        // disable scan mode -> continue to play song
+        if (IsKeyPressed(KEY_ESCAPE) && scanMode)  scanMode = false;
+
+        // Logica di avanzamento tempo e cambio traccia
+        if (scanMode) scanTimer += GetFrameTime();
+
+        // Condizione di cambio traccia: scan scaduto OPPURE brano finito naturalmente
+        bool scanTimeout = (scanMode && (scanTimer >= scanDuration));
+        bool trackEnded = (currentTime >= totalLength);
+
+        if (scanTimeout || trackEnded) {
+            StopMusicStream(music);
+            UnloadMusicStream(music);
+
+            // Avanzamento brano
+            if (isShuffle) {
+                int shuffleIndex = GetRandomValue(0,files.count);
+                // if (shuffleIndex == files.count) --shuffleIndex;
+                // if new song is equal to current , select next one
+                if (files.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % files.count;
+                selectedIndex = shuffleIndex;
+                } 
+            else selectedIndex = (selectedIndex + 1) % files.count;
+
+            LoadMusicByIndex(selectedIndex,musicFiles);
+            PlayMusicStream(music);
+            isStop=false;
+            isPlay=true;
+            isPause=false;
+            
+            // Reset timer for next song
+            scanTimer = 0.0f; 
+
+            if (scanMode) {
+                float nextLength = GetMusicTimeLength(music);
+                if (nextLength > scanDuration) SeekMusicStream(music, nextLength / 2.0f);
+                else SeekMusicStream(music, 0.0f);
+            }
         }
 
         // set toolbar button status in stop, play, pause
@@ -1011,6 +1064,10 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // INFO flag
             DrawRectangle(368,65,64,15,!isID3 ? accentColor:bgColor);
             DrawTextEx(textFnt, "Info",(Vector2){370,64},16,0, !isID3 ? bgColor : textColor);
+
+            // SCAN flag
+            DrawRectangle(435,65,64,15,scanMode ? accentColor:bgColor);
+            DrawTextEx(textFnt, "Scan 10s.",(Vector2){438,64},16,0, scanMode ? bgColor : textColor);
 
     if (!isMini) { // draw all control when mini window is disabled
             // file selection
