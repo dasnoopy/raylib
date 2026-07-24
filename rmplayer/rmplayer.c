@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.0"
+#define TOOL_VERSION            "3.0.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -465,15 +465,6 @@ int main (int argc, char *argv[]) {
     bool dgtEffect = cfg.dgtEffect;
     bool lightTheme = cfg.lightTheme;
 
-
-    // Stato della linea di scansione (C99)
-    float scanX = 223.0f;          // Posizione X corrente della linea
-    float scanSpeed = 64.0f;    // Velocità di movimento (pixel al secondo)
-    int direction = 1;           // 1 = Destra, -1 = Sinistra
-    const float lineWidth = 3.0f; // Spessore della linea radar
-    const float trailWidth = 24.0f; // Ampiezza della scia di dissolvenza
-
-
     // Load music files
     FilePathList musicFiles = GetMusicFromDirectory(musicDir,FILE_FILTER,true);
 
@@ -508,6 +499,15 @@ int main (int argc, char *argv[]) {
             int visibleRows = 7;
             const int centerRow = 3;
             int scrollOffset = 0;     // primo file visualizzato
+
+
+            // visualizer  area / variables for effects
+            Rectangle visArea = {223,43,135,38};
+            float scanX = 223.0f;          // Posizione X corrente della linea
+            float scanSpeed = 60.0f;    // Velocità di movimento (pixel al secondo)
+            int direction = 1;           // 1 = Destra, -1 = Sinistra
+            const float lineWidth = 3.0f; // Spessore della linea radar
+            const float trailWidth = 32.0f; // Ampiezza della scia di dissolvenza
 
 
             // colors themes
@@ -563,6 +563,7 @@ int main (int argc, char *argv[]) {
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
 
+        // effetto "radar/sonar" per lo scan...
         scanX += scanSpeed * direction * dt;
         // Inversione della marcia ai bordi dello schermo
         if (scanX >= 358.0f) {
@@ -572,7 +573,6 @@ int main (int argc, char *argv[]) {
             scanX = 223.0f;
             direction = 1;  // Cambia direzione verso destra
         }
-
 
         // Get normalized time played for current music stream
         // used for the progressbar
@@ -998,19 +998,19 @@ if (!isMini) {// when mini view is active fileselectio is disabled
              DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),148, 45,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
-            BeginScissorMode(223,43,136,40);
+            BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
                     if (isVumeter && !scanMode) {
                         // draw vumeter
-                        float barWidth = (float) 135 / NUM_BARS; // larghezza totale grafico
+                        float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
                         float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
                         
-                        const int maxSegments = 18; //nr. segmenti singola barra
+                        const int maxSegments = 19; //nr. segmenti singola barra
                         const float segmentHeight = 1.0f; //altezza segmento... anche se e' linea 
                         const float segmentGap = 1.0f;   // distanza tra i segmenty 
-                        float baseYPos = 81; //base del vumeter
+                        float baseYPos = visArea.y + visArea.height + 1; //base del vumeter
 
                         for (int i = 0; i < NUM_BARS; i++) {
-                            float xPos = 224 + i * barWidth; // posizione X iniziale vumeter
+                            float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
 
                             int segmentsToLight = (int)(barValues[i] * maxSegments); 
                             int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
@@ -1027,17 +1027,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                     }
                     else if (!isVumeter && !scanMode) {
                         // amplitude visualizer 
-                            // background grid
-                            for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
-                            for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
+                                // background grid
+                            for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width+1, visArea.y + (h*6), borderColor);
+                            for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
                             // visualizer
                             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
-                                DrawLine(225 + i, 80 - (int)(averageVolume[i]*36), 225 + i, 80, accentColor);
+                                DrawLine(225 + i, 81 - (int)(averageVolume[i]*36), 225 + i, 81, accentColor);
                         }
                      else {
-                        // background grid
-                        for (int h = 0; h<4 ; h++) DrawLine(223, 50 + (h*8), 359, 50 + (h*8), borderColor);
-                        for (int v = 0; v < 17; v++) DrawLine(227 + (v*8), 43, 226 + (v*8), 81, borderColor);
+                            // background grid
+                            for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width+1, visArea.y + (h*6), borderColor);
+                            for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
 
                         // draw trail 
                         if (direction == 1) {
@@ -1050,10 +1050,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                                                    ColorAlpha(accentColor, 0.3f), BLANK);
                         }
 
+                       DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
                         Vector2 startPos = { scanX, 43.0f };
                         Vector2 endPos = { scanX, 81.0f };
                         DrawLineEx(startPos, endPos, lineWidth, accentColor);
                         // Testo informativo opzionale
+                        DrawText("Scanning...", 246, 53, 20, lightTheme?WHITE:BLACK);
                         DrawText("Scanning...", 245, 52, 20, textColor);
                          }
             EndScissorMode();
