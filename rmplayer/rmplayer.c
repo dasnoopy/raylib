@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.3"
+#define TOOL_VERSION            "3.0.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -189,7 +189,7 @@ static void get_config_path(char *buf, size_t len) {
 }
 
 bool LoadConfig(Config* cfg) {
-    char path[PATH_BUF_SIZE];
+    char path[PATH_BUF_SIZE+13];
     get_config_path(path, sizeof(path));
     FILE* fp = fopen(path, "r");
         if (!fp) return false;
@@ -503,7 +503,7 @@ int main (int argc, char *argv[]) {
 
             // visualizer  area / variables for effects
             Rectangle visArea = {223,43,135,38};
-            float scanX = 223.0f;          // Posizione X corrente della linea
+            float scanX = visArea.x;          // Posizione X corrente della linea
             float scanSpeed = 60.0f;    // Velocità di movimento (pixel al secondo)
             int direction = 1;           // 1 = Destra, -1 = Sinistra
             const float lineWidth = 3.0f; // Spessore della linea radar
@@ -512,9 +512,9 @@ int main (int argc, char *argv[]) {
 
             // colors themes
             if (lightTheme) { // use light theme
-                bgColor = lightenColor(accentColor,0.90f);
+                bgColor = lightenColor(accentColor,0.92f);
                 textColor = lightenColor(accentColor, 0.40f);
-                borderColor = lightenColor(accentColor,0.70f);
+                borderColor = lightenColor(accentColor,0.80f);
             }
             else { // use dark theme
                 bgColor = darkenColor(accentColor,0.10f);
@@ -566,11 +566,11 @@ int main (int argc, char *argv[]) {
         // effetto "radar/sonar" per lo scan...
         scanX += scanSpeed * direction * dt;
         // Inversione della marcia ai bordi dello schermo
-        if (scanX >= 358.0f) {
-            scanX = 358.0f;
+        if (scanX >= visArea.x + visArea.width) {
+            scanX = visArea.x + visArea.width;
             direction = -1; // Cambia direzione verso sinistra
-        } else if (scanX <= 223.0f) {
-            scanX = 223.0f;
+        } else if (scanX <= visArea.x) {
+            scanX = visArea.x;
             direction = 1;  // Cambia direzione verso destra
         }
 
@@ -836,8 +836,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         bool trackEnded = (currentTime >= totalLength);
 
         if (scanTimeout || trackEnded) {
-            StopMusicStream(music);
-            UnloadMusicStream(music);
 
             // Avanzamento brano
             prevPlay = selectedIndex; //save for 1 shot prev.song
@@ -850,6 +848,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 } 
             else selectedIndex = (selectedIndex + 1) % files.count;
 
+            StopMusicStream(music);
+            UnloadMusicStream(music);
             LoadMusicByIndex(selectedIndex,musicFiles);
             PlayMusicStream(music);
             isStop=false;
@@ -1039,11 +1039,11 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width+1, visArea.y + (h*6), borderColor);
                             for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
 
-                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
+                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?64:128,ColorAlpha(accentColor, 0.3f), BLANK);
 
                             // just for fun
-                            DrawText("Scanning...", 246, 53, 20, lightTheme?WHITE:BLACK);
-                            DrawText("Scanning...", 245, 52, 20, lightTheme?accentColor:textColor);
+                            DrawText("rmPlayer", 246, 53, 20, lightTheme?WHITE:BLACK);
+                            DrawText("rmPlayer", 245, 52, 20, lightTheme?accentColor:textColor);
 
                             // draw trail 
                             if (direction == 1) {
@@ -1055,9 +1055,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                                 DrawRectangleGradientH((int)scanX, 43.0f, (int)trailWidth,38.0f, 
                                                        ColorAlpha(accentColor, 0.3f), BLANK);
                             }
-                            Vector2 startPos = { scanX, 43.0f };
-                            Vector2 endPos = { scanX, 81.0f };
-                            DrawLineEx(startPos, endPos, lineWidth, accentColor);
+                            Vector2 startPos = { scanX, visArea.y };
+                            Vector2 endPos = { scanX, visArea.y + visArea.height };
+                            DrawLineEx(startPos, endPos, lineWidth, ColorAlpha(accentColor, 0.60f));
                          }
             EndScissorMode();
 
