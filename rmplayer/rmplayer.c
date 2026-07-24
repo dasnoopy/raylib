@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.2"
+#define TOOL_VERSION            "3.0.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -1039,24 +1039,25 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width+1, visArea.y + (h*6), borderColor);
                             for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
 
-                        // draw trail 
-                        if (direction == 1) {
-                            // In movimento verso destra: la scia è a sinistra della linea
-                            DrawRectangleGradientH((int)(scanX - trailWidth), 43.0f, (int)trailWidth, 38.0f, 
-                                                   BLANK, ColorAlpha(accentColor, 0.3f));
-                        } else {
-                            // In movimento verso sinistra: la scia è a destra della linea
-                            DrawRectangleGradientH((int)scanX, 43.0f, (int)trailWidth,38.0f, 
-                                                   ColorAlpha(accentColor, 0.3f), BLANK);
-                        }
+                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
 
-                       DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
-                        Vector2 startPos = { scanX, 43.0f };
-                        Vector2 endPos = { scanX, 81.0f };
-                        DrawLineEx(startPos, endPos, lineWidth, accentColor);
-                        // Testo informativo opzionale
-                        DrawText("Scanning...", 246, 53, 20, lightTheme?WHITE:BLACK);
-                        DrawText("Scanning...", 245, 52, 20, textColor);
+                            // just for fun
+                            DrawText("Scanning...", 246, 53, 20, lightTheme?WHITE:BLACK);
+                            DrawText("Scanning...", 245, 52, 20, lightTheme?accentColor:textColor);
+
+                            // draw trail 
+                            if (direction == 1) {
+                                // In movimento verso destra: la scia è a sinistra della linea
+                                DrawRectangleGradientH((int)(scanX - trailWidth), 43.0f, (int)trailWidth, 38.0f, 
+                                                       BLANK, ColorAlpha(accentColor, 0.3f));
+                            } else {
+                                // In movimento verso sinistra: la scia è a destra della linea
+                                DrawRectangleGradientH((int)scanX, 43.0f, (int)trailWidth,38.0f, 
+                                                       ColorAlpha(accentColor, 0.3f), BLANK);
+                            }
+                            Vector2 startPos = { scanX, 43.0f };
+                            Vector2 endPos = { scanX, 81.0f };
+                            DrawLineEx(startPos, endPos, lineWidth, accentColor);
                          }
             EndScissorMode();
 
