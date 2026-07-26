@@ -16,7 +16,7 @@ in that folder:
 [player]
 isPlay=true                    // start autoplay at start
 isShuffle=true                 // Shuffle at start
-isMini=true                    // miniview mode
+isMini=true                    // miniview mode 
 isVumeter=true                 // false: amplitude audio analyzer  
                                // true: use digital 20bars vumeter
 musicDir=/where/your/Music     //set music folder where your mp3 files are located

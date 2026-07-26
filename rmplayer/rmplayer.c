@@ -502,7 +502,7 @@ int main (int argc, char *argv[]) {
 
 
             // visualizer  area / variables for effects
-            Rectangle visArea = {223,43,135,38};
+            Rectangle visArea = {223,43,135,37};
             float scanX = visArea.x;          // Posizione X corrente della linea
             float scanSpeed = 60.0f;    // Velocità di movimento (pixel al secondo)
             int direction = 1;           // 1 = Destra, -1 = Sinistra
@@ -1036,14 +1036,14 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         }
                      else {
                             // background grid
-                            for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width+1, visArea.y + (h*6), borderColor);
+                            for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width + 1, visArea.y + (h*6), borderColor);
                             for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
 
-                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?64:128,ColorAlpha(accentColor, 0.3f), BLANK);
+                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
 
                             // just for fun
-                            DrawText("rmPlayer", 246, 53, 20, lightTheme?WHITE:BLACK);
-                            DrawText("rmPlayer", 245, 52, 20, lightTheme?accentColor:textColor);
+                            DrawText("rmPlayer", 246, 53, 20, BLACK);
+                            DrawText("rmPlayer", 245, 52, 20, lightTheme?RAYWHITE:textColor);
 
                             // draw trail 
                             if (direction == 1) {
