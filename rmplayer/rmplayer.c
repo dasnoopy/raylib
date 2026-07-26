@@ -441,7 +441,7 @@ int main (int argc, char *argv[]) {
     Config cfg = {
         .isPlay = false,
         .isShuffle = false,
-        .accentColor = {245,245,245,255}, //RAYWHITE
+        .accentColor = {242,242,242,255}, //very light green
         .musicDir = "/home/public/Music", //default music folder
         .titleFnt = "fonts/rmplayer.otf", // title font
         .dgtEffect = false,
@@ -1077,7 +1077,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 //          DrawPixel(369 + h, 90 + v,accentColor);
 
             // only progressbar
-                for (int i = 0; i < (timePlayed * 130); i+=3) DrawRectangleRec((Rectangle){368+i,89,2,21},accentColor);
+                for (int i = 0; i < (timePlayed * 130); i++) DrawRectangleRec((Rectangle){368+i,89,1,21},accentColor);
 
 
             //volume value
