@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.5"
+#define TOOL_VERSION            "3.0.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -523,15 +523,10 @@ int main (int argc, char *argv[]) {
             }
 
             // set window size and center on screen
-            if (isMini) {
-                SetWindowSize(miniScrWidth,miniScrHeight);
-                SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
-            }
-            else {
-                SetWindowSize(screenWidth,screenHeight);
-                SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  // center monitor
-            }
-
+            if (isMini) SetWindowSize(miniScrWidth,miniScrHeight);
+            else SetWindowSize(screenWidth,screenHeight);
+            SetWindowPosition(GetMonitorWidth(0) / 2 - miniScrWidth/2, GetMonitorHeight(0) / 2 - miniScrHeight/2);  // center monitor
+         
          //  vumeter
             Complex fftBuffer[MAX_SAMPLES];
             // Parametri dinamici di calibrazione

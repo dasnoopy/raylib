@@ -5,7 +5,7 @@
 #include <sys/sysinfo.h>
 
 #define WIDTH 240 //preferibilmento multiplo di 60
-#define HEIGHT 180
+#define HEIGHT 120
 
 
 // NORD colors
@@ -69,8 +69,8 @@ void DrawDots(int x, int y, int seconds)
 	// poly-lines
   Vector2 center1 = { x, y - SEGMENT_WIDTH/2 };
   Vector2 center2 = { x, y + SEGMENT_WIDTH/2 };
-  int   sides    = 4;
-  float radius   = SEGMENT_THICKNESS/2;
+  int   sides    = 12;
+  float radius   = SEGMENT_THICKNESS/1.7f;
   float rotation = 90;
   DrawPoly ( center1, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR); // n sided filled polygon (Vector version)
   DrawPoly ( center2, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR);   // n sided filled polygon (Vector version)
@@ -108,40 +108,39 @@ void DrawTime(int hours, int minutes, int seconds)
 {
 //hours
   float x = START_X;
-  DrawDigit((Vector2){x, HEIGHT/3},hours / 10);
+  DrawDigit((Vector2){x, HEIGHT/2},hours / 10);
   x += DIGIT_DISTANCE;
-  DrawDigit((Vector2){x, HEIGHT/3},hours % 10);
+  DrawDigit((Vector2){x, HEIGHT/2},hours % 10);
 //colon
   x += COLON_DISTANCE;
-  DrawDots(x,HEIGHT/3,seconds);
+  DrawDots(x,HEIGHT/2,seconds);
 //minutes
   x += COLON_DISTANCE;
-  DrawDigit((Vector2){x, HEIGHT/3}, minutes / 10);
+  DrawDigit((Vector2){x, HEIGHT/2}, minutes / 10);
   x += DIGIT_DISTANCE;
-  DrawDigit((Vector2){x, HEIGHT/3}, minutes % 10);
+  DrawDigit((Vector2){x, HEIGHT/2}, minutes % 10);
 //colons  
   x += COLON_DISTANCE;
- DrawDots(x, HEIGHT/3,seconds);
+ DrawDots(x, HEIGHT/2,seconds);
 //seconds
   x += COLON_DISTANCE;
-  DrawDigit((Vector2){x, HEIGHT/3},seconds / 10);
+  DrawDigit((Vector2){x, HEIGHT/2},seconds / 10);
   x += DIGIT_DISTANCE;
-  DrawDigit((Vector2){x, HEIGHT/3},seconds % 10);
+  DrawDigit((Vector2){x, HEIGHT/2},seconds % 10);
 }
 
 
-void get_uptime (void)
-{
+void get_uptime (void) {
     sysinfo(&info);
     snprintf(uptime_str, sizeof(uptime_str),"uptime   : %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
-int main (int argc, char *argv[])
+int main (int argc, char *argv[]) 
 {
-	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_TOPMOST); // | 
-	InitWindow(WIDTH, HEIGHT, "Digital Clock");
+	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
+	InitWindow(WIDTH, HEIGHT, "deskclock");
 	// center window on the screen
-	SetWindowPosition(0, GetMonitorHeight(0) ); 
+	SetWindowPosition(0, GetMonitorHeight(0)- (HEIGHT + 8)); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
@@ -149,8 +148,8 @@ int main (int argc, char *argv[])
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
 
-    // fai riapparire finestra dopo caricamento iniziale
-    ClearWindowState(FLAG_WINDOW_HIDDEN);
+  // fai riapparire finestra dopo caricamento iniziale
+  ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 
 	while (!WindowShouldClose())
@@ -161,15 +160,15 @@ int main (int argc, char *argv[])
 
 		BeginDrawing();
 		ClearBackground (BACK_COLOR);
-		//drawRectangleRounded();
+		//DrawRectangle(0,0,WIDTH,HEIGHT,RED);
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 		DrawTime(t->tm_hour, t->tm_min, t->tm_sec);
-    DrawLine(10,28,240,28,DARKGRAY);
-		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/4, 0}, 28,0, LIGHTGRAY);
-    DrawLine(10,94,240,94,DARKGRAY);
+    //DrawLine(10,28,240,28,ORANGE);
+		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, LIGHTGRAY);
+    //DrawLine(10,94,240,94,ORANGE);
     get_uptime();
-    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/8, 96}, 28,0, LIGHTGRAY);
+    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/12, HEIGHT-28}, 28,0, LIGHTGRAY);
 		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
 		EndDrawing();
 	}
