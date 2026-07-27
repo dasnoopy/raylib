@@ -132,7 +132,7 @@ void DrawTime(int hours, int minutes, int seconds)
 
 void get_uptime (void) {
     sysinfo(&info);
-    snprintf(uptime_str, sizeof(uptime_str),"uptime   : %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
+    snprintf(uptime_str, sizeof(uptime_str),"uptime: %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
 int main (int argc, char *argv[]) 
@@ -168,7 +168,7 @@ int main (int argc, char *argv[])
 		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, PURPLE);
     //DrawLine(10,94,240,94,ORANGE);
     get_uptime();
-    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/12, HEIGHT-28}, 28,0, SKYBLUE);
+    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/8, HEIGHT-28}, 28,0, SKYBLUE);
 		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
 		EndDrawing();
 	}

@@ -130,7 +130,7 @@ struct tm *tm_info = localtime(&now);
 		strftime(timeStr, sizeof(timeStr), "%H:%M", tm_info);
 		Vector2 timeSize = MeasureTextEx(dateFnt, timeStr, 96, 0);
 		
-		if (IsKeyPressed(KEY_Z)) { isYear=!isYear; isDay=!isDay; }
+		if (IsKeyPressed(KEY_SPACE)) { isYear=!isYear; isDay=!isDay; }
 
 		
 		if (isYear) {
