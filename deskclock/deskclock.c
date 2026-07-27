@@ -67,8 +67,8 @@ void DrawSegment(Vector2 center, bool HORIZONTAL, Color color)
 void DrawDots(int x, int y, int seconds)
 {
 	// poly-lines
-  Vector2 center1 = { x, y - SEGMENT_WIDTH/2 };
-  Vector2 center2 = { x, y + SEGMENT_WIDTH/2 };
+  Vector2 center1 = { x, (y - SEGMENT_WIDTH/1.5f) };
+  Vector2 center2 = { x, (y + SEGMENT_WIDTH/1.5f) };
   int   sides    = 12;
   float radius   = SEGMENT_THICKNESS/1.7f;
   float rotation = 90;
@@ -165,10 +165,10 @@ int main (int argc, char *argv[])
 		struct tm *t = localtime(&now);
 		DrawTime(t->tm_hour, t->tm_min, t->tm_sec);
     //DrawLine(10,28,240,28,ORANGE);
-		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, LIGHTGRAY);
+		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, PURPLE);
     //DrawLine(10,94,240,94,ORANGE);
     get_uptime();
-    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/12, HEIGHT-28}, 28,0, LIGHTGRAY);
+    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/12, HEIGHT-28}, 28,0, SKYBLUE);
 		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
 		EndDrawing();
 	}
