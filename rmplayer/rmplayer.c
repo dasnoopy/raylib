@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.6"
+#define TOOL_VERSION            "3.1.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -555,6 +555,7 @@ int main (int argc, char *argv[]) {
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 28, 0);
         float titleWidth = titleSize.x;
+
         bool needScroll = titleWidth > displayArea.width;
         float dt = GetFrameTime();
         if (needScroll) {
@@ -676,6 +677,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_R)) isRepeat = !isRepeat;
+        if (IsKeyPressed(KEY_V) && !scanMode){
+                DetachAudioMixedProcessor(ProcessAudio);  // Disconnect audio processor // visulizer
+                DetachAudioMixedProcessor(AudioProcessCallback); // vumeter            
+                isVumeter = !isVumeter;
+                if (isVumeter) AttachAudioMixedProcessor(AudioProcessCallback);
+                else  AttachAudioMixedProcessor(ProcessAudio);
+        }
          
         // Set audio volume
         if (IsKeyDown(KEY_PAGE_DOWN)) {
@@ -1033,7 +1041,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                                 DrawLine(225 + i, 81 - (int)(averageVolume[i]*36), 225 + i, 81, accentColor);
                         }
-                     else {
+                     else { // draw a simple "sonar/radar" effect while scan is on
                             // background grid
                             for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width + 1, visArea.y + (h*6), borderColor);
                             for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);

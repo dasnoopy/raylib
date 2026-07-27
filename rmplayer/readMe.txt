@@ -46,6 +46,7 @@ APP KEYBINDINGS:
 [ I ] : switch title info between ID3 tags and file details.
 [ F ] : show / hide file library
 [ Z ] : enter into SCAN mode : play 10 seconds of every song. [ ESC ] to leave SCAN mode.
+[ V ] : change visualizer/vumeter on the fly...
 [ Q ] : leave app
 
 // --------------------------------------------------------------
