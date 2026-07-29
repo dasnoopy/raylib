@@ -4,8 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define WIDTH  320
-#define HEIGHT 320
+#define WIDTH  256
+#define HEIGHT 256
 
 const float xCenter = WIDTH/2;
 const float yCenter = HEIGHT/2;
@@ -17,11 +17,13 @@ const float secHandLen = clockRadius * 0.9;
 
 
 // NORD colors
-#define BACK_COLOR CLITERAL(Color){46, 52, 64, 222}
+#define BACK_COLOR CLITERAL(Color){0, 0, 0, 0}
 #define HANDS_COLOR CLITERAL(Color){ 143, 188, 187, 255 }
 #define MIN_MARK_COLOR CLITERAL(Color){ 136, 192, 208, 232 }
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
-#define TEXT_COLOR CLITERAL(Color){ 94, 129, 172, 255 } 
+#define TEXT_COLOR CLITERAL(Color){ 94, 129, 172, 255 }
+#define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
+#define OFF_COLOR CLITERAL(Color){ 128,128,128, 32 } 
 
 void drawRectangleRounded (void)  {
   Rectangle  rect = { 0, 0, WIDTH, HEIGHT};   // toplx, toply, width, height
@@ -121,30 +123,34 @@ void DrawCenter(int radius, Color color)
 
 int main (int argc, char *argv[])
 {
-	SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
-//	SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT);     // Enable Multi Sampling Anti Aliasing 4x (if available)
+	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST );// | FLAG_MSAA_4X_HINT); // | 
 	InitWindow(WIDTH, HEIGHT, "Analog Clock");
 	// center window on the screen
 	SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
-	SetWindowState(FLAG_WINDOW_UNDECORATED);
-    SetWindowState(FLAG_WINDOW_TOPMOST);
+		SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     //SetWindowOpacity(0.1);
-	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
+	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);
 
-	int currentFps = 1;
-  	SetTargetFPS(currentFps);
+  // fai riapparire finestra dopo caricamento iniziale
+  ClearWindowState(FLAG_WINDOW_HIDDEN);
+
  	time_t now = time(NULL); 
 	struct tm *t = localtime(&now);
 	
 	while (!WindowShouldClose())
 	{
 		BeginTextureMode(target);
-		ClearBackground(BLANK);
+		ClearBackground(BACK_COLOR);
 		EndTextureMode();
 
 		BeginDrawing();
-		ClearBackground (BLANK);
-		drawRectangleRounded();
+		ClearBackground (BACK_COLOR);
+
+		// grid
+    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,WIDTH,OFF_COLOR);
+    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,HEIGHT,i,OFF_COLOR);
+		//drawRectangleRounded();
+		
 		now = time (NULL);
 		t = localtime(&now);
 		//DrawCircleV(center, clockRadius,BACK_COLOR);

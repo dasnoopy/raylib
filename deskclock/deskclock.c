@@ -160,15 +160,20 @@ int main (int argc, char *argv[])
 
 		BeginDrawing();
 		ClearBackground (BACK_COLOR);
+    
+    // grid
+    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,WIDTH,OFF_COLOR);
+    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,HEIGHT,i,OFF_COLOR);
+
 		//DrawRectangle(0,0,WIDTH,HEIGHT,RED);
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 		DrawTime(t->tm_hour, t->tm_min, t->tm_sec);
     //DrawLine(10,28,240,28,ORANGE);
-		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, PURPLE);
+		DrawTextEx(textFnt, TextFormat("%02i/%02i/%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 0}, 28,0, GRAY);
     //DrawLine(10,94,240,94,ORANGE);
     get_uptime();
-    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/8, HEIGHT-28}, 28,0, SKYBLUE);
+    DrawTextEx(textFnt, TextFormat("%s", uptime_str), (Vector2){WIDTH/8, HEIGHT-28}, 28,0, GRAY);
 		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
 		EndDrawing();
 	}
