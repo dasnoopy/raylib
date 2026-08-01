@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.0"
+#define TOOL_VERSION            "3.1.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -303,7 +303,7 @@ void GetTitle (int idx){
         strcat (titleStr, tmpInfo);
         strcat (titleStr, ", ");
         // sample size
-        snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i kbit/s",music.stream.sampleSize);
         strcat (titleStr, tmpInfo);
         strcat (titleStr, ", ");
         // channels
@@ -388,7 +388,7 @@ void AudioProcessCallback(void *buffer, unsigned int frames) {
 int main (int argc, char *argv[]) {
     
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rMPlayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -953,9 +953,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             }
         }
 
-        // do something when  window loses focus
-        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
-        else SetWindowOpacity(1.0f);
+        // // do something when  window loses focus
+        // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
+        // else SetWindowOpacity(1.0f);
 
 
 
@@ -1069,8 +1069,8 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             EndScissorMode();
 
             // KHz / stereo - mono  of current song
-            DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),105,58,10, accentColor);
-            DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),105,69,10, accentColor);
+            DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),105,58,10, textColor);
+            DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),105,69,10, textColor);
             
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
