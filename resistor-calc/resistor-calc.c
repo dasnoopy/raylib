@@ -16,7 +16,7 @@
 
 #define TOOL_NAME               "5 band resistor calculator"
 #define TOOL_SHORT_NAME         "ResCalc"
-#define TOOL_VERSION            "1.0"
+#define TOOL_VERSION            "1.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -146,7 +146,12 @@ void drawColorTable(void)
                                      bin_grid_XY.y + (gridSpacingY*i) + i, 
                                     gridSpacingX, 
                                     gridSpacingY, 
-                                    matrice[j][i] ? Fade(bandColors[i], 0.2f) : bandColors[i]);
+                                    matrice[j][i] ? Fade(SKYBLUE, 0.8f) : bandColors[i]);
+                        DrawRectangleLines(bin_grid_XY.x + (gridSpacingX*j) + j,
+                                     bin_grid_XY.y + (gridSpacingY*i) + i, 
+                                    gridSpacingX, 
+                                    gridSpacingY, 
+                                    WHITE);
                         // stampa i valori della colonne formattando  il testo in base al tipo di dato.
                         
                         if (valori[i][j]>=0 && j < 3) DrawText(TextFormat("%g",valori[i][j]), (bin_grid_XY.x + 40)+(gridSpacingX+1)*j, (bin_grid_XY.y + 10) +  (gridSpacingY+1 )*i ,10, colore ? WHITE:BLACK);
@@ -264,7 +269,7 @@ while (!WindowShouldClose())
                     else if (player.cell.y < 0) player.cell.y = 0 ;
                     else if (player.cell.y >= MAX_COLORS_COUNT) player.cell.y = MAX_COLORS_COUNT-1;
 
-                    // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
+                     // scrive bit 1/0 nella matrice binaria tasto sx /dx del mouse (1 o 0)
                     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                         if (valori[player.cell.y][player.cell.x]>=0) {
                             currSelBand = player.cell.x;

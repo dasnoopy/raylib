@@ -4,8 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define WIDTH  256
-#define HEIGHT 256
+#define WIDTH  232
+#define HEIGHT 232
 
 const float xCenter = WIDTH/2;
 const float yCenter = HEIGHT/2;
@@ -23,7 +23,7 @@ const float secHandLen = clockRadius * 0.9;
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
 #define TEXT_COLOR CLITERAL(Color){ 94, 129, 172, 255 }
 #define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
-#define OFF_COLOR CLITERAL(Color){ 128,128,128, 32 } 
+#define OFF_COLOR CLITERAL(Color){ 132,132,137, 32 } 
 
 void drawRectangleRounded (void)  {
   Rectangle  rect = { 0, 0, WIDTH, HEIGHT};   // toplx, toply, width, height
@@ -147,8 +147,8 @@ int main (int argc, char *argv[])
 		ClearBackground (BACK_COLOR);
 
 		// grid
-    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,WIDTH,OFF_COLOR);
-    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,HEIGHT,i,OFF_COLOR);
+    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
+    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
 		//drawRectangleRounded();
 		
 		now = time (NULL);

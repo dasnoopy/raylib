@@ -320,7 +320,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 int main (int argc, char *argv[])
 {
     SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
-    InitWindow(screenWidth, screenHeight, "Pixel Art Editor");
+    InitWindow(screenWidth, screenHeight, "pixelarted");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
     SetWindowState(FLAG_WINDOW_UNDECORATED);
@@ -680,7 +680,7 @@ while (!WindowShouldClose())
                           cellSize},
                           Fade(BLACK, 0.5f));
         //----------------------------------------------------------------------
-        // Draw crosshair (and hide grid)
+        // Draw crosshair curso (and hide grid)
         // ---------------------------------------------------------------------
         if (!showGrid) {
             //vertical

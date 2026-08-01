@@ -126,12 +126,13 @@ char *substring(char *str, size_t start, size_t len)
 }
 
 // funzione per creare stringa di tot spazi (o caraattere a piacimento)
+// funzione per creare stringa di tot spazi (o caraattere a piacimento)
 char *creaSPAZI(int N) {
     if (N <= 0) return NULL;
-    // char *str = malloc(N); //se si usa N carattere strano che appare con ASCII_WIDTH=8 .. solo con questo valore 
-    char *str = malloc(256); // imposto allora un valore fisso massimo di spazi per stringa
+     char *str = malloc(N + 1);  
     if (str == NULL) return NULL;
     memset(str, ' ', N);
+    str[N] = '\0';
     return str;
 }
 
@@ -160,12 +161,10 @@ int main (int argc, char *argv[])
         }
     }
 
-    SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
     // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
-    SetWindowState(FLAG_WINDOW_UNDECORATED);
-    SetWindowState(FLAG_WINDOW_TOPMOST);
     RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);  
 
     // set FPS (uso questo sistema per regolare la velocità di scorrimento)
@@ -200,9 +199,9 @@ int main (int argc, char *argv[])
         // il file font.data con l' altro programma dotchar-editor!, modificarlo,
         // salvarlo e ricopiarlo qui!  :-)
         // questo sovrascrive la tabella caratteri di default definita nel file: include.h
-            FILE *fLoad = fopen("font.bin", "rb"); 
+            FILE *fLoad = fopen("matrix.fnt", "rb"); 
             if (fLoad == NULL) {
-                printf("File [font.bin] non trovato!\n");
+                printf("File [matrix.fnt] non trovato!\n");
             return 1;
             }
             fread(TableFont, sizeof(char), sizeof(TableFont), fLoad);

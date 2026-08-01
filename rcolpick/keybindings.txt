@@ -1,0 +1,13 @@
+mouse cursors / mouse wheel )] : pan / zoom image
+drag and rop : load PNG image
+CTRL+V: paste copied image from clipboard
+X: reset wiew to fit  window width
+1: set zoom 1:1
+
+CTRL+C:  copy rgba value of selected color to clipboard
+SHIFT+C:  copy hexa value of selected color to clipboard
+
+H: show / hide  color hystogram
+M: show / hide image minimap
+
+Q: exit application

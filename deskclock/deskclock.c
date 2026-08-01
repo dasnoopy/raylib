@@ -11,7 +11,7 @@
 // NORD colors
 #define BACK_COLOR CLITERAL(Color){0, 0, 0, 0}
 #define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
-#define OFF_COLOR CLITERAL(Color){ 128,128,128, 32 } 
+#define OFF_COLOR CLITERAL(Color){ 132,132,137, 32 } 
 // digits style
 #define SEGMENT_WIDTH WIDTH/16
 #define SEGMENT_THICKNESS SEGMENT_WIDTH/2
@@ -162,8 +162,8 @@ int main (int argc, char *argv[])
 		ClearBackground (BACK_COLOR);
     
     // grid
-    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,WIDTH,OFF_COLOR);
-    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,HEIGHT,i,OFF_COLOR);
+    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
+    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
 
 		//DrawRectangle(0,0,WIDTH,HEIGHT,RED);
 		time_t now = time (NULL);

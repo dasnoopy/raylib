@@ -512,10 +512,10 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // shaded and tinted colors (starting from hover color)
             // for (int i = 1; i < 10; ++i) {
             //     // shaded -10% / -90%
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, darkenColor(pixelCol,( i*0.1f )));
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, shadesColor(pixelCol,( i*0.1f )));
             //     //DrawText(TextFormat("-%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-41,10,WHITE);
             //     // tinted +10% / +90%                
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, lightenColor(pixelCol,( i * 0.1f )));
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, tintedColor(pixelCol,( i * 0.1f )));
             //     //DrawText(TextFormat("+%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-14,10,BLACK);
             // }
 

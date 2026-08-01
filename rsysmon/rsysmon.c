@@ -158,7 +158,7 @@ void drawLetter(int col,int row,int ASCII_CODE,Color color)
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH -1; i>-1 ; i--) {
                 //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? color : BLANK);
+                DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? color : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -388,13 +388,10 @@ unsigned long free_space_home = st.f_bavail * st.f_frsize;
 int main (int argc, char *argv[])
 {
     //nascondi finestra durante caricamento iniziale
-    SetWindowState(FLAG_WINDOW_HIDDEN);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); 
     SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
     InitWindow(WIDTH, HEIGHT, "System Info");
 
-
-    SetWindowState(FLAG_WINDOW_UNDECORATED);
-    //SetWindowState(FLAG_WINDOW_TOPMOST);
     SetExitKey(KEY_Q);       // set Q as exit key
     // center window on the screen
     // SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
