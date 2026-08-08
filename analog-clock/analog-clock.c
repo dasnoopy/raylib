@@ -17,7 +17,7 @@ const float secHandLen = clockRadius * 0.9;
 
 
 // NORD colors
-#define BACK_COLOR CLITERAL(Color){0, 0, 0, 0}
+#define BACK_COLOR CLITERAL(Color){10, 10, 15, 192}
 #define HANDS_COLOR CLITERAL(Color){ 143, 188, 187, 255 }
 #define MIN_MARK_COLOR CLITERAL(Color){ 136, 192, 208, 232 }
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
@@ -25,11 +25,10 @@ const float secHandLen = clockRadius * 0.9;
 #define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
 #define OFF_COLOR CLITERAL(Color){ 132,132,137, 32 } 
 
-void drawRectangleRounded (void)  {
-  Rectangle  rect = { 0, 0, WIDTH, HEIGHT};   // toplx, toply, width, height
-  float radius = 0.1;                        // rotate degrees
+void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
+  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
+  float radius = 0.2;                        // rotate degrees
   int     segs = 10;
-  Color color = BACK_COLOR;  // red, green, blue, alpha
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
@@ -126,9 +125,8 @@ int main (int argc, char *argv[])
 	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST );// | FLAG_MSAA_4X_HINT); // | 
 	InitWindow(WIDTH, HEIGHT, "Analog Clock");
 	// center window on the screen
-	SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
-		SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
-    //SetWindowOpacity(0.1);
+	SetWindowPosition(8, GetMonitorHeight(0)- (HEIGHT + 8)); 
+	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);
 
   // fai riapparire finestra dopo caricamento iniziale
@@ -140,16 +138,16 @@ int main (int argc, char *argv[])
 	while (!WindowShouldClose())
 	{
 		BeginTextureMode(target);
-		ClearBackground(BACK_COLOR);
+		ClearBackground(BLANK);
 		EndTextureMode();
 
 		BeginDrawing();
-		ClearBackground (BACK_COLOR);
+		ClearBackground (BLANK);
 
 		// grid
-    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
-    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
-		//drawRectangleRounded();
+    // for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
+    // for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
+		drawRectangleRounded(0,0,WIDTH,HEIGHT,BACK_COLOR);
 		
 		now = time (NULL);
 		t = localtime(&now);

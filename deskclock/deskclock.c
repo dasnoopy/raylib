@@ -9,7 +9,7 @@
 
 
 // NORD colors
-#define BACK_COLOR CLITERAL(Color){0, 0, 0, 0}
+#define BACK_COLOR CLITERAL(Color){10, 10, 15, 192}
 #define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
 #define OFF_COLOR CLITERAL(Color){ 132,132,137, 32 } 
 // digits style
@@ -24,6 +24,14 @@
 
 struct sysinfo info;
 char uptime_str[64];
+
+void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
+  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
+  float radius = 0.2;                        // rotate degrees
+  int     segs = 10;
+  DrawRectangleRounded ( rect, radius, segs, color );
+}
+
 
 int digits[10][7] = { {1,1,1,0,1,1,1}, //digit 0
 		   {0,0,1,0,0,1,0}, //digit 1
@@ -140,7 +148,7 @@ int main (int argc, char *argv[])
 	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
 	InitWindow(WIDTH, HEIGHT, "deskclock");
 	// center window on the screen
-	SetWindowPosition(0, GetMonitorHeight(0)- (HEIGHT + 8)); 
+	SetWindowPosition(8, GetMonitorHeight(0)- (HEIGHT + 8)); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
@@ -155,17 +163,17 @@ int main (int argc, char *argv[])
 	while (!WindowShouldClose())
 	{
 		BeginTextureMode(target);
-		ClearBackground(BACK_COLOR);
+		ClearBackground(BLANK);
 		EndTextureMode();
 
 		BeginDrawing();
-		ClearBackground (BACK_COLOR);
+		ClearBackground (BLANK);
     
     // grid
-    for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
-    for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
+    // for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
+    // for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
+		drawRectangleRounded(0,0,WIDTH,HEIGHT,BACK_COLOR);
 
-		//DrawRectangle(0,0,WIDTH,HEIGHT,RED);
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 		DrawTime(t->tm_hour, t->tm_min, t->tm_sec);
