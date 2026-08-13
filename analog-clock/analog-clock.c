@@ -4,8 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define WIDTH  232
-#define HEIGHT 232
+#define WIDTH  240
+#define HEIGHT 240
 
 const float xCenter = WIDTH/2;
 const float yCenter = HEIGHT/2;
@@ -55,14 +55,13 @@ for (int i=0; i<60; i++)
   {	
    float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
    float y = center.y + clockRadius * cosf(alpha_deg * DEG2RAD);
-   Vector2 coords = {x ,y};
+   // Vector2 coords = {x ,y};
 
    alpha_deg += 360/60;
-   int sides = 4;
-   int radius = 3;
-   int rotation = 90;
-
-   DrawPoly (coords, sides, radius, rotation, color );
+   // int sides = 4;
+   // int radius = 3;
+   // int rotation = 90;
+ DrawCircle (x,y,2,color);
   }
 }
 
@@ -73,13 +72,13 @@ void DrawHourMarkers(Color color)
 	  {	
    		float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
 		float y = center.y + clockRadius * cosf(alpha_deg * DEG2RAD);
-	   Vector2 coords = {x, y};
+	  // Vector2 coords = {x, y};
 
    	alpha_deg += 360/12;
-   	int sides = 4;
-   	int radius = 6;
-   	int rotation = 90;
-   DrawPoly (coords, sides, radius, rotation, color);
+   	// int sides = 4;
+   	// int radius = 6;
+   	// int rotation = 90;
+   DrawCircle (x,y,4,color);
   }
 }
 
@@ -90,7 +89,7 @@ void DrawHourHand(struct tm *t)
 	float x_outer = center.x + hourHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - hourHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,12, HANDS_COLOR);
+	DrawLineEx(center, outer,10, WHITE);
 }
 
 void DrawMinuteHand(struct tm *t)
@@ -100,7 +99,7 @@ void DrawMinuteHand(struct tm *t)
 	float x_outer = center.x + minHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - minHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,8, HANDS_COLOR);
+	DrawLineEx(center, outer,6, LIGHTGRAY);
 }
 
 void DrawSecondHand(struct tm *t)
@@ -109,15 +108,15 @@ void DrawSecondHand(struct tm *t)
 	float x_outer = center.x + secHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - secHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,2, WHITE);
+	DrawLineEx(center, outer,2, GRAY);
 }
 
 void DrawCenter(int radius, Color color)
 {
 	// draw center of the clock
-  int sides = 4;
-	int rotation = 0;
-	DrawPoly (center, sides, radius, rotation, color);
+  // int sides = 4;
+	// int rotation = 0;
+	DrawCircle (center.x,center.y,radius,color);
 }
 
 int main (int argc, char *argv[])
@@ -152,13 +151,15 @@ int main (int argc, char *argv[])
 		now = time (NULL);
 		t = localtime(&now);
 		//DrawCircleV(center, clockRadius,BACK_COLOR);
-	    DrawMinuteMarkers(MIN_MARK_COLOR);	
-			DrawHourMarkers(HOUR_MARK_COLOR);
-			TextHour(TEXT_COLOR);
-			DrawCenter(12, HANDS_COLOR);
+	    DrawMinuteMarkers(GRAY);	
+			DrawHourMarkers(LIGHTGRAY);
+			TextHour(WHITE);
+
 			DrawHourHand(t);
 			DrawMinuteHand(t);
 			DrawSecondHand(t);
+
+			DrawCenter(10, RED);
 		EndDrawing();
 	}
 	

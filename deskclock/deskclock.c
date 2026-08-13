@@ -80,8 +80,8 @@ void DrawDots(int x, int y, int seconds)
   int   sides    = 12;
   float radius   = SEGMENT_THICKNESS/1.7f;
   float rotation = 90;
-  DrawPoly ( center1, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR); // n sided filled polygon (Vector version)
-  DrawPoly ( center2, sides, radius, rotation, seconds % 2 ? ON_COLOR : OFF_COLOR);   // n sided filled polygon (Vector version)
+  DrawPoly ( center1, sides, radius, rotation, seconds % 2 ? RED : BLANK); // n sided filled polygon (Vector version)
+  DrawPoly ( center2, sides, radius, rotation, seconds % 2 ? RED : BLANK);   // n sided filled polygon (Vector version)
 }
 
 void DrawDigit (Vector2 center,int digit)
