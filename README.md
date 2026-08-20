@@ -1,7 +1,7 @@
 # Learning C (using raylib) 
-C + Raylib simple projects (to learn C code)
+Some raylib (but not only) simple projects that helped me to learn C programming. 
 
-Everything started watching some yt video from [here](https://www.youtube.com/@HirschDaniel)
+Everything started watching some yt videos from [here](https://www.youtube.com/@HirschDaniel)
 
 Thanks a lot, Daniel!
 
