@@ -139,12 +139,29 @@ char *creaSPAZI(int N) {
 int main (int argc, char *argv[])
 {
 
-   if (argc < 2) strcpy( msg,"Application started from graphic environment or without passing any custome text. To use a custom text, please run the following command from your preferred terminal console: $./matrix-display \"message text\". Press [q] to close app.");
+   if (argc < 2) strcpy( msg,"Application started from graphic environment or without passing any custom text. To use a custom text, please run the following command from your preferred terminal console: $./matrix-display \"message text\". Press [q] to close app.");
    else if(strcpy(msg,argv[1]) == NULL)
    {
       printf("Somethine went wrong with message text.\n");
       return 0;
    }
+
+   // Source - https://stackoverflow.com/a/68120988
+// Posted by Vlad Havriuk, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-08-21, License - CC BY-SA 4.0
+
+//  READ frm standard input
+// #include <unistd.h>
+// #define BUFSIZ 1024
+
+// int main() {
+//     char buff[BUFSIZ] = {0}; /* zero-initialize */
+//     ssize_t nread = read(0, buff, BUFSIZ);
+//     /* pass amount of bytes read as a byte amount to write */
+//     write(1, buff, nread);
+//     return 0;
+// }
+
 
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
