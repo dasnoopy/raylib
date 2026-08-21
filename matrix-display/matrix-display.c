@@ -26,7 +26,7 @@ const int ASCII_HEIGHT= 8;
 
 
 //messaggio da visualizzare
-char msg[2048] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+char msg[2048] =  { '\0' };
 const int ROWS=10;  // 1 riga = ROWS*dotSize
 const int COLS=326 ; //TODO: adattare in base al vaolore di: dotSize
 #define dotSize 4 // dot size in pixel : consigliato 4 / 8 / 12 / 16
@@ -46,8 +46,8 @@ int max_char = (dotSize*COLS) / (dotSize*ASCII_WIDTH);
 
 // NORD colors
 #define FG_COLOR CLITERAL(Color){ 236, 239, 244, 255}
-Color BG_COLOR = CLITERAL(Color){67, 76, 94, 232};
-#define GRID_COLOR CLITERAL(Color){59, 66, 82, 232} 
+#define BG_COLOR CLITERAL(Color){25, 29, 27, 196}
+#define GRID_COLOR CLITERAL(Color){59, 66, 82, 255}
 
 void drawRectangleRounded (int x, int y, int w, int h, Color color)  
 {
@@ -138,36 +138,23 @@ char *creaSPAZI(int N) {
 
 int main (int argc, char *argv[])
 {
-    //char input_msg[1024];
-    // gestione parametri da linea di comando
-    int opt;
-    // -m message to display
-    //- t transparency 0-255
-    while ( (opt = getopt(argc, argv, ":m:t")) != -1)
-    {
-        switch (opt)
-        {
-            case 'm':
-                //printf("%s\n",msg );
-                strcpy(msg,optarg);
-                break;
-            case 't':
-             BG_COLOR =  CLITERAL(Color){67, 76, 94,0};
-             break;
-            //ciao
-            default:
-                printf("Formato di input non valido!!! Il programma terminerà\n");
-                exit(1);
-        }
-    }
 
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST); // | FLAG_WINDOW_TOPMOST);
+   if (argc < 2) strcpy( msg,"Application started from graphic environment or without passing any custome text. To use a custom text, please run the following command from your preferred terminal console: $./matrix-display \"message text\". Press [q] to close app.");
+   else if(strcpy(msg,argv[1]) == NULL)
+   {
+      printf("Somethine went wrong with message text.\n");
+      return 0;
+   }
+
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
     InitWindow(WIDTH, HEIGHT, "Matrix Display");
+    SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     // center window on the screen
-    SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
+    SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) - HEIGHT); 
+
     RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);  
 
-    // set FPS (uso questo sistema per regolare la velocità di scorrimento)
+    // set FPS (uso questo sistema per regolare la velocità di scorrimento per simulare spostamento carattere x carattere)
     SetTargetFPS(10);
 
     // crea stringa spazi e appendila prima e dopo il messaggio originale
@@ -187,14 +174,17 @@ int main (int argc, char *argv[])
     size_t end = max_char; //visualizza sempre [max_char] per volta! attiva debug per vedere come funzionaae
     int len=strlen(result);
 
-    while (!WindowShouldClose())
+  // fai riapparire finestra dopo caricamento iniziale
+  ClearWindowState(FLAG_WINDOW_HIDDEN);
+
+while (!WindowShouldClose())
     {
         //----------------------------------------------------------------------------------
         // Update
         //----------------------------------------------------------------------------------
         if (IsKeyPressed(KEY_SPACE)) pausa = !pausa;
 
-        // Load at runtime, custom font chars from font.data file!
+        // Load custom map chars from font.data file!
         // se si vuole cambiare il disegno dei caratteri e' sufficiente aprire
         // il file font.data con l' altro programma dotchar-editor!, modificarlo,
         // salvarlo e ricopiarlo qui!  :-)
