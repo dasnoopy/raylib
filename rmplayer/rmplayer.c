@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.2"
+#define TOOL_VERSION            "3.1.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -303,7 +303,7 @@ void GetTitle (int idx){
         strcat (titleStr, tmpInfo);
         strcat (titleStr, ", ");
         // sample size
-        snprintf(tmpInfo, sizeof(tmpInfo),"%i kbit/s",music.stream.sampleSize);
+        snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
         strcat (titleStr, tmpInfo);
         strcat (titleStr, ", ");
         // channels
@@ -512,12 +512,12 @@ int main (int argc, char *argv[]) {
 
             // colors themes
             if (lightTheme) { // use light theme
-                bgColor = lightenColor(accentColor,0.92f);
+                bgColor = lightenColor(accentColor,0.90f);
                 textColor = lightenColor(accentColor, 0.40f);
                 borderColor = lightenColor(accentColor,0.80f);
             }
             else { // use dark theme
-                bgColor = darkenColor(accentColor,0.10f);
+                bgColor = darkenColor(accentColor,0.15f);
                 textColor = darkenColor(accentColor, 0.60f);
                 borderColor = darkenColor(accentColor,0.30f);
             }
@@ -1001,7 +1001,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             if (dgtEffect) DrawTextEx(digitFnt,"88:88:88",(Vector2){10,58},20,0, borderColor);
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
-            // current song
+            // song of songs
              DrawText(TextFormat("%04d of %04d",currPlay + 1, files.count),148, 45,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
@@ -1070,7 +1070,10 @@ if (!isMini) {// when mini view is active fileselectio is disabled
 
             // KHz / stereo - mono  of current song
             DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),105,58,10, textColor);
-            DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),105,69,10, textColor);
+            DrawText(TextFormat("%i bits",music.stream.sampleSize),105,69,10, textColor);
+            DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),86,45,10, textColor);
+
+//                    snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
             
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
