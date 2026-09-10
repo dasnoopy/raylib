@@ -10,7 +10,7 @@
 
 // NORD colors
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
-#define ON_COLOR CLITERAL(Color){ 129, 161, 193, 255 }
+#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
 
 struct sysinfo info;
 char uptime_str[64];
@@ -88,10 +88,10 @@ while (!WindowShouldClose())
 
     DrawTextEx(nothOS, TextFormat("%02i:%02i", t->tm_hour, t->tm_min), (Vector2){20, 24}, 88,2, WHITE);
     //DrawLine(10,28,240,28,ORANGE);
-		DrawTextEx(textFnt, TextFormat("%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 8}, 28,0, SKYBLUE);
+		DrawTextEx(textFnt, TextFormat("%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 8}, 28,0, ON_COLOR);
     //DrawLine(10,94,240,94,ORANGE);
 
-		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,SKYBLUE);
+		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Sun Mon Tue Wed Thu Fri Sat", (Vector2){12,124},16,0,WHITE);
 
 		start = getStartDay(month, year);
@@ -103,7 +103,7 @@ while (!WindowShouldClose())
 	for (int y = 0; y < start; y++) offX+=25;
 	// stampa giorni del mese
 	for (int i = 1; i <= days; i++)  {
-		DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?SKYBLUE:LIGHTGRAY);
+		DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:LIGHTGRAY);
 	   	offX = offX + 25;
 	    if ( (i + start) % 7  == 0) {
 	    	offX = 18;
@@ -113,7 +113,7 @@ while (!WindowShouldClose())
     
     get_uptime();
     Vector2 uptimePos = MeasureTextEx(textFnt, uptime_str, 28, 0);
-    DrawTextEx(textFnt, TextFormat("up %s", uptime_str), (Vector2){uptimePos.x /2, HEIGHT-36}, 28,0, SKYBLUE);
+    DrawTextEx(textFnt, TextFormat("up %s", uptime_str), (Vector2){uptimePos.x /2, HEIGHT-36}, 28,0, ON_COLOR);
 		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
 		EndDrawing();
 	}

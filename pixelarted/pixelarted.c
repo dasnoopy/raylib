@@ -136,7 +136,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 180, 182,182, 232} 
+#define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 232} 
 
 // bottoni toolbar
     // UI required variables
@@ -659,7 +659,7 @@ while (!WindowShouldClose())
         if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
         // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
         DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
-                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},2, BORDER_COLOR);
+                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},3, BLACK);
 
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
