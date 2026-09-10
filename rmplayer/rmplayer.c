@@ -310,7 +310,6 @@ void GetTitle (int idx){
         snprintf(tmpInfo, sizeof(tmpInfo),"%i channel (%s)", music.stream.channels, (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi");
         strcat (titleStr, tmpInfo);
         strcat (titleStr, " ] ");
-
         }
 }
 
@@ -1073,8 +1072,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawText(TextFormat("%i bits",music.stream.sampleSize),105,69,10, textColor);
             DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),86,45,10, textColor);
 
-//                    snprintf(tmpInfo, sizeof(tmpInfo),"%i bits",music.stream.sampleSize);
-            
             //  flags grid
             DrawLine(434,8,434,81,borderColor);
             DrawLine(367,26,500,26,borderColor);
@@ -1158,7 +1155,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         EndDrawing();
     }
     
-    //unload reosurce
+    //unload resource
     UnloadDirectoryFiles(musicFiles);
     UnloadImage(image);
     UnloadTexture(background);

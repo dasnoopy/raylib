@@ -178,6 +178,7 @@ struct tm *tm_info = localtime(&now);
       // current date/time
 		DrawTextEx(dateFnt,dateStr,(Vector2){ (WIDTH/2) - (dateSize.x/2), 10}, 24,0, LIGHTGRAY);
 		DrawTextEx(timeFnt,timeStr,(Vector2){ (WIDTH/2) - (timeSize.x/2), 24}, 96,0, WHITE);
+		//DrawRectangle(0,76,WIDTH,2,BACK_COLOR);
 		DrawTextEx(dateFnt,TextFormat("%s",desc),(Vector2){ (WIDTH/2) - (descSize.x/2), 112},24,0,LIGHTGRAY);
 	    DrawTextEx(dateFnt,TextFormat("%i left, %i%%",currPoint,(currPoint*100)/count),(Vector2){64,550},24,0,LIGHTGRAY);
 

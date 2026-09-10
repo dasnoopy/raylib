@@ -4,8 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#define WIDTH  240
-#define HEIGHT 240
+#define WIDTH  200
+#define HEIGHT 200
 
 const float xCenter = WIDTH/2;
 const float yCenter = HEIGHT/2;
@@ -17,36 +17,23 @@ const float secHandLen = clockRadius * 0.9;
 
 
 // NORD colors
-#define BACK_COLOR CLITERAL(Color){10, 10, 15, 192}
+// NORD colors
+#define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
+#define ON_COLOR CLITERAL(Color){ 129, 161, 193, 255 }
 #define HANDS_COLOR CLITERAL(Color){ 143, 188, 187, 255 }
 #define MIN_MARK_COLOR CLITERAL(Color){ 136, 192, 208, 232 }
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
 #define TEXT_COLOR CLITERAL(Color){ 94, 129, 172, 255 }
-#define ON_COLOR CLITERAL(Color){ 242, 242, 242, 255 }
 #define OFF_COLOR CLITERAL(Color){ 132,132,137, 32 } 
 
 void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
   Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  float radius = 0.2;                        // rotate degrees
+  float radius = 0.086;                        // rotate degrees
   int     segs = 10;
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
-void TextHour(Color color)
-{
-int fontsize = 20;
-float alpha_deg = 180;
-for (int i=12; i>0; i--)
-	{
-	float x =  (center.x + clockRadius*0.86 * sinf(alpha_deg * DEG2RAD));
-	float y =  (center.y + clockRadius*0.86 * cosf(alpha_deg * DEG2RAD));
-	alpha_deg += 360 / 12;
-	//printf("[%i]: x:%f y:%f\n",i,x,y);
-	//int xOffset = i % 3 == 0 ? 0 : -8;
-	//int yOffset = i % 12 == 0 ? 0 : 8;
-	DrawText (TextFormat("%02i",i), x-10, y-8, fontsize, color );
-	}
-}
+void TextHour(Color color, Font font, int fontSize);
 
 void DrawMinuteMarkers(Color color)
 {
@@ -89,7 +76,7 @@ void DrawHourHand(struct tm *t)
 	float x_outer = center.x + hourHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - hourHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,10, WHITE);
+	DrawLineEx(center, outer,6, WHITE);
 }
 
 void DrawMinuteHand(struct tm *t)
@@ -99,7 +86,7 @@ void DrawMinuteHand(struct tm *t)
 	float x_outer = center.x + minHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - minHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,6, LIGHTGRAY);
+	DrawLineEx(center, outer,4, WHITE);
 }
 
 void DrawSecondHand(struct tm *t)
@@ -108,7 +95,7 @@ void DrawSecondHand(struct tm *t)
 	float x_outer = center.x + secHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - secHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,2, GRAY);
+	DrawLineEx(center, outer,2, LIGHTGRAY);
 }
 
 void DrawCenter(int radius, Color color)
@@ -126,6 +113,7 @@ int main (int argc, char *argv[])
 	// center window on the screen
 	SetWindowPosition(8, GetMonitorHeight(0)- (HEIGHT + 8)); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+	Font textFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 20, NULL, 0); 
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);
 
   // fai riapparire finestra dopo caricamento iniziale
@@ -145,28 +133,41 @@ int main (int argc, char *argv[])
 
 		// grid
     // for (int i = 8; i < WIDTH; i+=16) DrawLine(i,0,i,HEIGHT,OFF_COLOR);
-    // for (int i = 8; i < HEIGHT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
+    // for (int i = 8; i < HEIGHbT; i+=16) DrawLine(0,i,WIDTH,i,OFF_COLOR);
 		drawRectangleRounded(0,0,WIDTH,HEIGHT,BACK_COLOR);
 		
 		now = time (NULL);
 		t = localtime(&now);
 		//DrawCircleV(center, clockRadius,BACK_COLOR);
 	    DrawMinuteMarkers(GRAY);	
-			DrawHourMarkers(LIGHTGRAY);
-			TextHour(WHITE);
+			DrawHourMarkers(SKYBLUE);
+			TextHour(WHITE,textFont,20);
 
 			DrawHourHand(t);
 			DrawMinuteHand(t);
 			DrawSecondHand(t);
 
-			DrawCenter(10, RED);
+			DrawCenter(7, LIGHTGRAY);
 		EndDrawing();
 	}
 	
 	UnloadRenderTexture(target);
-	CloseWindow();
+	UnloadFont(textFont);
 	return 0;
 
 
 }
 
+void TextHour(Color color, Font font, int fontSize) {
+float alpha_deg = 180;
+for (int i=12; i>0; i--)
+	{
+	float x =  (center.x + clockRadius*0.82 * sinf(alpha_deg * DEG2RAD));
+	float y =  (center.y + clockRadius*0.82 * cosf(alpha_deg * DEG2RAD));
+	alpha_deg += 360 / 12;
+	//printf("[%i]: x:%f y:%f\n",i,x,y);
+	//int xOffset = i % 3 == 0 ? 0 : -8;
+	//int yOffset = i % 12 == 0 ? 0 : 8;
+	DrawTextEx(font, TextFormat("%02i",i), (Vector2){x-10, y-8}, fontSize, 1, color);
+	}
+}

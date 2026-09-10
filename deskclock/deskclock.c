@@ -9,8 +9,8 @@
 
 
 // NORD colors
-#define BACK_COLOR CLITERAL(Color){25, 29, 27, 196}
-#define ON_COLOR CLITERAL(Color){ 215, 25, 33, 255 }
+#define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
+#define ON_COLOR CLITERAL(Color){ 129, 161, 193, 255 }
 
 struct sysinfo info;
 char uptime_str[64];
@@ -29,7 +29,7 @@ void get_uptime (void) {
 
 int main (int argc, char *argv[]) 
 {
-	 SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
 	InitWindow(WIDTH, HEIGHT, "deskclock");
 	SetWindowPosition(8, GetMonitorHeight(0)- (HEIGHT + 8)); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
@@ -54,7 +54,7 @@ int main (int argc, char *argv[])
 
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
-    DrawTextEx(nothOS, TextFormat("%02i:%02i", t->tm_hour, t->tm_min), (Vector2){10, HEIGHT/5}, 88,0, WHITE);
+    DrawTextEx(nothOS, TextFormat("%02i:%02i", t->tm_hour, t->tm_min), (Vector2){10, HEIGHT/5}, 88,2, WHITE);
     //DrawLine(10,28,240,28,ORANGE);
 		DrawTextEx(textFnt, TextFormat("%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/6, 12}, 28,0, SKYBLUE);
     //DrawLine(10,94,240,94,ORANGE);

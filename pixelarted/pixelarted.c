@@ -136,7 +136,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 20, 25, 25, 202} 
+#define BORDER_COLOR CLITERAL(Color){ 180, 182,182, 232} 
 
 // bottoni toolbar
     // UI required variables

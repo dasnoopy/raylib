@@ -2,22 +2,20 @@ rmPlayer: a simple MP3/OGG file player made with C + Raylib
 -------------------------------------------------------------------
 Some settings can be changed using a configuration file:
 at first execution of app, /home/user$/.local/share/rmplayer folder
-will be created. Default settings will be used.
+will be created. Default settings are hardcoded inside code and will be used.
 
 If you want some customization, create a minimal rmplayer.cfg file
-in that folder:
-
-(note: bool [true/false] enable/disable option)
+in /home/user$/.local/share/rmplayer folder
 
 //---------------------------------------------------------------
 // simple rmplayer.cfg
 //---------------------------------------------------------------
 
 [player]
-isPlay=true                    // start autoplay at start
-isShuffle=true                 // Shuffle at start
-isMini=true                    // miniview mode 
-isVumeter=true                 // false: amplitude audio analyzer  
+isPlay=true                    // start autoplay at start (bool)
+isShuffle=true                 // Shuffle at start (bool)
+isMini=true                    // miniview mode  (bool)
+isVumeter=true                 // false: amplitude audio analyzer
                                // true: use digital 20bars vumeter
 musicDir=/where/your/Music     //set music folder where your mp3 files are located
 
@@ -25,7 +23,7 @@ musicDir=/where/your/Music     //set music folder where your mp3 files are locat
 lightTheme=false               // true:light theme, false:dark theme
 accentColor=139,229,157,255    // application accent color
 titleFnt=fonts/rmplayerdot.otf // custom ttf/otf font for MP3 infobar
-dgtEffect=true                 // shadow text for song time and volume value
+dgtEffect=true                 // shadow text for song time and volume value digit font
 
 // -------------------------------------------------------------
 
