@@ -13,7 +13,7 @@
 #define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
 
 struct sysinfo info;
-char uptime_str[64];
+char buffer[64]= { 0 };
 
 int month, year, start; 
 const char *months[] = {"", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
@@ -38,7 +38,7 @@ int getStartDay(int month, int year) {
 
     int k = y % 100, j = y / 100; 
     int d = (1 + 13*(m + 1)/5 + k + k/4 + j/4 + 5*j) % 7; 
-    return (d + 6) % 7; // Sunday = 0
+    return (d + 5) % 7; // Sunday = 0
 }
 
 void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
@@ -50,7 +50,7 @@ void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
 
 void get_uptime (void) {
     sysinfo(&info);
-    snprintf(uptime_str, sizeof(uptime_str),"%02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
+    snprintf(buffer, sizeof(buffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
 int main (int argc, char *argv[]) 
@@ -86,13 +86,18 @@ while (!WindowShouldClose())
 		month = t->tm_mon + 1; // current month
 		year = t->tm_year + 1900; // current year
 
-    DrawTextEx(nothOS, TextFormat("%02i:%02i", t->tm_hour, t->tm_min), (Vector2){20, 24}, 88,2, WHITE);
-    //DrawLine(10,28,240,28,ORANGE);
-		DrawTextEx(textFnt, TextFormat("%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900), (Vector2){WIDTH/5, 8}, 28,0, ON_COLOR);
-    //DrawLine(10,94,240,94,ORANGE);
+		// format date and center horizontally
+		snprintf(buffer, sizeof(buffer),"%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900);
+		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
+		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 8}, 28,0, ON_COLOR);
+
+		// format clock and centering horizontally
+		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
+		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
+		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,2, WHITE);
 
 		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
-		DrawTextEx(calFnt,"Sun Mon Tue Wed Thu Fri Sat", (Vector2){12,124},16,0,WHITE);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);
 
 		start = getStartDay(month, year);
 		int days = getDays(month, year);
@@ -103,19 +108,19 @@ while (!WindowShouldClose())
 	for (int y = 0; y < start; y++) offX+=25;
 	// stampa giorni del mese
 	for (int i = 1; i <= days; i++)  {
-		DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:LIGHTGRAY);
+		DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:WHITE);
 	   	offX = offX + 25;
 	    if ( (i + start) % 7  == 0) {
 	    	offX = 18;
 	        offY = offY + 20;
 	    }
 	}
-    
-    get_uptime();
-    Vector2 uptimePos = MeasureTextEx(textFnt, uptime_str, 28, 0);
-    DrawTextEx(textFnt, TextFormat("up %s", uptime_str), (Vector2){uptimePos.x /2, HEIGHT-36}, 28,0, ON_COLOR);
-		//DrawText("Digital Clock v1.0 @2026 by Andrea Antolini", 12, 8 ,20, YELLOW);
-		EndDrawing();
+    // get uptime and horizontal text centering
+	    get_uptime();
+	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, 28, 0);
+	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-36}, 28,0, ON_COLOR);
+
+	EndDrawing();
 	}
 	
   UnloadRenderTexture(target);
