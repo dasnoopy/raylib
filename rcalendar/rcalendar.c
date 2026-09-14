@@ -56,8 +56,8 @@ void get_uptime (void) {
 int main (int argc, char *argv[]) 
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
-	InitWindow(WIDTH, HEIGHT, "deskclock");
-	SetWindowPosition(8, GetMonitorHeight(0)- (HEIGHT + 8)); 
+	InitWindow(WIDTH, HEIGHT, "rcalendar");
+	SetWindowPosition(8, GetMonitorHeight(0)- HEIGHT - 8); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
@@ -94,7 +94,7 @@ while (!WindowShouldClose())
 		// format clock and centering horizontally
 		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
-		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,2, WHITE);
+		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,0, WHITE);
 
 		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);

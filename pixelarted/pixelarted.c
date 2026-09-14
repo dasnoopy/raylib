@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.7"
+#define TOOL_VERSION            "1.7.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -810,7 +810,7 @@ while (!WindowShouldClose())
                 isDrawHmirr=false;
                 isDrawVmirr=false;
             }
-        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 72 , 32, 32 }, "#94#", &isColorRepl);
+        GuiToggle((Rectangle){ toolbarPos.x+72, toolbarPos.y + 72 , 32, 32 }, "#25#", &isColorRepl);
             if (isColorRepl) {
                 isDrawing=false;
                 isFloodFill=false;

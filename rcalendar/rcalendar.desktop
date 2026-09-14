@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=rcalendar
+GenericName=Raylib Calendar
+Type=Application
+Version=1.0
+Comment=A Raylib date/time/month cal widgetfor Linux written in C99
+Path=/home/andrea/Projects/raylib/rcalendar
+Exec=/home/andrea/Projects/raylib/rcalendar/rcalendar
+Icon=/home/andrea/Projects/raylib/rcalendar/rcalendar.svg
+Terminal=false
+StartupNotify=false
+Categories=Office;
+Keywords=Office;
+X-Desktop-File-Install-Version=0.28
+
