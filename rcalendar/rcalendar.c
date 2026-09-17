@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/NType82.otf", 88, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/NType82-Headline.otf", 88, NULL, 0); 
   Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
@@ -87,7 +87,7 @@ while (!WindowShouldClose())
 		year = t->tm_year + 1900; // current year
 
 		// format date and center horizontally
-		snprintf(buffer, sizeof(buffer),"%02i.%02i.%04i", t->tm_mday, t->tm_mon +1, t->tm_year + 1900);
+		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
 		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 8}, 28,0, ON_COLOR);
 
@@ -96,26 +96,28 @@ while (!WindowShouldClose())
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
 		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,0, WHITE);
 
-		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
+		DrawTextEx(calFnt,TextFormat("%s %04i", months[month], t->tm_year + 1900),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);
 
+		// monthly calendar
 		start = getStartDay(month, year);
 		int days = getDays(month, year);
 
-	int offX=18;
-	int offY=144;
-	// calcola offset primo giorno del mesesettimanaa
-	for (int y = 0; y < start; y++) offX+=25;
-	// stampa giorni del mese
-	for (int i = 1; i <= days; i++)  {
-		DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:WHITE);
-	   	offX = offX + 25;
-	    if ( (i + start) % 7  == 0) {
-	    	offX = 18;
-	        offY = offY + 20;
-	    }
-	}
-    // get uptime and horizontal text centering
+		int offX=18;
+		int offY=144;
+		// calcola offset primo giorno del mesesettimanaa
+		for (int y = 0; y < start; y++) offX+=25;
+		// stampa giorni del mese
+		for (int i = 1; i <= days; i++)  {
+			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:WHITE);
+		   	offX = offX + 25;
+		    if ( (i + start) % 7  == 0) {
+		    	offX = 18;
+		        offY = offY + 20;
+		    }
+		}
+
+		// get uptime and horizontal text centering
 	    get_uptime();
 	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, 28, 0);
 	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-36}, 28,0, ON_COLOR);
@@ -131,4 +133,3 @@ while (!WindowShouldClose())
 	return 0;
 
 }
-

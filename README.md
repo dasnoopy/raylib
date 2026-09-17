@@ -7,13 +7,13 @@ Thanks a lot, Daniel!
 
 #### How to use (compiling and running on ArchLinux):
 
-1) install raylib (from extra repo): 
-$ `pacman -S raylib`
+1) install gcc and raylib (from extra repo): 
+$ `pacman -S gcc raylib libid3tag` ** libid3tag for rmplayer
 
 2) install raygui from [AUR](https://aur.archlinux.org/packages/raygui);
 
 3) to compile source code and get the executable:
-$ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm`
+$ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
 4) run executable and enjoy!
 
