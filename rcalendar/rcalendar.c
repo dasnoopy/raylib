@@ -1,11 +1,14 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <ctype.h>
+#include <string.h>
 #include <raylib.h>
 #include <stdbool.h>
 #include <sys/sysinfo.h>
 
 #define WIDTH 200 //preferibilmento multiplo di 60
-#define HEIGHT 280
+#define HEIGHT 380
 
 
 // NORD colors
@@ -53,6 +56,18 @@ void get_uptime (void) {
     snprintf(buffer, sizeof(buffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
+void dec2bin(int x, int y, int size, int value, Color color) 
+{
+	int a[4] = { 0 };
+	for (int i = 0; value > 0; i++)
+	{
+		a[i] = value % 2;
+		value /= 2;
+	}
+	for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?WHITE:LIGHTGRAY, a[j]?color:DARKGRAY);
+	//for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?color:DARKGRAY);
+}
+
 int main (int argc, char *argv[]) 
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
@@ -91,11 +106,28 @@ while (!WindowShouldClose())
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
 		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 8}, 28,0, ON_COLOR);
 
+
 		// format clock and centering horizontally
-		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
+		snprintf(buffer, sizeof(buffer),"%02i %02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
 		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,0, WHITE);
 
+		//BCD clock
+		snprintf(buffer, sizeof(buffer),"%02i:%02i:%02i", t->tm_hour, t->tm_min,t->tm_sec);
+		int num;
+		int count = 0;
+		int size = 18;
+		for (int i = 0; buffer[i] != '\0' && count < 6; i++)
+		{
+			 if (isdigit((unsigned char)buffer[i])) 
+			{
+				num = buffer[i] - '0';
+				dec2bin(52+(count*size),320,size,num,DARKGREEN);
+				count++;
+			}
+		}
+		
+		// calendar header
 		DrawTextEx(calFnt,TextFormat("%s %04i", months[month], t->tm_year + 1900),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);
 
@@ -120,7 +152,8 @@ while (!WindowShouldClose())
 		// get uptime and horizontal text centering
 	    get_uptime();
 	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, 28, 0);
-	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-36}, 28,0, ON_COLOR);
+	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-36}, 28,0, WHITE);
+
 
 	EndDrawing();
 	}

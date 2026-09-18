@@ -17,7 +17,7 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
 4) run executable and enjoy!
 
-#### Color Picker  
+#### Image color Picker  
 
 ![rcolpick](https://raw.github.com/dasnoopy/raylib/main/screenshot/rcolpick.png)
 
