@@ -15,6 +15,10 @@
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
 #define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
 
+// BCD dots color
+#define inner_Color CLITERAL(Color){ 156, 212, 228, 255 }
+#define outer_Color CLITERAL(Color){ 36, 92, 108, 255 }
+
 struct sysinfo info;
 char buffer[64]= { 0 };
 
@@ -56,7 +60,7 @@ void get_uptime (void) {
     snprintf(buffer, sizeof(buffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
-void dec2bin(int x, int y, int size, int value, Color color) 
+void dec2bin(int x, int y, int size, int value, Color outerColor,Color innerColor) 
 {
 	int a[4] = { 0 };
 	for (int i = 0; value > 0; i++)
@@ -64,7 +68,7 @@ void dec2bin(int x, int y, int size, int value, Color color)
 		a[i] = value % 2;
 		value /= 2;
 	}
-	for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?WHITE:LIGHTGRAY, a[j]?color:DARKGRAY);
+	for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?innerColor:GRAY, a[j]?outerColor:DARKGRAY);
 	//for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?color:DARKGRAY);
 }
 
@@ -76,7 +80,7 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/NType82-Headline.otf", 88, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/NType82-Regular.otf", 88, NULL, 0); 
   Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
@@ -108,7 +112,7 @@ while (!WindowShouldClose())
 
 
 		// format clock and centering horizontally
-		snprintf(buffer, sizeof(buffer),"%02i %02i", t->tm_hour, t->tm_min);
+		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
 		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 24}, 88,0, WHITE);
 
@@ -122,7 +126,7 @@ while (!WindowShouldClose())
 			 if (isdigit((unsigned char)buffer[i])) 
 			{
 				num = buffer[i] - '0';
-				dec2bin(52+(count*size),320,size,num,DARKGREEN);
+				dec2bin(52+(count*size),320,size,num,outer_Color,inner_Color);
 				count++;
 			}
 		}
