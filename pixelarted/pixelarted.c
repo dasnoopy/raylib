@@ -90,7 +90,7 @@ int px,py;
 #define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
 #define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
 #define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
+#define myMAROON     CLITERAL(Color){ 148 , 34, 34, 255 }     //  Maroon / Granata
 #define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
 #define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera

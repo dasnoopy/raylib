@@ -16,8 +16,8 @@
 #define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
 
 // BCD dots color
-#define inner_Color CLITERAL(Color){ 156, 212, 228, 255 }
-#define outer_Color CLITERAL(Color){ 36, 92, 108, 255 }
+#define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
+#define outer_Color CLITERAL(Color){ 76, 86, 106, 255 }      // Dark Gray
 
 struct sysinfo info;
 char buffer[64]= { 0 };
@@ -68,13 +68,13 @@ void dec2bin(int x, int y, int size, int value, Color outerColor,Color innerColo
 		a[i] = value % 2;
 		value /= 2;
 	}
-	for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?innerColor:GRAY, a[j]?outerColor:DARKGRAY);
-	//for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?color:DARKGRAY);
+	//for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?innerColor:GRAY, a[j]?outerColor:DARKGRAY);
+	for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?innerColor:outerColor);
 }
 
 int main (int argc, char *argv[]) 
 {
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); // | 
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_WINDOW_TOPMOST); // | 
 	InitWindow(WIDTH, HEIGHT, "rcalendar");
 	SetWindowPosition(8, GetMonitorHeight(0)- HEIGHT - 8); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
@@ -85,8 +85,7 @@ int main (int argc, char *argv[])
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
   // fai riapparire finestra dopo caricamento iniziale
-  ClearWindowState(FLAG_WINDOW_HIDDEN);
-
+	ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose())
 	{
@@ -106,7 +105,7 @@ while (!WindowShouldClose())
 		year = t->tm_year + 1900; // current year
 
 		// format date and center horizontally
-		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
+		strftime(buffer, sizeof(buffer), "%d %b %Y", t);
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
 		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 8}, 28,0, ON_COLOR);
 
@@ -126,13 +125,13 @@ while (!WindowShouldClose())
 			 if (isdigit((unsigned char)buffer[i])) 
 			{
 				num = buffer[i] - '0';
-				dec2bin(52+(count*size),320,size,num,outer_Color,inner_Color);
+				dec2bin(44+(count*(size+4)),320,size,num,outer_Color,ON_COLOR);
 				count++;
 			}
 		}
 		
 		// calendar header
-		DrawTextEx(calFnt,TextFormat("%s %04i", months[month], t->tm_year + 1900),(Vector2){12,108},16,0,ON_COLOR);
+		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);
 
 		// monthly calendar
@@ -145,7 +144,8 @@ while (!WindowShouldClose())
 		for (int y = 0; y < start; y++) offX+=25;
 		// stampa giorni del mese
 		for (int i = 1; i <= days; i++)  {
-			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?ON_COLOR:WHITE);
+			if (i == t->tm_mday) DrawCircle(offX+8,offY+8,10,ON_COLOR);
+			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?BLACK:WHITE);
 		   	offX = offX + 25;
 		    if ( (i + start) % 7  == 0) {
 		    	offX = 18;
