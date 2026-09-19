@@ -120,12 +120,13 @@ while (!WindowShouldClose())
 		int num;
 		int count = 0;
 		int size = 18;
+		int dist = 4;
 		for (int i = 0; buffer[i] != '\0' && count < 6; i++)
 		{
 			 if (isdigit((unsigned char)buffer[i])) 
 			{
 				num = buffer[i] - '0';
-				dec2bin(44+(count*(size+4)),320,size,num,outer_Color,ON_COLOR);
+				dec2bin(44+(count*(size+dist)),320,size,num,outer_Color,ON_COLOR);
 				count++;
 			}
 		}
@@ -140,7 +141,7 @@ while (!WindowShouldClose())
 
 		int offX=18;
 		int offY=144;
-		// calcola offset primo giorno del mesesettimanaa
+		// calcola offset primo giorno del mese/settimanaa
 		for (int y = 0; y < start; y++) offX+=25;
 		// stampa giorni del mese
 		for (int i = 1; i <= days; i++)  {

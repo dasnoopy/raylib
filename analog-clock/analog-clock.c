@@ -11,15 +11,15 @@ const float xCenter = WIDTH/2;
 const float yCenter = HEIGHT/2;
 const Vector2 center = {xCenter, yCenter};
 const float clockRadius = HEIGHT*0.44;
-const float hourHandLen = clockRadius * 0.7;
-const float minHandLen = clockRadius * 0.9;
-const float secHandLen = clockRadius * 0.9;
+const float hourHandLen = clockRadius * 0.64;
+const float minHandLen = clockRadius * 0.88;
+const float secHandLen = clockRadius * 0.88;
 
 
 // NORD colors
 // NORD colors
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
-#define ON_COLOR CLITERAL(Color){ 129, 161, 193, 255 }
+#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
 #define HANDS_COLOR CLITERAL(Color){ 143, 188, 187, 255 }
 #define MIN_MARK_COLOR CLITERAL(Color){ 136, 192, 208, 232 }
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
@@ -42,7 +42,7 @@ for (int i=0; i<60; i++)
   {	
    float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
    float y = center.y + clockRadius * cosf(alpha_deg * DEG2RAD);
-   // Vector2 coords = {x ,y};
+   //Vector2 coords = {x ,y};
 
    alpha_deg += 360/60;
    // int sides = 4;
@@ -95,7 +95,7 @@ void DrawSecondHand(struct tm *t)
 	float x_outer = center.x + secHandLen * sinf(alpha_deg * DEG2RAD);
 	float y_outer = center.y - secHandLen * cosf(alpha_deg * DEG2RAD);
 	Vector2 outer = {x_outer, y_outer};
-	DrawLineEx(center, outer,2, LIGHTGRAY);
+	DrawLineEx(center, outer,2, ON_COLOR);
 }
 
 void DrawCenter(int radius, Color color)
@@ -140,7 +140,7 @@ int main (int argc, char *argv[])
 		t = localtime(&now);
 		//DrawCircleV(center, clockRadius,BACK_COLOR);
 	    DrawMinuteMarkers(GRAY);	
-			DrawHourMarkers(SKYBLUE);
+			DrawHourMarkers(ON_COLOR);
 			TextHour(WHITE,textFont,20);
 
 			DrawHourHand(t);
