@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.5"
+#define TOOL_VERSION            "3.1.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -469,7 +469,7 @@ int main (int argc, char *argv[]) {
 
 
             // always start loading a random song
-                selectedIndex = isShuffle ? GetRandomValue(0,files.count) : 0;
+                selectedIndex = isShuffle ? GetRandomValue(0,files.count-1) : 0;
                 LoadMusicByIndex(selectedIndex,musicFiles);
                 prevPlay=selectedIndex;
 
@@ -488,7 +488,7 @@ int main (int argc, char *argv[]) {
             //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
             // scroll title / id3
-            Rectangle displayArea = { 8, 8, 352,36 };
+            Rectangle displayArea = { 8, 8, 352,28 };
             float titleX = displayArea.x ;
             float speed = 60.0f;
 
@@ -511,12 +511,12 @@ int main (int argc, char *argv[]) {
 
             // colors themes
             if (lightTheme) { // use light theme
-                bgColor = lightenColor(accentColor,0.90f);
+                bgColor = lightenColor(accentColor, 0.90f);
                 textColor = lightenColor(accentColor, 0.40f);
                 borderColor = lightenColor(accentColor,0.80f);
             }
             else { // use dark theme
-                bgColor = darkenColor(accentColor,0.15f);
+                bgColor = darkenColor(accentColor, 0.15f);
                 textColor = darkenColor(accentColor, 0.60f);
                 borderColor = darkenColor(accentColor,0.30f);
             }
@@ -983,6 +983,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             }
             
             // song title
+
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
                 if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 28, 0, accentColor);
                 else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x + 2, displayArea.y}, 28,0, accentColor);

@@ -13,7 +13,8 @@
 
 // NORD colors
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
-#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
+//#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
+#define ON_COLOR CLITERAL(Color){ 198, 208, 245, 255 }
 
 // BCD dots color
 #define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
@@ -80,7 +81,7 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/NType82-Regular.otf", 88, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/ChakraPetch-Medium.ttf", 88, NULL, 0); 
   Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
@@ -105,7 +106,7 @@ while (!WindowShouldClose())
 		year = t->tm_year + 1900; // current year
 
 		// format date and center horizontally
-		strftime(buffer, sizeof(buffer), "%d %b %Y", t);
+		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
 		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 8}, 28,0, ON_COLOR);
 
@@ -132,7 +133,7 @@ while (!WindowShouldClose())
 		}
 		
 		// calendar header
-		DrawTextEx(calFnt,TextFormat("%s", months[month]),(Vector2){12,108},16,0,ON_COLOR);
+		DrawTextEx(calFnt,TextFormat("%s %04i", months[month], t->tm_year + 1900),(Vector2){12,108},16,0,ON_COLOR);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,124},16,0,LIGHTGRAY);
 
 		// monthly calendar
@@ -145,7 +146,7 @@ while (!WindowShouldClose())
 		for (int y = 0; y < start; y++) offX+=25;
 		// stampa giorni del mese
 		for (int i = 1; i <= days; i++)  {
-			if (i == t->tm_mday) DrawCircle(offX+8,offY+8,10,ON_COLOR);
+			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,ON_COLOR);
 			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?BLACK:WHITE);
 		   	offX = offX + 25;
 		    if ( (i + start) % 7  == 0) {

@@ -90,7 +90,7 @@ int px,py;
 #define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
 #define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
 #define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 148 , 34, 34, 255 }     //  Maroon / Granata
+#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
 #define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
 #define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
@@ -136,7 +136,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 // some funs
 #define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 50, 50,54, 232} 
+#define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 232} 
 
 // bottoni toolbar
     // UI required variables
@@ -582,7 +582,7 @@ while (!WindowShouldClose())
                            matrice[row][col] = temp;
                         }
                     }
-                    // poi ruota di 90° antiorario
+                    // poi ruota di 90° in senso orario
                     for (int row = 0; row < numRows; row++) {
                         for (int col = 0,k = numCols -1; col<k; col++, k--) { 
                            int temp = matrice[row][col];

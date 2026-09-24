@@ -19,7 +19,8 @@ const float secHandLen = clockRadius * 0.88;
 // NORD colors
 // NORD colors
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 232}
-#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
+//#define ON_COLOR CLITERAL(Color){ 136, 192, 208, 255 }
+#define ON_COLOR CLITERAL(Color){ 198, 208, 245, 255 }
 #define HANDS_COLOR CLITERAL(Color){ 143, 188, 187, 255 }
 #define MIN_MARK_COLOR CLITERAL(Color){ 136, 192, 208, 232 }
 #define HOUR_MARK_COLOR CLITERAL(Color){ 129, 161, 193, 255 } 
@@ -48,7 +49,7 @@ for (int i=0; i<60; i++)
    // int sides = 4;
    // int radius = 3;
    // int rotation = 90;
- DrawCircle (x,y,2,color);
+ 		DrawCircle (x,y,2,color);
   }
 }
 
@@ -57,7 +58,7 @@ void DrawHourMarkers(Color color)
 	float alpha_deg = 0;
 	for (int i=0; i<60; i++)
 	  {	
-   		float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
+   	float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
 		float y = center.y + clockRadius * cosf(alpha_deg * DEG2RAD);
 	  // Vector2 coords = {x, y};
 
