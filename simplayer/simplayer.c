@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.1.0"
+#define TOOL_VERSION            "1.1.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -78,7 +78,7 @@ static Music music;
 #define APP_DIR_NAME "simplayer"
 #define PATH_BUF_SIZE 1024
 
-#define MAX_COLORS_COUNT    21          // Number of colors available
+#define MAX_COLORS_COUNT    21          // Number of colors available (BLACK & WHITE are excluded)
 Color colors[MAX_COLORS_COUNT] = {
         DARKGRAY, MAROON, ORANGE, DARKGREEN, DARKBLUE, DARKPURPLE, DARKBROWN,
         GRAY, RED, GOLD, LIME, BLUE, VIOLET, BROWN, LIGHTGRAY, PINK, YELLOW,
@@ -300,7 +300,7 @@ int main (int argc, char *argv[])
 
 
 // some custom colors
-Color accentColor =  colors[GetRandomValue(0,MAX_COLORS_COUNT)]; // choose a random color from RAAYLIB color table
+Color accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  CLITERAL(Color){ 235,245,255,255 };
 Color bgColor = CLITERAL(Color){10, 20, 30, 232};
 Color secondaryColor = CLITERAL(Color){160, 170, 180, 255};
@@ -659,25 +659,25 @@ while (!WindowShouldClose())
         DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),screenWidth-54,432,10, secondaryColor);
 
         //volume value
-           if (!isMute) DrawText(TextFormat("%03.f%%",volume*100),18,410, 20, secondaryColor);
-           else DrawText(TextFormat("%03.f%% ",volume*100),18,410, 20, borderColor);
+           if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.f%%",volume*100),(Vector2){18,410}, 24,0, secondaryColor);
+           else DrawTextEx(digitFnt,TextFormat("%03.f%%",volume*100),(Vector2){18,410}, 24,0, borderColor);
                
 
         // STOP flag
-        DrawRectangle(xyFlags.x+56,xyFlags.y,4,10,isStop ? accentColor:bgColor);
+        DrawRectangle(xyFlags.x+54,xyFlags.y,6,10,isStop ? accentColor:bgColor);
         DrawText("STOP",xyFlags.x,xyFlags.y,10, isStop ? WHITE : secondaryColor);
 
         // PLAY flag
-        DrawRectangle(xyFlags.x+56,xyFlags.y+20,4,10,isPlay ? accentColor:bgColor);
+        DrawRectangle(xyFlags.x+54,xyFlags.y+20,6,10,isPlay ? accentColor:bgColor);
         DrawText("PLAY",xyFlags.x,xyFlags.y+20,10, isPlay ? WHITE : secondaryColor);
 
         // PAUSE flag
-        DrawRectangle(xyFlags.x+56,xyFlags.y+40,4,10,isPause ? accentColor:bgColor);
+        DrawRectangle(xyFlags.x+54,xyFlags.y+40,6,10,isPause ? accentColor:bgColor);
         DrawText("PAUSE",xyFlags.x,xyFlags.y+40,10, isPause ? WHITE : secondaryColor);
 
 
         // Shuffle flag
-        DrawRectangle(xyFlags.x+56,xyFlags.y+60,4,10,isShuffle ? accentColor:bgColor);
+        DrawRectangle(xyFlags.x+54,xyFlags.y+60,6,10,isShuffle ? accentColor:bgColor);
         DrawText("SHUFFLE",xyFlags.x,xyFlags.y+60,10, isShuffle ? WHITE : secondaryColor);
             
         //statusbar with some info
