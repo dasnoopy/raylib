@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*   raylib MPlayer
+*   raylib simple music player
 *   Small utility to play mp3 musicFiles based on Raylib
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.0.2"
+#define TOOL_VERSION            "1.1.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -78,13 +78,11 @@ static Music music;
 #define APP_DIR_NAME "simplayer"
 #define PATH_BUF_SIZE 1024
 
-typedef struct Config
-{
-    bool isPlay;
-    bool isShuffle;
-    Color accentColor;
-    char musicDir[256];
-} Config;
+#define MAX_COLORS_COUNT    21          // Number of colors available
+Color colors[MAX_COLORS_COUNT] = {
+        DARKGRAY, MAROON, ORANGE, DARKGREEN, DARKBLUE, DARKPURPLE, DARKBROWN,
+        GRAY, RED, GOLD, LIME, BLUE, VIOLET, BROWN, LIGHTGRAY, PINK, YELLOW,
+        GREEN, SKYBLUE, PURPLE, BEIGE };
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -285,8 +283,7 @@ int main (int argc, char *argv[])
 
     // Set UI style
     // Custom GUI font loading
-    Font digitFnt= LoadFontEx("fonts/rmdigit.otf", 20, NULL, 0); // all other text
-    Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); // all other text
     Font titleFnt = LoadFontEx("fonts/ManropeV5-Bold.otf", 36, NULL, 0);
     Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
@@ -296,23 +293,17 @@ int main (int argc, char *argv[])
     SetAudioStreamBufferSizeDefault(65535);
     
 
-    // default config value
-    Config cfg = {
-        .isPlay = true,
-        .isShuffle = true,
-        .musicDir = "/home/public/Music", //default music folder
-    };
-
     // assign  values from config file
-    bool isPlay = cfg.isPlay;
-    bool isShuffle = cfg.isShuffle;
-    char *musicDir = cfg.musicDir;
+    bool isPlay = true;
+    bool isShuffle = true;
+    char *musicDir = "/home/public/Music";
 
 
 // some custom colors
-Color accentColor =  CLITERAL(Color){ 235,245,255,255 };
+Color accentColor =  colors[GetRandomValue(0,MAX_COLORS_COUNT)]; // choose a random color from RAAYLIB color table
+Color primaryColor =  CLITERAL(Color){ 235,245,255,255 };
 Color bgColor = CLITERAL(Color){10, 20, 30, 232};
-Color textColor = CLITERAL(Color){160, 170, 180, 255};
+Color secondaryColor = CLITERAL(Color){160, 170, 180, 255};
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
 
 // file open/save variables
@@ -339,7 +330,7 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
             //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
             // scroll title / id3
-            Rectangle displayArea = { 18, 20, 580,36 };
+            Rectangle displayArea = { 18, 20, 600,36 };
             float titleX = displayArea.x ;
             float speed = 60.0f;
 
@@ -371,7 +362,7 @@ while (!WindowShouldClose())
 
 
         currentTime = GetMusicTimePlayed(music); //just to simplify some checks
-        Vector2 xyFlags= {screenWidth-70,20};
+        Vector2 xyFlags= {screenWidth-78,20};
 
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
@@ -613,23 +604,23 @@ while (!WindowShouldClose())
             
             // song title
             BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 36, 0, accentColor);
-                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 36,0, accentColor);
+                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 36, 0, primaryColor);
+                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 36,0, primaryColor);
             EndScissorMode();
             // song Artist
-            DrawLine(displayArea.x,displayArea.y+40,displayArea.width+50,displayArea.y+40,ORANGE);
-            DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, 28, 1, textColor);
+            DrawLine(displayArea.x,displayArea.y+40,displayArea.width+20,displayArea.y+40,accentColor);
+            DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, 28, 1, secondaryColor);
 
             // tempo attuale brano e durata totale brano
-            DrawTextEx(digitFnt,curTimeStr,(Vector2){300,392},20,0, accentColor);
+            DrawTextEx(digitFnt,curTimeStr,(Vector2){300,392},24,0, primaryColor);
             DrawRectangle(300,419,94,2,borderColor);
             // progressbar
-            for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,419,1,2},ORANGE);
-            DrawTextEx(digitFnt,totTimeStr,(Vector2){300,428},20,0, textColor);
+            for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,419,1,2},accentColor);
+            DrawTextEx(digitFnt,totTimeStr,(Vector2){300,424},24,0, secondaryColor);
 
             // song of songs
-            DrawText(TextFormat("%04d",currPlay + 1),268, 416,10,textColor);
-            DrawText(TextFormat("%04d",fileCount),404, 416,10,textColor);
+            DrawText(TextFormat("%04d",currPlay + 1),268, 416,10,secondaryColor);
+            DrawText(TextFormat("%04d",fileCount),404, 416,10,secondaryColor);
             
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
@@ -655,7 +646,7 @@ while (!WindowShouldClose())
                                 // Logica di disegno combinata barra + picco
                                 bool drawActiveSegment = (j < segmentsToLight);
                                 bool drawPeakSegment = (j == peakSegment);
-                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? accentColor:borderColor );
+                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? primaryColor:borderColor );
                              }
                         }
 
@@ -663,34 +654,34 @@ while (!WindowShouldClose())
         EndScissorMode();
 
         // KHz / stereo - mono  of current song
-        DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),screenWidth-54,400,10, textColor);
-        DrawText(TextFormat("%i bits",music.stream.sampleSize),screenWidth-54,416,10, textColor);
-        DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),screenWidth-54,432,10, textColor);
+        DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),screenWidth-54,400,10, secondaryColor);
+        DrawText(TextFormat("%i bits",music.stream.sampleSize),screenWidth-54,416,10, secondaryColor);
+        DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),screenWidth-54,432,10, secondaryColor);
 
         //volume value
-           if (!isMute) DrawTextEx(digitFnt,TextFormat("vw %03.f",volume*100),(Vector2){18,410}, 20,0, textColor);
-           else DrawTextEx(digitFnt,TextFormat("vw %03.f",volume*100),(Vector2){18,410}, 20,0, borderColor);
+           if (!isMute) DrawText(TextFormat("%03.f%%",volume*100),18,410, 20, secondaryColor);
+           else DrawText(TextFormat("%03.f%% ",volume*100),18,410, 20, borderColor);
                
 
         // STOP flag
-        DrawRectangle(xyFlags.x+48,xyFlags.y,4,16,isStop ? RED:bgColor);
-        DrawTextEx(textFnt,"Stop",(Vector2){xyFlags.x,xyFlags.y},16,0, isStop ? MAROON : textColor);
+        DrawRectangle(xyFlags.x+56,xyFlags.y,4,10,isStop ? accentColor:bgColor);
+        DrawText("STOP",xyFlags.x,xyFlags.y,10, isStop ? WHITE : secondaryColor);
 
         // PLAY flag
-        DrawRectangle(xyFlags.x+48,xyFlags.y+20,4,16,isPlay ? GREEN:bgColor);
-        DrawTextEx(textFnt,"Play",(Vector2){xyFlags.x,xyFlags.y+20},16,0, isPlay ? LIME : textColor);
+        DrawRectangle(xyFlags.x+56,xyFlags.y+20,4,10,isPlay ? accentColor:bgColor);
+        DrawText("PLAY",xyFlags.x,xyFlags.y+20,10, isPlay ? WHITE : secondaryColor);
 
         // PAUSE flag
-        DrawRectangle(xyFlags.x+48,xyFlags.y+40,4,16,isPause ? ORANGE:bgColor);
-        DrawTextEx(textFnt,"Pause",(Vector2){xyFlags.x,xyFlags.y+40},16,0, isPause ? ORANGE : textColor);
+        DrawRectangle(xyFlags.x+56,xyFlags.y+40,4,10,isPause ? accentColor:bgColor);
+        DrawText("PAUSE",xyFlags.x,xyFlags.y+40,10, isPause ? WHITE : secondaryColor);
 
 
         // Shuffle flag
-        DrawRectangle(xyFlags.x+48,xyFlags.y+60,4,16,isShuffle ? BLUE:bgColor);
-        DrawTextEx(textFnt,"Shuffle",(Vector2){xyFlags.x,xyFlags.y+60},16,0, isShuffle ? SKYBLUE : textColor);
+        DrawRectangle(xyFlags.x+56,xyFlags.y+60,4,10,isShuffle ? accentColor:bgColor);
+        DrawText("SHUFFLE",xyFlags.x,xyFlags.y+60,10, isShuffle ? WHITE : secondaryColor);
             
         //statusbar with some info
-        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, accentColor); 
+        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, primaryColor); 
         // DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
         // DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
     
@@ -704,7 +695,6 @@ while (!WindowShouldClose())
     // unload fonts
     UnloadFont(titleFnt);
     UnloadFont(artistFnt);
-    UnloadFont(textFnt);
     UnloadFont(digitFnt);
 
     CloseAudioDevice();
