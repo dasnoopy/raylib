@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.7"
+#define TOOL_VERSION            "3.2.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -19,11 +19,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <dirent.h>
 #include <math.h>
 #include <ctype.h>
 #include <id3tag.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <sys/stat.h>
 
 // gcc -Wall -Werror rmplayer.c  -o rmplayer -lraylib -lm -lid3tag
@@ -65,9 +65,21 @@ Color bgColor;
 Color textColor;
 Color borderColor; 
 
-// Music library
-#define MAX_FILEPATH_SIZE       1024
-#define FILE_FILTER      ".mp3;.ogg"
+// Music library && files management
+#define FILTER_MP3      ".mp3"
+#define FILTER_OGG      ".ogg"
+
+size_t fileCount;
+#define MAX_FILES 4096
+#define MAX_NAME 1024
+char files[MAX_FILES][MAX_NAME];
+
+// barra path su Linux oppure su WIN
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
 
 // file selection & id3 tag
 char ID3tag[1024] = { '\0' };
@@ -76,7 +88,6 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-static FilePathList musicFiles;
 
 // define stream 
 static Music music;
@@ -172,7 +183,7 @@ Color lightenColor(Color color, float factor)
     };
 }
 
-// Get path to the score file based on the os.
+// Get XDG path
 static void get_config_path(char *buf, size_t len) {
     char dir[PATH_BUF_SIZE];
     const char *xdg = getenv("XDG_DATA_HOME");
@@ -271,7 +282,7 @@ void GetTitle (int idx){
     //get ID3 tags
     struct id3_file *file;
     struct id3_tag *tag;
-    file = id3_file_open(musicFiles.paths[idx], ID3_FILE_MODE_READONLY);
+    file = id3_file_open(files[idx], ID3_FILE_MODE_READONLY);
     
     if (!file) fprintf(stderr, "Errore apertura file\n");
 
@@ -290,10 +301,10 @@ void GetTitle (int idx){
     else { // show file info
         char tmpInfo[64];
         // complete path + filename
-        strcpy(titleStr, musicFiles.paths[idx]);
+        strcpy(titleStr, files[idx]);
         strcat (titleStr, " [ ");
         // file size in bytes
-        snprintf(tmpInfo, sizeof(tmpInfo),"%d KBytes",GetFileLength(musicFiles.paths[idx])/1024);
+        snprintf(tmpInfo, sizeof(tmpInfo),"%d KBytes",GetFileLength(files[idx])/1024);
         strcat (titleStr, tmpInfo);
         strcat (titleStr, ", ");
         // sample rate
@@ -312,28 +323,12 @@ void GetTitle (int idx){
         getID3tags(tag, "TDRC", "Year");
         strcat(titleStr, ID3tag );
         strcat(titleStr, "]\0");
-
         }
 }
 
-// Funzione che restituisce un FilePathList dei file in basePath con estensioni filter
-FilePathList GetMusicFromDirectory(const char *basePath, const char *filter, bool includeSubdirs){
-    // carica in maniera ricorsiva e non ordinata tutti i files musicali presenti nel folder/sottofolder
-    musicFiles = LoadDirectoryFilesEx(basePath, filter, includeSubdirs);
-
-    if (musicFiles.count == 0) {
-        printf("Nessun file trovato in '%s' con filtro '%s'\n", basePath, filter);     
-        exit(0);
-    }
-
-    return musicFiles; 
-}
-
-void LoadMusicByIndex(int idx, FilePathList musicFiles) {
-    if (idx < 0 || idx >= musicFiles.count) return;
-    selectedIndex = idx;
+void LoadMusicByIndex(int idx) {
     currPlay = idx;
-    music = LoadMusicStream(musicFiles.paths[idx]);
+    music = LoadMusicStream(files[idx]);
     GetTitle(idx);
 }
 
@@ -388,6 +383,51 @@ void AudioProcessCallback(void *buffer, unsigned int frames) {
         rawSamples[i] = samples[i * 2] * 0.1f; 
     }
 }
+
+int compare_files(const void *a, const void *b) {
+    const char *fa = (const char *)a;
+    const char *fb = (const char *)b;
+    return strcmp(fa, fb); // case sensitive
+    //return strcasecmp((const char *)fa, (const char *)fb); // no case sensitive
+}
+
+int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
+{
+    DIR *dir = opendir(path);
+    if (!dir) return count;
+
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
+        const char *name = entry->d_name;
+
+        // salta "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+        char fullpath[512];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
+        // se è file → controlla estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && ( strcmp(ext, FILTER_MP3) == 0  || strcmp(ext, FILTER_OGG) == 0)) {
+                 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) count++;
+            }
+        }
+    }
+    closedir(dir);
+    // sort files list
+    qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
+    return count;
+}
+
 
 int main (int argc, char *argv[]) {
     
@@ -469,16 +509,17 @@ int main (int argc, char *argv[]) {
     bool dgtEffect = cfg.dgtEffect;
     bool lightTheme = cfg.lightTheme;
 
-    // Load music musicFiles
-    GetMusicFromDirectory(musicDir,FILE_FILTER,true);
+// file open/save variables
 
+            // load music files into array
+            int fileCount = load_files_recursive(musicDir, files, 0);
 
-            // always start loading a random song
-                selectedIndex = isShuffle ? GetRandomValue(0,musicFiles.count-1) : 0;
-                LoadMusicByIndex(selectedIndex,musicFiles);
+            // load first song to play  based on shuffle setting
+                selectedIndex = isShuffle ? GetRandomValue(0,fileCount-1) : 0;
+                LoadMusicByIndex(selectedIndex);
                 prevPlay=selectedIndex;
 
-            // auto play song based on cfg setting
+            // auto play song based on autoplay setting
             if (isPlay) {
                 isStop=false;
                 isPause =false;
@@ -545,9 +586,6 @@ int main (int argc, char *argv[]) {
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
-
-
-
  while (!WindowShouldClose())
 {
         //----------------------------------------------------------------------------------
@@ -613,16 +651,16 @@ int main (int argc, char *argv[]) {
                 StopMusicStream(music);
                 UnloadMusicStream(music);
                 if (isShuffle) {
-                    int shuffleIndex = GetRandomValue(0,musicFiles.count-1);
-                    if (shuffleIndex == musicFiles.count) --shuffleIndex;
+                    int shuffleIndex = GetRandomValue(0,fileCount-1);
+                    if (shuffleIndex == fileCount) --shuffleIndex;
                     // if new song is equal to current , select next one
-                    if (musicFiles.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % musicFiles.count;
+                    if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
                     selectedIndex = shuffleIndex;
                     } 
-                else selectedIndex = (selectedIndex + 1) % musicFiles.count;
+                else selectedIndex = (selectedIndex + 1) % fileCount;
 
                 if (isRepeat) selectedIndex = prevPlay;
-                LoadMusicByIndex(selectedIndex,musicFiles);
+                LoadMusicByIndex(selectedIndex);
                 PlayMusicStream(music);
                 selectedIndex = currPlay;
             }
@@ -646,15 +684,15 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         // scrollFiles with mouse
         //------------------------------------------------------------------------------
         //if (CheckCollisionPointRec(mousePos,filesArea)) {
-            if (musicFiles.count >= visibleRows) {
+            if (fileCount >= visibleRows) {
                         selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
                         if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
                         if (IsKeyPressed(KEY_UP)) selectedIndex--;
                         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
-                            if (selectedIndex >= 0 && selectedIndex < musicFiles.count) {
+                            if (selectedIndex >= 0 && selectedIndex < fileCount) {
                                 StopMusicStream(music);
                                 //UnloadMusicStream(music);
-                                LoadMusicByIndex(selectedIndex,musicFiles);
+                                LoadMusicByIndex(selectedIndex);
                                 PlayMusicStream(music);
                                 //UpdateMusicStream(music);
                                 isStop=false;
@@ -664,7 +702,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             }
                     // checks
                             if (selectedIndex < 0) selectedIndex=0;
-                            if (selectedIndex > musicFiles.count-1) selectedIndex=musicFiles.count-1;
+                            if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
                 }
 }  // all above keybindigs are disable in mini view modo
 
@@ -781,7 +819,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                 if (selectedIndex < 0) selectedIndex=0;
                 StopMusicStream(music);
                 UnloadMusicStream(music);
-                LoadMusicByIndex(selectedIndex,musicFiles);
+                LoadMusicByIndex(selectedIndex);
                 PlayMusicStream(music);
                 isStop=false;
                 isPlay=true;
@@ -791,17 +829,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         if (btnAction[6] || IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
             prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
-                int shuffleIndex = GetRandomValue(0,musicFiles.count-1);
-                if (shuffleIndex == musicFiles.count) --shuffleIndex;
+                int shuffleIndex = GetRandomValue(0,fileCount-1);
+                if (shuffleIndex == fileCount) --shuffleIndex;
                 // if new song is equal to current , select next one
-                if (musicFiles.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % musicFiles.count;
+                if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
                 selectedIndex = shuffleIndex;
                 } 
-            else selectedIndex = (selectedIndex + 1) % musicFiles.count;
+            else selectedIndex = (selectedIndex + 1) % fileCount;
 
                 StopMusicStream(music);
                 UnloadMusicStream(music);
-                LoadMusicByIndex(selectedIndex,musicFiles);
+                LoadMusicByIndex(selectedIndex);
                 PlayMusicStream(music);
                 isStop=false;
                 isPlay=true;
@@ -851,17 +889,17 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             // Avanzamento brano
             prevPlay = selectedIndex; //save for 1 shot prev.song
             if (isShuffle) {
-                int shuffleIndex = GetRandomValue(0,musicFiles.count-1);
-                if (shuffleIndex == musicFiles.count) --shuffleIndex;
+                int shuffleIndex = GetRandomValue(0,fileCount-1);
+                if (shuffleIndex == fileCount) --shuffleIndex;
                 // if new song is equal to current , select next one
-                if (musicFiles.count > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % musicFiles.count;
+                if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
                 selectedIndex = shuffleIndex;
                 } 
-            else selectedIndex = (selectedIndex + 1) % musicFiles.count;
+            else selectedIndex = (selectedIndex + 1) % fileCount;
 
             StopMusicStream(music);
             UnloadMusicStream(music);
-            LoadMusicByIndex(selectedIndex,musicFiles);
+            LoadMusicByIndex(selectedIndex);
             PlayMusicStream(music);
             isStop=false;
             isPlay=true;
@@ -961,12 +999,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         // else SetWindowOpacity(1.0f);
 
-
-
-
-        //----------------------------------------------------------------------------------
-        // Draw
-        //----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+// Draw
+//----------------------------------------------------------------------------------
         BeginTextureMode(target);
             ClearBackground(BLACK);
         EndTextureMode();
@@ -1007,7 +1042,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             DrawTextEx(digitFnt,curTimeStr,(Vector2){10,58},20,0, accentColor);
 
             // song of songs
-             DrawText(TextFormat("%04d of %04d",currPlay + 1, musicFiles.count),148, 45,10,textColor);
+             DrawText(TextFormat("%04d of %04d",currPlay + 1, fileCount),148, 45,10,textColor);
 
             // a sort of visualizer : giusto per vivacizzare....
             BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
@@ -1133,11 +1168,11 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     if (!isMini) { // draw all control when mini window is disabled
             // file selection
             BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
-                if (musicFiles.count < visibleRows) visibleRows = musicFiles.count;
+                if (fileCount < visibleRows) visibleRows = fileCount;
 
                 scrollOffset = selectedIndex - centerRow;
                 if (scrollOffset < 0) scrollOffset = 0;
-                int maxOffset = musicFiles.count - visibleRows;
+                int maxOffset = fileCount - visibleRows;
                 if (maxOffset < 0) maxOffset = 0;
                 if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
@@ -1145,9 +1180,9 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         DrawLineDashed((Vector2){filesArea.x, filesArea.y + (i*rowHeight)}, (Vector2){screenWidth-8, filesArea.y +(i*rowHeight)},1,1,borderColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
-                        if (fileIndex > musicFiles.count) break;
+                        if (fileIndex > fileCount) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
-                        DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(musicFiles.paths[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
+                        DrawTextEx(textFnt,TextFormat("%04i\t%s",fileIndex + 1,GetFileName(files[fileIndex])),(Vector2){filesArea.x + 2, filesArea.y +(i*rowHeight)+1},16,0,(fileIndex == selectedIndex)? bgColor : textColor);
                         }   
                 //vertical divider
                 DrawLine(42,filesArea.y,42,filesArea.y + filesArea.height,borderColor);
@@ -1162,7 +1197,6 @@ if (!isMini) {// when mini view is active fileselectio is disabled
     }
     
     //unload resource
-    UnloadDirectoryFiles(musicFiles);
     UnloadImage(image);
     UnloadTexture(background);
     UnloadRenderTexture(target);
