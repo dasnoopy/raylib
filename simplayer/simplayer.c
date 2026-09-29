@@ -1,0 +1,713 @@
+/*******************************************************************************
+*
+*   raylib MPlayer
+*   Small utility to play mp3 musicFiles based on Raylib
+*   
+*   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
+*
+********************************************************************************/
+        
+#define TOOL_NAME               "Simple Music Player"
+#define TOOL_SHORT_NAME         "simplayer"
+#define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
+#define TOOL_VERSION            "1.0.2"
+
+#include <stdio.h>
+#include <time.h>
+#include <raylib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <dirent.h>
+#include <math.h>
+#include <ctype.h>
+#include <id3tag.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+// gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
+// archlinux : pacman -S raylib libid3tag
+
+// window initial size
+#define screenWidth   720
+#define screenHeight  480
+
+// Texture variables
+#define SEEK_TIME 10.0f // seek time
+float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
+float currentTime = 0.0f;
+bool isPlay=false;
+bool isStop = true;
+bool isPause = false;  
+bool isMute = false;
+bool isRepeat = false;
+float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
+float prev_volume = 0.80f;
+
+
+// Music library && files management
+#define FILTER_MP3      ".mp3"
+#define FILTER_OGG      ".ogg"
+
+size_t fileCount;
+#define MAX_FILES 4096
+#define MAX_NAME 1024
+char files[MAX_FILES][MAX_NAME];
+
+// barra path su Linux oppure su WIN
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
+// file selection & id3 tag
+char ID3tag[1024] = { '\0' };
+char titleStr[1024] = { '\0' };
+char artistStr[1024] = { '\0' };
+int selectedIndex = 0; // selected song in the file list
+int currPlay = 0; //playing song
+int prevPlay = 0; //previous played song when shuffle is ON
+
+
+// define stream 
+static Music music;
+
+// config file
+#define APP_DIR_NAME "simplayer"
+#define PATH_BUF_SIZE 1024
+
+typedef struct Config
+{
+    bool isPlay;
+    bool isShuffle;
+    Color accentColor;
+    char musicDir[256];
+} Config;
+
+// vumeter
+#define MAX_SAMPLES          512
+#define NUM_BARS             40 // numero di barre verticali
+#define SMOOTHING_FACTOR     0.18f  
+#define PI                   3.14159265358979323846f
+// Parametri di comportamento del picco Hi-Fi
+#define PEAK_HOLD_FRAMES     60     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
+#define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
+
+typedef struct { float real; float imag; } Complex;
+
+float rawSamples[MAX_SAMPLES] = { 0 };
+float barValues[NUM_BARS] = { 0 };
+// Array per la gestione del picco massimo stile Hi-Fi
+float peakValues[NUM_BARS] = { 0 };
+int peakHoldTimers[NUM_BARS] = { 0 };
+
+// Functions
+
+Color darkenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char)(color.r * factor),
+        (unsigned char)(color.g * factor),
+        (unsigned char)(color.b * factor),
+        color.a
+    };
+}
+
+Color lightenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char) ( color.r + (255-color.r) * factor ),
+        (unsigned char) ( color.g + (255-color.g) * factor ),
+        (unsigned char) ( color.b + (255-color.b) * factor ),
+        color.a
+    };
+}
+
+void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
+  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
+  float radius = 0.046;                        // rotate degrees
+  int     segs = 12;
+  DrawRectangleRounded ( rect, radius, segs, color );
+}
+
+
+static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
+{
+    struct id3_frame *frame;
+    union id3_field *field;
+    id3_ucs4_t const *ucs4;
+    id3_utf8_t *utf8;
+
+    frame = id3_tag_findframe(tag, id, 0);
+    if (!frame) {
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        return;
+    }
+
+    field = &frame->fields[1];
+    ucs4 = id3_field_getstrings(field, 0);
+    if (!ucs4) {
+        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        return;
+    }
+    utf8 = id3_ucs4_utf8duplicate(ucs4);
+    if (!utf8) {
+        snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
+        return;
+    }
+    snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
+    free(utf8);
+}
+
+void GetTitle (int idx){
+    //get ID3 tags
+    struct id3_file *file;
+    struct id3_tag *tag;
+    file = id3_file_open(files[idx], ID3_FILE_MODE_READONLY);
+    
+    if (!file) fprintf(stderr, "Errore apertura file\n");
+
+    tag = id3_file_tag(file);
+
+        getID3tags(tag, "TIT2", "Title");
+        strcpy(titleStr, ID3tag );
+        strcat(titleStr, "\0");
+
+        getID3tags(tag, "TPE1", "Artist");
+        strcpy(artistStr, ID3tag );
+        strcat(artistStr, "\0");
+        id3_file_close(file);
+}
+
+void LoadMusicByIndex(int idx) {
+    currPlay = idx;
+    music = LoadMusicStream(files[idx]);
+    GetTitle(idx);
+}
+
+//------------------------------------------------------------------------------------
+// Audio processing function
+//------------------------------------------------------------------------------------
+
+// Struttura FFT In-Place
+void FFT(Complex *X, int n) {
+    if (n <= 1) return;
+    Complex *even = malloc(n / 2 * sizeof(Complex));
+    Complex *odd  = malloc(n / 2 * sizeof(Complex));
+    for (int i = 0; i < n / 2; i++) {
+        even[i] = X[2 * i];
+        odd[i]  = X[2 * i + 1];
+    }
+    FFT(even, n / 2);
+    FFT(odd, n / 2);
+    for (int k = 0; k < n / 2; k++) {
+        float angle = -2.0f * PI * k / n;
+        Complex t = {
+            .real = cosf(angle) * odd[k].real - sinf(angle) * odd[k].imag,
+            .imag = sinf(angle) * odd[k].real + cosf(angle) * odd[k].imag
+        };
+        X[k] = (Complex){ .real = even[k].real + t.real, .imag = even[k].imag + t.imag };
+        X[k + n / 2] = (Complex){ .real = even[k].real - t.real, .imag = even[k].imag - t.imag };
+    }
+    free(even);
+    free(odd);
+}
+
+void AudioProcessCallback(void *buffer, unsigned int frames) {
+    float *samples = (float *)buffer;
+    for (unsigned int i = 0; i < frames && i < MAX_SAMPLES; i++) {
+        // Attenuazione preventiva di sicurezza (0.1f) per evitare saturazione hardware
+        rawSamples[i] = samples[i * 2] * 0.1f; 
+    }
+}
+
+int compare_files(const void *a, const void *b) {
+    const char *fa = (const char *)a;
+    const char *fb = (const char *)b;
+    return strcmp(fa, fb); // case sensitive
+    //return strcasecmp((const char *)fa, (const char *)fb); // no case sensitive
+}
+
+int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
+{
+    DIR *dir = opendir(path);
+    if (!dir) return count;
+
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
+        const char *name = entry->d_name;
+
+        // salta "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+        char fullpath[512];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
+        // se è file → controlla estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && ( strcmp(ext, FILTER_MP3) == 0  || strcmp(ext, FILTER_OGG) == 0)) {
+                 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) count++;
+            }
+        }
+    }
+    closedir(dir);
+    // sort files list
+    qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
+    return count;
+}
+
+
+int main (int argc, char *argv[]) 
+{
+
+    // Set configuration flags for window creation
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_WINDOW_TOPMOST); 
+
+    InitWindow(screenWidth, screenHeight, "simplayer");
+    SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+
+    // Set UI style
+    // Custom GUI font loading
+    Font digitFnt= LoadFontEx("fonts/rmdigit.otf", 20, NULL, 0); // all other text
+    Font textFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+    Font titleFnt = LoadFontEx("fonts/ManropeV5-Bold.otf", 36, NULL, 0);
+    Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
+    RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
+    
+    // init Audio
+    InitAudioDevice();
+    SetAudioStreamBufferSizeDefault(65535);
+    
+
+    // default config value
+    Config cfg = {
+        .isPlay = true,
+        .isShuffle = true,
+        .musicDir = "/home/public/Music", //default music folder
+    };
+
+    // assign  values from config file
+    bool isPlay = cfg.isPlay;
+    bool isShuffle = cfg.isShuffle;
+    char *musicDir = cfg.musicDir;
+
+
+// some custom colors
+Color accentColor =  CLITERAL(Color){ 235,245,255,255 };
+Color bgColor = CLITERAL(Color){10, 20, 30, 232};
+Color textColor = CLITERAL(Color){160, 170, 180, 255};
+Color borderColor = CLITERAL(Color){60, 70, 80, 255};
+
+// file open/save variables
+
+            // load music files into array
+            int fileCount = load_files_recursive(musicDir, files, 0);
+
+            // load first song to play  based on shuffle setting
+                selectedIndex = isShuffle ? GetRandomValue(0,fileCount-1) : 0;
+                LoadMusicByIndex(selectedIndex);
+                prevPlay=selectedIndex;
+
+            // auto play song based on autoplay setting
+            if (isPlay) {
+                isStop=false;
+                isPause =false;
+                PlayMusicStream(music);  // autoplay at start
+            }
+
+            // init Audio Processor
+            AttachAudioMixedProcessor(AudioProcessCallback);
+
+            // set FPS (uso questo sistema per regolare la velocità di scorrimento)
+            //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
+
+            // scroll title / id3
+            Rectangle displayArea = { 18, 20, 580,36 };
+            float titleX = displayArea.x ;
+            float speed = 60.0f;
+
+            // visualizer  area / variables for effects
+            Rectangle visArea = {16,120,screenWidth-32,240};
+
+
+
+                SetWindowSize(screenWidth,screenHeight);
+                SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+
+         //  vumeter
+            Complex fftBuffer[MAX_SAMPLES];
+            // Parametri dinamici di calibrazione
+            float minDb = -55.0f; 
+            float maxDb = -0.0f; // sensibilita Decibel
+            float maxSeenMagnitude = 0.01f; // Auto-gain tracker
+
+    // fai riapparire finestra dopo caricamento iniziale
+    ClearWindowState(FLAG_WINDOW_HIDDEN);
+
+while (!WindowShouldClose())
+    {
+
+
+        //----------------------------------------------------------------------------------
+        // Update
+        //----------------------------------------------------------------------------------
+
+
+        currentTime = GetMusicTimePlayed(music); //just to simplify some checks
+        Vector2 xyFlags= {screenWidth-70,20};
+
+        // set scroll text speed
+        Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
+        float titleWidth = titleSize.x;
+
+        bool needScroll = titleWidth > displayArea.width;
+        float dt = GetFrameTime();
+        if (needScroll) {
+            titleX -= (speed * dt);
+            if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
+        }
+
+        // Get normalized time played for current music stream
+        // used for the progressbar
+        timePlayed = GetMusicTimePlayed(music)/GetMusicTimeLength(music);
+        if (timePlayed > 1.0f) timePlayed = 1.0f;   // Make sure time played is no longer than music
+
+        // calculating song times
+          char curTimeStr[32]= { '\0' };
+          char totTimeStr[32]= { '\0' };
+            int hour   = (int)GetMusicTimePlayed(music) / 3600;
+            int minute = ((int)GetMusicTimePlayed(music) / 60) % 60;
+            int second = (int)GetMusicTimePlayed(music) % 60;
+            snprintf(curTimeStr,sizeof(curTimeStr),"%02d:%02d:%02d", hour , minute, second);
+
+            int hours   = (int)GetMusicTimeLength(music) / 3600;
+            int minutes = (int)GetMusicTimeLength(music) / 60 % 60;
+            int seconds = (int)GetMusicTimeLength(music) % 60;
+            snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
+
+    
+        // set initial volume 
+        SetMasterVolume(volume);
+
+        // update sound stream
+        UpdateMusicStream(music);   // Update music buffer with new stream data
+
+        // auto move on next song
+        if (GetMusicTimePlayed(music) >= (GetMusicTimeLength(music) - 0.450f)) {
+                prevPlay = selectedIndex;
+                StopMusicStream(music);
+                UnloadMusicStream(music);
+                if (isShuffle) {
+                    int shuffleIndex = GetRandomValue(0,fileCount-1);
+                    if (shuffleIndex == fileCount) --shuffleIndex;
+                    // if new song is equal to current , select next one
+                    if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
+                    selectedIndex = shuffleIndex;
+                    } 
+                else selectedIndex = (selectedIndex + 1) % fileCount;
+
+                if (isRepeat) selectedIndex = prevPlay;
+                LoadMusicByIndex(selectedIndex);
+                PlayMusicStream(music);
+                selectedIndex = currPlay;
+            }
+        
+        
+
+        // Set audio volume
+        if (IsKeyDown(KEY_PAGE_DOWN)) {
+            volume -= (volume >= 0.0f) ? 0.01f : 0.0f;
+            if (volume < 0.0f) volume = 0.0f, isMute=true;
+        }
+
+        if (IsKeyDown(KEY_PAGE_UP)) {
+            isMute = false;
+            volume += (volume <= 1.0f) ? 0.01f : 0.0f;
+            if (volume > 1.0f) volume = 1.0f;
+        }
+
+        if (IsKeyPressed(KEY_M)) // MUTE
+        {
+            isMute = !isMute;
+                if (isMute) {
+                    prev_volume = volume;
+                    volume = 0.0f;
+                    }
+                else volume = prev_volume;
+        }
+
+        if (IsKeyPressed(KEY_P) && isPlay &&!isStop) { // pause
+            isPause = !isPause;
+            if (isPause) PauseMusicStream(music);
+            else ResumeMusicStream(music);
+        }
+
+
+        // Restart music playing (stop and play)
+        if (IsKeyPressed(KEY_SPACE)) {
+                if (!isStop) {
+                    isStop=true;
+                    isPlay=false;
+                    isPause=false;
+                    StopMusicStream(music);
+                    }
+                else {
+                     isStop=false;
+                     isPlay=true;
+                     isPause=false;
+                     PlayMusicStream(music);
+                    }
+            }
+
+
+
+        if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
+        {
+                    if (currentTime < 10.0f) {
+                        currentTime = 0.0f; 
+                        SeekMusicStream(music, 0.0f);
+                       // UpdateMusicStream(music);
+                    }
+                    else SeekMusicStream(music, currentTime - SEEK_TIME);
+
+        }
+        if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
+        {
+                    if (currentTime + SEEK_TIME >= GetMusicTimeLength(music)) {
+                        currentTime = 0.0f;
+                        SeekMusicStream(music, 0.0f);
+                        //UpdateMusicStream(music);
+                    }
+                    else  SeekMusicStream(music, currentTime + SEEK_TIME);
+        }
+
+
+        if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
+            prevPlay = selectedIndex; //save for 1 shot prev.song
+            if (isShuffle) {
+                int shuffleIndex = GetRandomValue(0,fileCount-1);
+                if (shuffleIndex == fileCount) --shuffleIndex;
+                // if new song is equal to current , select next one
+                if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
+                selectedIndex = shuffleIndex;
+                } 
+            else selectedIndex = (selectedIndex + 1) % fileCount;
+
+                StopMusicStream(music);
+                UnloadMusicStream(music);
+                LoadMusicByIndex(selectedIndex);
+                PlayMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+            }
+
+
+        if (IsKeyPressed(KEY_Z)) { // Previous song : no shuffle on previous song
+                if (isShuffle) selectedIndex = prevPlay;
+                else selectedIndex--;
+                if (selectedIndex < 0) selectedIndex=0;
+                StopMusicStream(music);
+                UnloadMusicStream(music);
+                LoadMusicByIndex(selectedIndex);
+                PlayMusicStream(music);
+                isStop=false;
+                isPlay=true;
+                isPause=false;
+        }
+        
+        if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
+
+        //-----------------------------------------------------------------------------------------
+        // vumeter update
+        //-----------------------------------------------------------------------------------------
+        // 1. Finestra di Hann ed esecuzione FFT
+        for (int i = 0; i < MAX_SAMPLES; i++) {
+            float window = 0.5f * (1.0f - cosf(2.0f * PI * i / (MAX_SAMPLES - 1)));
+            fftBuffer[i] = (Complex){ .real = rawSamples[i] * window, .imag = 0.0f };
+        }
+
+        FFT(fftBuffer, MAX_SAMPLES);
+
+        // 2. Divisione logaritmica e calcolo spettro
+        for (int i = 0; i < NUM_BARS; i++) {
+            int indexStart = (int)powf(2.0f, (float)i * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            int indexEnd = (int)powf(2.0f, (float)(i + 1) * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            
+            if (indexEnd <= indexStart) indexEnd = indexStart + 1;
+            if (indexEnd > MAX_SAMPLES / 2) indexEnd = MAX_SAMPLES / 2;
+
+            float magnitudeSum = 0.0f;
+            int count = 0;
+
+            for (int j = indexStart; j < indexEnd; j++) {
+                float mag = sqrtf(fftBuffer[j].real * fftBuffer[j].real + 
+                                  fftBuffer[j].imag * fftBuffer[j].imag);
+                magnitudeSum += mag;
+                count++;
+            }
+
+            float averageMagnitude = (count > 0) ? (magnitudeSum / count) : 0.0f;
+
+            // Auto-Gain: Tracciamo il picco più alto mai registrato per scalare i dati di conseguenza
+            if (averageMagnitude > maxSeenMagnitude) maxSeenMagnitude = averageMagnitude;
+            // Lentamente facciamo decadere il picco massimo per adattarsi a parti più silenziose del brano
+            maxSeenMagnitude *= 0.9995f; 
+
+            // Normalizziamo l'ampiezza in base al massimo picco reale registrato
+            float normalizedMag = averageMagnitude / maxSeenMagnitude;
+
+            // Calcolo Decibel convertito
+            float db = 20.0f * log10f(normalizedMag + 0.00001f);
+            
+            // Mappatura lineare sui limiti dB
+            float targetValue = (db - minDb) / (maxDb - minDb);
+            if (targetValue < 0.0f) targetValue = 0.0f;
+            if (targetValue > 1.0f) targetValue = 1.0f;
+
+            // Applichiamo lo smoothing per frenare la discesa
+            barValues[i] += (targetValue - barValues[i]) * SMOOTHING_FACTOR;
+
+            // Logica del Picco Massimo Hi-Fi
+            if (barValues[i] >= peakValues[i]) {
+                peakValues[i] = barValues[i];
+                peakHoldTimers[i] = PEAK_HOLD_FRAMES; // Resetta il timer di attesa in cima
+            } else {
+                if (peakHoldTimers[i] > 0) {
+                    peakHoldTimers[i]--; // Il picco resta fermo ad aspettare
+                } else {
+                    peakValues[i] -= PEAK_DECAY_SPEED; // Il picco scende per gravità
+                    if (peakValues[i] < barValues[i]) peakValues[i] = barValues[i];
+                }
+            }
+        }
+
+//----------------------------------------------------------------------------------
+// Draw
+//----------------------------------------------------------------------------------
+    BeginTextureMode(target);
+        ClearBackground(BLANK);
+    EndTextureMode();
+
+    BeginDrawing();
+            ClearBackground (BLANK);
+
+            drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+            
+            // song title
+            BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
+                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 36, 0, accentColor);
+                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 36,0, accentColor);
+            EndScissorMode();
+            // song Artist
+            DrawLine(displayArea.x,displayArea.y+40,displayArea.width+50,displayArea.y+40,ORANGE);
+            DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, 28, 1, textColor);
+
+            // tempo attuale brano e durata totale brano
+            DrawTextEx(digitFnt,curTimeStr,(Vector2){300,392},20,0, accentColor);
+            DrawRectangle(300,419,94,2,borderColor);
+            // progressbar
+            for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,419,1,2},ORANGE);
+            DrawTextEx(digitFnt,totTimeStr,(Vector2){300,428},20,0, textColor);
+
+            // song of songs
+            DrawText(TextFormat("%04d",currPlay + 1),268, 416,10,textColor);
+            DrawText(TextFormat("%04d",fileCount),404, 416,10,textColor);
+            
+            // a sort of visualizer : giusto per vivacizzare....
+            BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
+
+                        // draw vumeter
+                        float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
+                        float barSpacing = 4.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+                        
+                        const int maxSegments = 64; //nr. segmenti singola barra
+                        const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
+                        const float segmentGap = 2.0f;   // distanza tra i segmenty 
+                        float baseYPos = visArea.y + visArea.height; //base del vumeter
+
+                        for (int i = 0; i < NUM_BARS; i++) {
+                            float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
+
+                            int segmentsToLight = (int)(barValues[i] * maxSegments); 
+                            int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
+                            if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
+
+                            for (int j = 0; j < maxSegments; j++) {
+                                float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+                                // Logica di disegno combinata barra + picco
+                                bool drawActiveSegment = (j < segmentsToLight);
+                                bool drawPeakSegment = (j == peakSegment);
+                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? accentColor:borderColor );
+                             }
+                        }
+
+
+        EndScissorMode();
+
+        // KHz / stereo - mono  of current song
+        DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),screenWidth-54,400,10, textColor);
+        DrawText(TextFormat("%i bits",music.stream.sampleSize),screenWidth-54,416,10, textColor);
+        DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),screenWidth-54,432,10, textColor);
+
+        //volume value
+           if (!isMute) DrawTextEx(digitFnt,TextFormat("vw %03.f",volume*100),(Vector2){18,410}, 20,0, textColor);
+           else DrawTextEx(digitFnt,TextFormat("vw %03.f",volume*100),(Vector2){18,410}, 20,0, borderColor);
+               
+
+        // STOP flag
+        DrawRectangle(xyFlags.x+48,xyFlags.y,4,16,isStop ? RED:bgColor);
+        DrawTextEx(textFnt,"Stop",(Vector2){xyFlags.x,xyFlags.y},16,0, isStop ? MAROON : textColor);
+
+        // PLAY flag
+        DrawRectangle(xyFlags.x+48,xyFlags.y+20,4,16,isPlay ? GREEN:bgColor);
+        DrawTextEx(textFnt,"Play",(Vector2){xyFlags.x,xyFlags.y+20},16,0, isPlay ? LIME : textColor);
+
+        // PAUSE flag
+        DrawRectangle(xyFlags.x+48,xyFlags.y+40,4,16,isPause ? ORANGE:bgColor);
+        DrawTextEx(textFnt,"Pause",(Vector2){xyFlags.x,xyFlags.y+40},16,0, isPause ? ORANGE : textColor);
+
+
+        // Shuffle flag
+        DrawRectangle(xyFlags.x+48,xyFlags.y+60,4,16,isShuffle ? BLUE:bgColor);
+        DrawTextEx(textFnt,"Shuffle",(Vector2){xyFlags.x,xyFlags.y+60},16,0, isShuffle ? SKYBLUE : textColor);
+            
+        //statusbar with some info
+        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, accentColor); 
+        // DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+        // DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+    
+    EndDrawing();
+}
+    
+    //unload resource
+
+    DetachAudioMixedProcessor(AudioProcessCallback); // disconnect audio preocessor for vumeter
+    UnloadMusicStream(music); // Unloaad music stream
+    // unload fonts
+    UnloadFont(titleFnt);
+    UnloadFont(artistFnt);
+    UnloadFont(textFnt);
+    UnloadFont(digitFnt);
+
+    CloseAudioDevice();
+    CloseWindow();
+    return 0;
+}

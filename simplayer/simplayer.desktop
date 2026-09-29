@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=simplayer
+GenericName=Simple Music Player
+Type=Application
+Version=1.0
+Comment=A simple MP3/OGG player clone for Linux written in C99 using Raylib 
+Path=/home/andrea/Projects/raylib/simplayer
+Exec=/home/andrea/Projects/raylib/simplayer/simplayer
+Icon=/home/andrea/Projects/raylib/simplayer/simplayer.svg
+Terminal=false
+StartupNotify=false
+Categories=Audio;AudioVideo;
+Keywords=Music;Audio;Player
+MimeType=application/ogg;audio/basic;audio/mpeg;audio/x-aiff;audio/x-mp3;
+X-Desktop-File-Install-Version=0.28
+
