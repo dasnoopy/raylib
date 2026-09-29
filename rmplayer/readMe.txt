@@ -38,7 +38,7 @@ APP KEYBINDINGS:
 [ M ] : mute audio
 [ S ] : shuffle play on / off
 [ R ] : repeat song on / off
-[ N [ : play next song
+[ N ] : play next song
 [ P ] : play previous song
 [ X ] : goto current played song (filelist)
 [ I ] : switch title info between ID3 tags and file details.
