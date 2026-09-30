@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.1.2"
+#define TOOL_VERSION            "1.1.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -31,7 +31,7 @@
 
 // window initial size
 #define screenWidth   720
-#define screenHeight  480
+#define screenHeight  458
 
 // Texture variables
 #define SEEK_TIME 10.0f // seek time
@@ -78,11 +78,8 @@ static Music music;
 #define APP_DIR_NAME "simplayer"
 #define PATH_BUF_SIZE 1024
 
-#define MAX_COLORS_COUNT    21          // Number of colors available (BLACK & WHITE are excluded)
-Color colors[MAX_COLORS_COUNT] = {
-        DARKGRAY, MAROON, ORANGE, DARKGREEN, DARKBLUE, DARKPURPLE, DARKBROWN,
-        GRAY, RED, GOLD, LIME, BLUE, VIOLET, BROWN, LIGHTGRAY, PINK, YELLOW,
-        GREEN, SKYBLUE, PURPLE, BEIGE };
+#define MAX_COLORS_COUNT    13          // Number of colors available (BLACK & WHITE are excluded)
+Color colors[MAX_COLORS_COUNT] = {MAROON, ORANGE, RED, GOLD, LIME, BLUE, VIOLET, PINK, YELLOW, GREEN, SKYBLUE, PURPLE, BEIGE };
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -285,8 +282,15 @@ int main (int argc, char *argv[])
     // Custom GUI font loading
     Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); // all other text
     Font titleFnt = LoadFontEx("fonts/ManropeV5-Bold.otf", 36, NULL, 0);
-    Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
+    Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, NULL, 0);
+    Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
+    SetTextureFilter(digitFnt.texture, TEXTURE_FILTER_BILINEAR);
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
+    
+    //load volume icon
+    Image volumeICO = LoadImage("assets/volumeICO.png");     // Loaded in CPU memory (RAM)
+    Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
+    UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
     
     // init Audio
     InitAudioDevice();
@@ -301,9 +305,9 @@ int main (int argc, char *argv[])
 
 // some custom colors
 Color accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
-Color primaryColor =  CLITERAL(Color){ 235,245,255,255 };
+Color primaryColor =  WHITE;
 Color bgColor = CLITERAL(Color){10, 20, 30, 232};
-Color secondaryColor = CLITERAL(Color){160, 170, 180, 255};
+Color secondaryColor = LIGHTGRAY;
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
 
 // file open/save variables
@@ -330,12 +334,12 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
             //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
             // scroll title / id3
-            Rectangle displayArea = { 18, 20, 600,36 };
+            Rectangle displayArea = { 18, 20, 572,36 };
             float titleX = displayArea.x ;
             float speed = 60.0f;
 
             // visualizer  area / variables for effects
-            Rectangle visArea = {16,120,screenWidth-32,240};
+            Rectangle visArea = {16,110,screenWidth-32,240};
 
 
 
@@ -362,7 +366,7 @@ while (!WindowShouldClose())
 
 
         currentTime = GetMusicTimePlayed(music); //just to simplify some checks
-        Vector2 xyFlags= {screenWidth-78,20};
+        Vector2 xyFlags= {636,20};
 
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
@@ -598,93 +602,89 @@ while (!WindowShouldClose())
     EndTextureMode();
 
     BeginDrawing();
-            ClearBackground (BLANK);
+        ClearBackground (BLANK);
 
-            drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
-            
-            // song title
-            BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-                if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, 36, 0, primaryColor);
-                else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, 36,0, primaryColor);
-            EndScissorMode();
-            // song Artist
-            DrawLine(displayArea.x,displayArea.y+40,displayArea.width+20,displayArea.y+40,accentColor);
-            DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, 28, 1, secondaryColor);
-
-            // tempo attuale brano e durata totale brano
-            DrawTextEx(digitFnt,curTimeStr,(Vector2){300,392},24,0, primaryColor);
-            DrawRectangle(300,419,94,2,borderColor);
-            // progressbar
-            for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,419,1,2},accentColor);
-            DrawTextEx(digitFnt,totTimeStr,(Vector2){300,424},24,0, secondaryColor);
-
-            // song of songs
-            DrawText(TextFormat("%04d",currPlay + 1),268, 416,10,secondaryColor);
-            DrawText(TextFormat("%04d",fileCount),404, 416,10,secondaryColor);
-            
-            // a sort of visualizer : giusto per vivacizzare....
-            BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
-
-                        // draw vumeter
-                        float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-                        float barSpacing = 4.0f;  // space between bars (direttamente proporzionale a larghezza barre)
-                        
-                        const int maxSegments = 64; //nr. segmenti singola barra
-                        const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
-                        const float segmentGap = 2.0f;   // distanza tra i segmenty 
-                        float baseYPos = visArea.y + visArea.height; //base del vumeter
-
-                        for (int i = 0; i < NUM_BARS; i++) {
-                            float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
-
-                            int segmentsToLight = (int)(barValues[i] * maxSegments); 
-                            int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
-                            if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
-
-                            for (int j = 0; j < maxSegments; j++) {
-                                float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
-                                // Logica di disegno combinata barra + picco
-                                bool drawActiveSegment = (j < segmentsToLight);
-                                bool drawPeakSegment = (j == peakSegment);
-                                DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? primaryColor:borderColor );
-                             }
-                        }
-
-
+        drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+        
+        // song Title
+        BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
+            if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
+            else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
         EndScissorMode();
-
-        // KHz / stereo - mono  of current song
-        DrawText(TextFormat("%i kHz",music.stream.sampleRate/1000),screenWidth-54,400,10, secondaryColor);
-        DrawText(TextFormat("%i bits",music.stream.sampleSize),screenWidth-54,416,10, secondaryColor);
-        DrawText(TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),screenWidth-54,432,10, secondaryColor);
-
-        //volume value
-           if (!isMute) DrawTextEx(digitFnt,TextFormat("%03.f%%",volume*100),(Vector2){18,410}, 24,0, secondaryColor);
-           else DrawTextEx(digitFnt,TextFormat("%03.f%%",volume*100),(Vector2){18,410}, 24,0, borderColor);
-               
+        // song Artist
+        DrawLine(displayArea.x,displayArea.y+40,displayArea.width+20,displayArea.y+40,accentColor);
+        DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 1, secondaryColor);
 
         // STOP flag
-        DrawRectangle(xyFlags.x+54,xyFlags.y,6,10,isStop ? accentColor:bgColor);
-        DrawText("STOP",xyFlags.x,xyFlags.y,10, isStop ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+3,4,12,isStop ? accentColor:bgColor);
+        DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y},(float)defaultFnt.baseSize,1, isStop ? WHITE : secondaryColor);
 
         // PLAY flag
-        DrawRectangle(xyFlags.x+54,xyFlags.y+20,6,10,isPlay ? accentColor:bgColor);
-        DrawText("PLAY",xyFlags.x,xyFlags.y+20,10, isPlay ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+23,4,12,isPlay ? accentColor:bgColor);
+        DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+20},(float)defaultFnt.baseSize,1, isPlay ? WHITE : secondaryColor);
 
         // PAUSE flag
-        DrawRectangle(xyFlags.x+54,xyFlags.y+40,6,10,isPause ? accentColor:bgColor);
-        DrawText("PAUSE",xyFlags.x,xyFlags.y+40,10, isPause ? WHITE : secondaryColor);
-
+        DrawRectangle(xyFlags.x-8,xyFlags.y+43,4,12,isPause ? accentColor:bgColor);
+        DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+40},(float)defaultFnt.baseSize,1, isPause ? WHITE : secondaryColor);
 
         // Shuffle flag
-        DrawRectangle(xyFlags.x+54,xyFlags.y+60,6,10,isShuffle ? accentColor:bgColor);
-        DrawText("SHUFFLE",xyFlags.x,xyFlags.y+60,10, isShuffle ? WHITE : secondaryColor);
-            
-        //statusbar with some info
-        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, primaryColor); 
-        // DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-        // DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-    
+        DrawRectangle(xyFlags.x-8,xyFlags.y+63,4,12,isShuffle ? accentColor:bgColor);
+        DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : secondaryColor);
+
+        // a sort of visualizer : giusto per vivacizzare....
+        BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
+
+                    // draw vumeter
+                    float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
+                    float barSpacing = 4.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+                    
+                    const int maxSegments = 64; //nr. segmenti singola barra
+                    const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
+                    const float segmentGap = 2.0f;   // distanza tra i segmenty 
+                    float baseYPos = visArea.y + visArea.height; //base del vumeter
+
+                    for (int i = 0; i < NUM_BARS; i++) {
+                        float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
+
+                        int segmentsToLight = (int)(barValues[i] * maxSegments); 
+                        int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
+                        if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
+
+                        for (int j = 0; j < maxSegments; j++) {
+                            float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+                            // Logica di disegno combinata barra + picco
+                            bool drawActiveSegment = (j < segmentsToLight);
+                            bool drawPeakSegment = (j == peakSegment);
+                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? primaryColor:borderColor );
+                         }
+                    }
+        EndScissorMode();
+
+        //volume info
+        DrawTexture(volumeICO_texture,18,390,secondaryColor);
+           if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){50,395}, (float)defaultFnt.baseSize,0, primaryColor);
+           else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){50,395}, (float)defaultFnt.baseSize,0, borderColor);
+         
+        // tempo attuale brano / progressbar / durata totale brano
+        DrawTextEx(digitFnt,curTimeStr,(Vector2){300,377},(float)digitFnt.baseSize,0, primaryColor);
+        //
+        DrawRectangle(300,404,94,3,borderColor);
+        for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,404,1,3},accentColor);
+        //
+        DrawTextEx(digitFnt,totTimeStr,(Vector2){300,410},(float)digitFnt.baseSize,0, secondaryColor);
+
+        // current song position / total songs
+        DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){260,397},(float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){402,397},(float)defaultFnt.baseSize,1, secondaryColor);
+
+        // KHz / stereo - mono  of current song
+        DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,381}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,397}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,413}, (float)defaultFnt.baseSize,0, secondaryColor);
+
+      
+
+
     EndDrawing();
 }
     
@@ -693,6 +693,7 @@ while (!WindowShouldClose())
     DetachAudioMixedProcessor(AudioProcessCallback); // disconnect audio preocessor for vumeter
     UnloadMusicStream(music); // Unloaad music stream
     // unload fonts
+    UnloadFont(defaultFnt);
     UnloadFont(titleFnt);
     UnloadFont(artistFnt);
     UnloadFont(digitFnt);
