@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.1.8"
+#define TOOL_VERSION            "1.2.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -37,14 +37,15 @@
 #define SEEK_TIME 10.0f // seek time
 float timePlayed = 0.0f;        // Time played normalized [0.0f..1.0f]
 float currentTime = 0.0f;
-bool isPlay=false;
+bool isPlay = true;
+bool isShuffle = true;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
-bool isRepeat = false;
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
-
+bool isID3 = true;
+char *musicDir = "/home/public/Music";
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -100,6 +101,28 @@ int peakHoldTimers[NUM_BARS] = { 0 };
 
 // Functions
 
+void extractArtistAndTitle(char *string, char **artist, char **title)
+ {
+    char *separator;
+
+    if ((string == NULL) || (artist == NULL) || (title == NULL))
+        return;
+    separator = strstr(string, " - ");
+    if (separator != NULL)
+     {
+        size_t length;
+
+        length  = separator - string;
+        *artist = malloc(1 + length);
+        if (*artist != NULL)
+        {
+            memcpy(*artist, string, length);
+           (*artist)[length] = '\0';
+        }
+        *title = strdup(separator + 3);
+     }
+ }
+
 Color darkenColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
@@ -144,6 +167,7 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     frame = id3_tag_findframe(tag, id, 0);
     if (!frame) {
         snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        isID3=false;
         return;
     }
 
@@ -151,13 +175,17 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     ucs4 = id3_field_getstrings(field, 0);
     if (!ucs4) {
         snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
+        isID3=false;
         return;
     }
     utf8 = id3_ucs4_utf8duplicate(ucs4);
     if (!utf8) {
         snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
+        isID3=false;
         return;
     }
+
+    isID3=true;
     snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
     free(utf8);
 }
@@ -168,10 +196,13 @@ void GetTitle (int idx){
     struct id3_tag *tag;
     file = id3_file_open(files[idx], ID3_FILE_MODE_READONLY);
     
-    if (!file) fprintf(stderr, "Errore apertura file\n");
+    if (!file) {
+        fprintf(stderr, "Errore apertura file\n");
+        return;
+       }
 
     tag = id3_file_tag(file);
-
+    if (!isID3) { // show ID3 tag
         getID3tags(tag, "TIT2", "Title");
         strcpy(titleStr, ID3tag );
         strcat(titleStr, "\0");
@@ -180,7 +211,31 @@ void GetTitle (int idx){
         strcpy(artistStr, ID3tag );
         strcat(artistStr, "\0");
         id3_file_close(file);
+        }
+    // if id3 tag are missing get info from filename
+    else { 
+    
+        char buffer[256];
+        char *artist;
+        char *title;
+
+        strcpy (buffer, GetFileNameWithoutExt(files[idx]));
+        extractArtistAndTitle(buffer, &artist, &title);
+
+            if (artist != NULL) {
+                strcpy(artistStr, artist );
+                strcat(artistStr, "\0");
+            }
+            if (title != NULL){
+                strcpy(titleStr, title );
+                    strcat(titleStr, "\0");
+            }
+        
+        free(artist);
+        free(title);
+    }
 }
+
 
 void LoadMusicByIndex(int idx) {
     currPlay = idx;
@@ -292,19 +347,16 @@ int main (int argc, char *argv[])
     Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
     
+    Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
+    Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    UnloadImage(image); 
+
     // init Audio
     InitAudioDevice();
     SetAudioStreamBufferSizeDefault(65535);
     
-
-    // assign  values from config file
-    bool isPlay = true;
-    bool isShuffle = true;
-    char *musicDir = "/home/public/Music";
-
-
 // some custom colors
-Color accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = RED;//colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  WHITE;
 Color bgColor = CLITERAL(Color){10, 20, 30, 232};
 Color secondaryColor = LIGHTGRAY;
@@ -418,7 +470,6 @@ while (!WindowShouldClose())
                     } 
                 else selectedIndex = (selectedIndex + 1) % fileCount;
 
-                if (isRepeat) selectedIndex = prevPlay;
                 LoadMusicByIndex(selectedIndex);
                 PlayMusicStream(music);
                 selectedIndex = currPlay;
@@ -598,14 +649,16 @@ while (!WindowShouldClose())
 // Draw
 //----------------------------------------------------------------------------------
     BeginTextureMode(target);
-        ClearBackground(BLANK);
+        ClearBackground(bgColor);
     EndTextureMode();
 
     BeginDrawing();
         ClearBackground (BLANK);
 
-        drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
-        
+        //drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+        //load player background image
+        DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
+
         // song Title
         BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
             if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
@@ -616,20 +669,20 @@ while (!WindowShouldClose())
         DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 1, secondaryColor);
 
         // STOP flag
-        DrawRectangle(xyFlags.x-8,xyFlags.y+3,4,12,isStop ? accentColor:bgColor);
-        DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y},(float)defaultFnt.baseSize,1, isStop ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+3,4,12,isStop ? accentColor:borderColor);
+        DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y},(float)defaultFnt.baseSize,1, isStop ? WHITE : borderColor);
 
         // PLAY flag
-        DrawRectangle(xyFlags.x-8,xyFlags.y+23,4,12,isPlay ? accentColor:bgColor);
-        DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+20},(float)defaultFnt.baseSize,1, isPlay ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+23,4,12,isPlay ? accentColor:borderColor);
+        DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+20},(float)defaultFnt.baseSize,1, isPlay ? WHITE : borderColor);
 
         // PAUSE flag
-        DrawRectangle(xyFlags.x-8,xyFlags.y+43,4,12,isPause ? accentColor:bgColor);
-        DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+40},(float)defaultFnt.baseSize,1, isPause ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+43,4,12,isPause ? accentColor:borderColor);
+        DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+40},(float)defaultFnt.baseSize,1, isPause ? WHITE : borderColor);
 
         // Shuffle flag
-        DrawRectangle(xyFlags.x-8,xyFlags.y+63,4,12,isShuffle ? accentColor:bgColor);
-        DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : secondaryColor);
+        DrawRectangle(xyFlags.x-8,xyFlags.y+63,4,12,isShuffle ? accentColor:borderColor);
+        DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
         // a sort of visualizer : giusto per vivacizzare....
         BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
