@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.2.3"
+#define TOOL_VERSION            "1.3.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -22,7 +22,6 @@
 #include <dirent.h>
 #include <math.h>
 #include <ctype.h>
-#include <id3tag.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -62,8 +61,7 @@ char files[MAX_FILES][MAX_NAME];
 #define SEPARATOR "/"
 #endif
 
-// file selection & id3 tag
-char ID3tag[1024] = { '\0' };
+// file selection
 char titleStr[1024] = { '\0' };
 char artistStr[1024] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
@@ -100,6 +98,28 @@ int peakHoldTimers[NUM_BARS] = { 0 };
 
 // Functions
 
+void extractArtistAndTitle(char *string, char **artist, char **title)
+ {
+    char *separator;
+
+    if ((string == NULL) || (artist == NULL) || (title == NULL))
+        return;
+    separator = strstr(string, " - ");
+    if (separator != NULL)
+     {
+        size_t length;
+
+        length  = separator - string;
+        *artist = malloc(1 + length);
+        if (*artist != NULL)
+        {
+            memcpy(*artist, string, length);
+           (*artist)[length] = '\0';
+        }
+        *title = strdup(separator + 3);
+     }
+ }
+
 Color darkenColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
@@ -133,65 +153,33 @@ void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
+void GetTagsFromFilename(int idx){
+// get Artist and Title song from filename (format :  "artist name - song titile.mp3")
+        char buffer[512];
+        char *artist;
+        char *title;
 
-static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
-{
-    struct id3_frame *frame;
-    union id3_field *field;
-    id3_ucs4_t const *ucs4;
-    id3_utf8_t *utf8;
+        strcpy (buffer, GetFileNameWithoutExt(files[idx]));
+        extractArtistAndTitle(buffer, &artist, &title);
 
-    frame = id3_tag_findframe(tag, id, 0);
-    if (!frame) {
-        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
-        return;
+            if (artist != NULL) {
+                strcpy(artistStr, artist );
+                strcat(artistStr, "\0");
+            }
+            if (title != NULL){
+                strcpy(titleStr, title );
+                strcat(titleStr, "\0");
+            }
+        
+        free(artist);
+        free(title);
     }
-
-    field = &frame->fields[1];
-    ucs4 = id3_field_getstrings(field, 0);
-    if (!ucs4) {
-        snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
-        return;
-    }
-    utf8 = id3_ucs4_utf8duplicate(ucs4);
-    if (!utf8) {
-        snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
-        return;
-    }
-
-    snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
-    free(utf8);
-}
-
-void GetTitle (int idx){
-    //get ID3 tags
-    struct id3_file *file;
-    struct id3_tag *tag;
-    file = id3_file_open(files[idx], ID3_FILE_MODE_READONLY);
-    
-    if (!file) {
-        fprintf(stderr, "Errore apertura file\n");
-        return;
-       }
-
-    tag = id3_file_tag(file);
-
-        getID3tags(tag, "TIT2", "Title");
-        strcpy(titleStr, ID3tag );
-        strcat(titleStr, "\0");
-
-        getID3tags(tag, "TPE1", "Artist");
-        strcpy(artistStr, ID3tag );
-        strcat(artistStr, "\0");
-        id3_file_close(file);
-
-}
 
 
 void LoadMusicByIndex(int idx) {
     currPlay = idx;
     music = LoadMusicStream(files[idx]);
-    GetTitle(idx);
+    GetTagsFromFilename(idx);
 }
 
 //------------------------------------------------------------------------------------
