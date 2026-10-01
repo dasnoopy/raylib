@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.3.2"
+#define TOOL_VERSION            "1.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -43,7 +43,7 @@ bool isPause = false;
 bool isMute = false;
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
-char *musicDir = "/home/public/Music";
+char *musicDir = "/home/andrea/Music";
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -76,8 +76,8 @@ static Music music;
 #define APP_DIR_NAME "simplayer"
 #define PATH_BUF_SIZE 1024
 
-#define MAX_COLORS_COUNT    13          // Number of colors available (BLACK & WHITE are excluded)
-Color colors[MAX_COLORS_COUNT] = {MAROON, ORANGE, RED, GOLD, LIME, BLUE, VIOLET, PINK, YELLOW, GREEN, SKYBLUE, PURPLE, BEIGE };
+#define MAX_COLORS_COUNT    10          // Number of colors available (BLACK & WHITE are excluded)
+Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, GOLD, LIME, BLUE, PINK, YELLOW, GREEN, SKYBLUE, PURPLE};
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -227,9 +227,15 @@ int compare_files(const void *a, const void *b) {
 
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
-    DIR *dir = opendir(path);
-    if (!dir) return count;
 
+    if (!DirectoryExists(path)) {
+        // Failed to locate, write the error and kill the program.
+        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", musicDir);
+        exit(1);
+    }   
+
+    DIR *dir = opendir(path);
+    
     struct dirent *entry;
 
     while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
@@ -267,7 +273,7 @@ int main (int argc, char *argv[])
 {
 
     // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT); // | FLAG_WINDOW_TOPMOST); 
 
     InitWindow(screenWidth, screenHeight, "simplayer");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
@@ -325,7 +331,7 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
             //SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
             // scroll title / id3
-            Rectangle displayArea = { 18, 20, 572,36 };
+            Rectangle displayArea = { 18, 20, 590,36 };
             float titleX = displayArea.x ;
             float speed = 60.0f;
 
@@ -519,6 +525,7 @@ while (!WindowShouldClose())
         }
         
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
+        if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
 
         //-----------------------------------------------------------------------------------------
         // vumeter update
@@ -654,11 +661,11 @@ while (!WindowShouldClose())
 
         //volume info
         DrawTexture(volumeICO_texture,18,390,secondaryColor);
-           if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){50,395}, (float)defaultFnt.baseSize,0, primaryColor);
-           else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){50,395}, (float)defaultFnt.baseSize,0, borderColor);
+           if (!isMute) DrawTextEx(artistFnt,TextFormat("%.f%%",volume*100),(Vector2){50,394}, (float)artistFnt.baseSize,0, primaryColor);
+           else DrawTextEx(artistFnt,TextFormat("%.f%%",volume*100),(Vector2){50,394}, (float)artistFnt.baseSize,0, borderColor);
          
         // tempo attuale brano / progressbar / durata totale brano
-        DrawTextEx(digitFnt,curTimeStr,(Vector2){300,377},(float)digitFnt.baseSize,0, primaryColor);
+        DrawTextEx(digitFnt,curTimeStr,(Vector2){300,376},(float)digitFnt.baseSize,0, primaryColor);
         //
         DrawRectangle(300,404,94,3,borderColor);
         for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){300+i,404,1,3},accentColor);
@@ -666,14 +673,14 @@ while (!WindowShouldClose())
         DrawTextEx(digitFnt,totTimeStr,(Vector2){300,410},(float)digitFnt.baseSize,0, secondaryColor);
 
         // current song position / total songs
-        DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){260,397},(float)defaultFnt.baseSize,1, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){402,397},(float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){260,396},(float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){402,396},(float)defaultFnt.baseSize,1, secondaryColor);
 
-        // KHz / stereo - mono  of current song
-        DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,370}, (float)defaultFnt.baseSize,1, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,385}, (float)defaultFnt.baseSize,0, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,400}, (float)defaultFnt.baseSize,0, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,415}, (float)defaultFnt.baseSize,0, secondaryColor);
+        // file type / KHz / stereo - mono  of current song
+        DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,373}, (float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,389}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,405}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,420}, (float)defaultFnt.baseSize,0, secondaryColor);
 
       
 
