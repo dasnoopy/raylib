@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.3.0"
+#define TOOL_VERSION            "1.3.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -596,7 +596,7 @@ while (!WindowShouldClose())
 
         //drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
         //load player background image
-        DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, WHITE); // WHITE
+        DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
         // song Title
         BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -670,9 +670,10 @@ while (!WindowShouldClose())
         DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){402,397},(float)defaultFnt.baseSize,1, secondaryColor);
 
         // KHz / stereo - mono  of current song
-        DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,381}, (float)defaultFnt.baseSize,0, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,397}, (float)defaultFnt.baseSize,0, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,413}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,370}, (float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,385}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,400}, (float)defaultFnt.baseSize,0, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,415}, (float)defaultFnt.baseSize,0, secondaryColor);
 
       
 
