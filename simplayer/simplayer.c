@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.2.2"
+#define TOOL_VERSION            "1.2.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -44,7 +44,6 @@ bool isPause = false;
 bool isMute = false;
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
-bool isID3 = true;
 char *musicDir = "/home/public/Music";
 
 // Music library && files management
@@ -101,28 +100,6 @@ int peakHoldTimers[NUM_BARS] = { 0 };
 
 // Functions
 
-void extractArtistAndTitle(char *string, char **artist, char **title)
- {
-    char *separator;
-
-    if ((string == NULL) || (artist == NULL) || (title == NULL))
-        return;
-    separator = strstr(string, " - ");
-    if (separator != NULL)
-     {
-        size_t length;
-
-        length  = separator - string;
-        *artist = malloc(1 + length);
-        if (*artist != NULL)
-        {
-            memcpy(*artist, string, length);
-           (*artist)[length] = '\0';
-        }
-        *title = strdup(separator + 3);
-     }
- }
-
 Color darkenColor(Color color, float factor)
 {
     if (factor < 0.0f) factor = 0.0f;
@@ -167,7 +144,6 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     frame = id3_tag_findframe(tag, id, 0);
     if (!frame) {
         snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
-        isID3=false;
         return;
     }
 
@@ -175,17 +151,14 @@ static void getID3tags(struct id3_tag *tag, const char *id, const char *label)
     ucs4 = id3_field_getstrings(field, 0);
     if (!ucs4) {
         snprintf(ID3tag,sizeof(ID3tag), "%s: <empty>", label);
-        isID3=false;
         return;
     }
     utf8 = id3_ucs4_utf8duplicate(ucs4);
     if (!utf8) {
         snprintf(ID3tag,sizeof(ID3tag),"%s: <conversion error>", label);
-        isID3=false;
         return;
     }
 
-    isID3=true;
     snprintf(ID3tag, sizeof(ID3tag), "%s", utf8);
     free(utf8);
 }
@@ -202,7 +175,7 @@ void GetTitle (int idx){
        }
 
     tag = id3_file_tag(file);
-    if (!isID3) { // show ID3 tag
+
         getID3tags(tag, "TIT2", "Title");
         strcpy(titleStr, ID3tag );
         strcat(titleStr, "\0");
@@ -211,29 +184,7 @@ void GetTitle (int idx){
         strcpy(artistStr, ID3tag );
         strcat(artistStr, "\0");
         id3_file_close(file);
-        }
-    // if id3 tag are missing get info from filename
-    else { 
-    
-        char buffer[256];
-        char *artist;
-        char *title;
 
-        strcpy (buffer, GetFileNameWithoutExt(files[idx]));
-        extractArtistAndTitle(buffer, &artist, &title);
-
-            if (artist != NULL) {
-                strcpy(artistStr, artist );
-                strcat(artistStr, "\0");
-            }
-            if (title != NULL){
-                strcpy(titleStr, title );
-                    strcat(titleStr, "\0");
-            }
-        
-        free(artist);
-        free(title);
-    }
 }
 
 
@@ -356,7 +307,7 @@ int main (int argc, char *argv[])
     SetAudioStreamBufferSizeDefault(65535);
     
 // some custom colors
-Color accentColor = RED;//colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  WHITE;
 Color bgColor = CLITERAL(Color){10, 20, 30, 232};
 Color secondaryColor = LIGHTGRAY;
@@ -708,7 +659,7 @@ while (!WindowShouldClose())
                             // Logica di disegno combinata barra + picco
                             bool drawActiveSegment = (j < segmentsToLight);
                             bool drawPeakSegment = (j == peakSegment);
-                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? primaryColor:borderColor );
+                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.80f):borderColor );
                          }
                     }
         EndScissorMode();
