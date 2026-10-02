@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.5.3"
+#define TOOL_VERSION            "1.6.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -718,14 +718,17 @@ if (isVisFiles) {  // when mini view is active fileselectio is disabled
                 if (maxOffset < 0) maxOffset = 0;
                 if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
-                    for (int i = 0; i < visibleRows; ++i) {
+                    for (int i = 0; i < visibleRows; i++) {
+                        // faded text color
+                        float fadeValue = (i <= 4) ? (i + 1) * 0.4f : (9 - i) * 0.4f;
+                        Color fadeColor = darkenColor(accentColor,fadeValue);
                         DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
                             DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : primaryColor);
-                            DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,1,(fileIndex == selectedIndex)? BLACK : secondaryColor);
+                            DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,1,(fileIndex == selectedIndex)? BLACK : fadeColor);
                         
                         }   
                 //vertical divider
