@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.4.0"
+#define TOOL_VERSION            "1.4.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -281,7 +281,7 @@ int main (int argc, char *argv[])
     // Set UI style
     // Custom GUI font loading
     Font titleFnt = LoadFontEx("fonts/ManropeV5-Bold.otf", 36, NULL, 0);
-    Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, NULL, 0);
+    Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
     Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
     Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
     SetTextureFilter(digitFnt.texture, TEXTURE_FILTER_BILINEAR);
@@ -301,7 +301,7 @@ int main (int argc, char *argv[])
     SetAudioStreamBufferSizeDefault(65535);
     
 // some custom colors
-Color accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  WHITE;
 Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};;
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
@@ -338,8 +338,15 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 255};
             // visualizer  area / variables for effects
             Rectangle visArea = {16,110,screenWidth-32,200};
 
-                SetWindowSize(screenWidth,screenHeight);
-                SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+            //infoArea
+            Rectangle infoArea = {18,330,screenWidth-36,110};
+            Vector2 timeSize = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
+
+            // flag area / music file info
+            Vector2 xyFlags= {556,20};
+
+            SetWindowSize(screenWidth,screenHeight);
+            SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
 
          //  vumeter
             Complex fftBuffer[MAX_SAMPLES];
@@ -359,9 +366,7 @@ while (!WindowShouldClose())
         // Update
         //----------------------------------------------------------------------------------
 
-
         currentTime = GetMusicTimePlayed(music); //just to simplify some checks
-        Vector2 xyFlags= {556,20};
 
         // set scroll text speed
         Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
@@ -652,27 +657,27 @@ while (!WindowShouldClose())
                             // Logica di disegno combinata barra + picco
                             bool drawActiveSegment = (j < segmentsToLight);
                             bool drawPeakSegment = (j == peakSegment);
-                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.80f):borderColor );
+                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.60f):darkenColor(accentColor,0.24f) );
                          }
                     }
         EndScissorMode();
 
         //volume info
-        DrawTexture(volumeICO_texture,18,344,secondaryColor);
-           if (!isMute) DrawTextEx(artistFnt,TextFormat("%.f%%",volume*100),(Vector2){50,348}, (float)artistFnt.baseSize,0, primaryColor);
-           else DrawTextEx(artistFnt,TextFormat("%.f%%",volume*100),(Vector2){50,348}, (float)artistFnt.baseSize,0, borderColor);
+        DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,secondaryColor);
+           if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
+           else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
          
         // tempo attuale brano / progressbar / durata totale brano
-        DrawTextEx(digitFnt,curTimeStr,(Vector2){256,330},(float)digitFnt.baseSize,0, primaryColor);
+        DrawTextEx(digitFnt,curTimeStr,(Vector2){(screenWidth/2)-(timeSize.x/2),infoArea.y},(float)digitFnt.baseSize,0, primaryColor);
         //
-        DrawRectangle(256,358,94,3,borderColor);
-        for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){256+i,358,1,3},accentColor);
+        DrawRectangle((screenWidth/2)-(timeSize.x/2),infoArea.y+28,timeSize.x,3,borderColor);
+        for (int i = 0; i < (timePlayed * 94); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeSize.x/2)),infoArea.y+28,1,3},accentColor);
         //
-        DrawTextEx(digitFnt,totTimeStr,(Vector2){256,364},(float)digitFnt.baseSize,0, secondaryColor);
+        DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeSize.x/2),infoArea.y+34},(float)digitFnt.baseSize,0, secondaryColor);
 
         // current song position / total songs
-        DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){216,350},(float)defaultFnt.baseSize,1, secondaryColor);
-        DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){358,350},(float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
+        DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 
         // file type / KHz / stereo - mono  of current song
         DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,327}, (float)defaultFnt.baseSize,1, secondaryColor);
