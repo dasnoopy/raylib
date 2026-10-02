@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.4.5"
+#define TOOL_VERSION            "1.5.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -41,6 +41,7 @@ bool isShuffle = true;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
+bool isVisFiles = false; // false:default : show visualizer , True show file selection
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
 char *musicDir = "/home/andrea/Music";
@@ -76,8 +77,8 @@ static Music music;
 #define APP_DIR_NAME "simplayer"
 #define PATH_BUF_SIZE 1024
 
-#define MAX_COLORS_COUNT    10          // Number of colors available (BLACK & WHITE are excluded)
-Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, GOLD, LIME, BLUE, PINK, YELLOW, GREEN, SKYBLUE, PURPLE};
+#define MAX_COLORS_COUNT    12          // Number of colors available (BLACK & WHITE are excluded)
+Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET};
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -170,7 +171,6 @@ void GetTagsFromFilename(int idx){
                 strcpy(titleStr, title );
                 strcat(titleStr, "\0");
             }
-        
         free(artist);
         free(title);
     }
@@ -284,6 +284,8 @@ int main (int argc, char *argv[])
     Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
     Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
     Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
+    Font filesFnt= LoadFontEx("fonts/ManropeV5-Regular.otf", 20, NULL, 0); 
+
     SetTextureFilter(digitFnt.texture, TEXTURE_FILTER_BILINEAR);
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
     
@@ -301,11 +303,11 @@ int main (int argc, char *argv[])
     SetAudioStreamBufferSizeDefault(65535);
     
 // some custom colors
-Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = SKYBLUE; // colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  WHITE;
 Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};;
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
-Color bgColor = CLITERAL(Color){10, 20, 30, 255};
+//Color bgColor = CLITERAL(Color){10, 20, 30, 255};
 
 // file open/save variables
 
@@ -334,6 +336,13 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 255};
             Rectangle displayArea = { 18, 24, 504,36 };
             float titleX = displayArea.x ;
             float speed = 60.0f;
+
+            // filelist variables
+            Rectangle filesArea = { 16,108,screenWidth-32,206 };
+            int rowHeight = 23;
+            int visibleRows = 9;
+            const int centerRow = 4;
+            int scrollOffset = 0;     // primo file visualizzato
 
             // visualizer  area / variables for effects
             Rectangle visArea = {16,110,screenWidth-32,200};
@@ -470,8 +479,6 @@ while (!WindowShouldClose())
                     }
             }
 
-
-
         if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
         {
                     if (currentTime < 10.0f) {
@@ -491,7 +498,6 @@ while (!WindowShouldClose())
                     }
                     else  SeekMusicStream(music, currentTime + SEEK_TIME);
         }
-
 
         if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
             prevPlay = selectedIndex; //save for 1 shot prev.song
@@ -513,7 +519,6 @@ while (!WindowShouldClose())
                 isPause=false;
             }
 
-
         if (IsKeyPressed(KEY_Z)) { // Previous song : no shuffle on previous song
                 if (isShuffle) selectedIndex = prevPlay;
                 else selectedIndex--;
@@ -526,9 +531,46 @@ while (!WindowShouldClose())
                 isPlay=true;
                 isPause=false;
         }
-        
+
+
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+
+if (isVisFiles) {  // when mini view is active fileselectio is disabled
+        //------------------------------------------------------------------------------
+        // scrollFiles with mouse
+        //------------------------------------------------------------------------------
+        //if (CheckCollisionPointRec(mousePos,filesArea)) {
+
+            if (fileCount >= visibleRows) {
+                        selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
+            
+                        if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
+                        if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
+                        if (IsKeyPressed(KEY_END)) selectedIndex = fileCount -1;
+            
+                        if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
+                        if (IsKeyPressed(KEY_UP)) selectedIndex--;
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+                            prevPlay = currPlay; //save for 1 shot prev.song
+                            if (selectedIndex >= 0 && selectedIndex < fileCount) {
+                                StopMusicStream(music);
+                                //UnloadMusicStream(music);
+                                LoadMusicByIndex(selectedIndex);
+                                PlayMusicStream(music);
+                                //UpdateMusicStream(music);
+                                isStop=false;
+                                isPlay=true;
+                                isPause=false;
+                                }
+                            }
+                    // checks
+                            if (selectedIndex < 0) selectedIndex=0;
+                            if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
+                }
+}  // all above keybindigs are disable in mini view modo
+
+        if (IsKeyPressed(KEY_F)) isVisFiles = !isVisFiles;
 
         //-----------------------------------------------------------------------------------------
         // vumeter update
@@ -598,7 +640,7 @@ while (!WindowShouldClose())
 // Draw
 //----------------------------------------------------------------------------------
     BeginTextureMode(target);
-        ClearBackground(bgColor);
+        ClearBackground(BLANK);
     EndTextureMode();
 
     BeginDrawing();
@@ -614,8 +656,8 @@ while (!WindowShouldClose())
             else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
         EndScissorMode();
         // song Artist
-        DrawLine(displayArea.x,displayArea.y+40,displayArea.width+20,displayArea.y+40,accentColor);
-        DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 1, secondaryColor);
+        DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
+        DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 
         // STOP flag
         DrawRectangle(xyFlags.x-8,xyFlags.y+3,4,12,isStop ? accentColor:borderColor);
@@ -633,8 +675,10 @@ while (!WindowShouldClose())
         DrawRectangle(xyFlags.x-8,xyFlags.y+63,4,12,isShuffle ? accentColor:borderColor);
         DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
-        // a sort of visualizer : giusto per vivacizzare....
-        BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
+
+    if (!isVisFiles) { 
+         // draw 40 band vumeter
+         BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
 
                     // draw vumeter
                     float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
@@ -661,6 +705,38 @@ while (!WindowShouldClose())
                          }
                     }
         EndScissorMode();
+    }
+        else {
+            // draw file selection
+            //DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
+            BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
+                if (fileCount < visibleRows) visibleRows = fileCount;
+
+                scrollOffset = selectedIndex - centerRow;
+                if (scrollOffset < 0) scrollOffset = 0;
+                int maxOffset = fileCount - visibleRows;
+                if (maxOffset < 0) maxOffset = 0;
+                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+
+                    for (int i = 0; i < visibleRows; ++i) {
+                        DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
+                        //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
+                        int fileIndex = scrollOffset + i;
+                        if (fileIndex > fileCount) break;
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
+                            DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : primaryColor);
+                            DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,1,(fileIndex == selectedIndex)? BLACK : secondaryColor);
+                        
+                        }   
+                //vertical divider
+                DrawLine(filesArea.x+44,filesArea.y,filesArea.x+44,filesArea.y + filesArea.height,borderColor);
+            EndScissorMode();
+            }
+
+        //statusbar with some info
+        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
+        // DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
+        // DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
         //volume info
         DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,secondaryColor);
@@ -685,9 +761,6 @@ while (!WindowShouldClose())
         DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,359}, (float)defaultFnt.baseSize,0, secondaryColor);
         DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,374}, (float)defaultFnt.baseSize,0, secondaryColor);
 
-      
-
-
     EndDrawing();
 }
     
@@ -700,7 +773,7 @@ while (!WindowShouldClose())
     UnloadFont(titleFnt);
     UnloadFont(artistFnt);
     UnloadFont(digitFnt);
-
+    UnloadFont(filesFnt);
     CloseAudioDevice();
     CloseWindow();
     return 0;

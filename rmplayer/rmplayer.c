@@ -685,10 +685,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
         //------------------------------------------------------------------------------
         //if (CheckCollisionPointRec(mousePos,filesArea)) {
             if (fileCount >= visibleRows) {
+
                         selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
                         if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
                         if (IsKeyPressed(KEY_UP)) selectedIndex--;
                         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+                            prevPlay = currPlay; //save for 1 shot prev.song
                             if (selectedIndex >= 0 && selectedIndex < fileCount) {
                                 StopMusicStream(music);
                                 //UnloadMusicStream(music);
