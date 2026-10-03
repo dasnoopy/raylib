@@ -1,5 +1,7 @@
 Sim(ple)Player: a simple MP3/OGG file player coded in C99 and Raylib
 -------------------------------------------------------------
+Expected  .mp3/.ogg files in /home/$user/Music folder...
+
 
 APP KEYBINDINGS:
 

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -24,6 +24,10 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <pwd.h>
+
+
 
 // gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -44,7 +48,7 @@ bool isMute = false;
 bool isVumeter = false; // false:default : show 36 band equalizer , if true show file library
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
-char *musicDir = "/home/andrea/Music";
+char *musicDir;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -72,10 +76,6 @@ int prevPlay = 0; //previous played song when shuffle is ON
 
 // define stream 
 static Music music;
-
-// config file
-#define APP_DIR_NAME "simplayer"
-#define PATH_BUF_SIZE 1024
 
 #define MAX_COLORS_COUNT    12          // Number of colors available (BLACK & WHITE are excluded)
 Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET};
@@ -175,7 +175,6 @@ void GetTagsFromFilename(int idx){
         free(title);
     }
 
-
 void LoadMusicByIndex(int idx) {
     currPlay = idx;
     music = LoadMusicStream(files[idx]);
@@ -224,6 +223,13 @@ int compare_files(const void *a, const void *b) {
     return strcmp(fa, fb); // case sensitive
     //return strcasecmp((const char *)fa, (const char *)fb); // no case sensitive
 }
+
+void getMusicFolder(void) {
+    // music folder must be a folder called "Music" inside your home dir (could be also aa symbolic link to real Music dir)
+    if ((musicDir = getenv("HOME")) == NULL) musicDir = getpwuid(getuid())->pw_dir;
+    strcat(musicDir,"/Music\0");
+}
+
 
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
@@ -312,6 +318,7 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
 // file open/save variables
 
             // load music files into array
+            getMusicFolder();
             int fileCount = load_files_recursive(musicDir, files, 0);
 
             // load first song to play  based on shuffle setting
@@ -363,10 +370,8 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
 
     // fai riapparire finestra dopo caricamento iniziale
     SetWindowSize(screenWidth,screenHeight);
-    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
-    SetWindowPosition(8,40);  
-
-
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    //SetWindowPosition(8,40);  
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose())
@@ -744,7 +749,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
         // DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
         //volume info
-        DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,secondaryColor);
+        DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,isMute?borderColor:secondaryColor);
            if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
            else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
          
