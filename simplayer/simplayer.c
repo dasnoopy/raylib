@@ -41,7 +41,7 @@ bool isShuffle = true;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
-bool isVisFiles = false; // false:default : show visualizer , True show file selection
+bool isVumeter = false; // false:default : show 36 band equalizer , if true show file library
 float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
 float prev_volume = 0.80f;
 char *musicDir = "/home/andrea/Music";
@@ -286,7 +286,7 @@ int main (int argc, char *argv[])
     Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
     Font filesFnt= LoadFontEx("fonts/ManropeV5-Regular.otf", 20, NULL, 0); 
 
-    SetTextureFilter(digitFnt.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(defaultFnt.texture, TEXTURE_FILTER_POINT);
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
     
     //load volume icon
@@ -536,7 +536,7 @@ while (!WindowShouldClose())
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
         if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
 
-if (isVisFiles) {  // when mini view is active fileselectio is disabled
+if (isVumeter) {  // when mini view is active fileselectio is disabled
         //------------------------------------------------------------------------------
         // scrollFiles with mouse
         //------------------------------------------------------------------------------
@@ -570,7 +570,7 @@ if (isVisFiles) {  // when mini view is active fileselectio is disabled
                 }
 }  // all above keybindigs are disable in mini view modo
 
-        if (IsKeyPressed(KEY_F)) isVisFiles = !isVisFiles;
+        if (IsKeyPressed(KEY_F)) isVumeter = !isVumeter;
 
         //-----------------------------------------------------------------------------------------
         // vumeter update
@@ -676,7 +676,7 @@ if (isVisFiles) {  // when mini view is active fileselectio is disabled
         DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 
-    if (!isVisFiles) { 
+    if (!isVumeter) { 
          // draw 40 band vumeter
          BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
 
@@ -721,13 +721,13 @@ if (isVisFiles) {  // when mini view is active fileselectio is disabled
                     for (int i = 0; i < visibleRows; i++) {
                         // faded text color
                         float fadeValue = (i <= 4) ? (i + 1) * 0.4f : (9 - i) * 0.4f;
-                        Color fadeColor = darkenColor(secondaryColor,fadeValue);
+                        Color fadeColor = darkenColor(primaryColor,fadeValue);
                         DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
-                            DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : primaryColor);
+                            DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : accentColor );
                             DrawTextEx(defaultFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
                         
                         }   
