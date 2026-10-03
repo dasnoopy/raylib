@@ -17,6 +17,11 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
 4) run executable and enjoy!
 
+#### Simple Audio Player (modern style)
+
+![simplayer#1](https://raw.github.com/dasnoopy/raylib/main/screenshot/simplayer_vumeter.png)
+![simplayer#2](https://raw.github.com/dasnoopy/raylib/main/screenshot/simplayer_files.png)
+
 #### Image color Picker  
 
 ![rcolpick](https://raw.github.com/dasnoopy/raylib/main/screenshot/rcolpick.png)
@@ -25,7 +30,7 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
 ![pixelart-editor](https://raw.github.com/dasnoopy/raylib/main/screenshot/pixelarted.png)
 
-#### Raylib MusicPlayer  
+#### Raylib Music Player (old style)  
 
 ![rmplayer](https://raw.github.com/dasnoopy/raylib/main/screenshot/rmplayer.png)
 

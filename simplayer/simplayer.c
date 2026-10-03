@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.3"
+#define TOOL_VERSION            "1.6.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -354,9 +354,6 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
             // flag area / music file info
             Vector2 xyFlags= {556,20};
 
-            SetWindowSize(screenWidth,screenHeight);
-            SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
-
          //  vumeter
             Complex fftBuffer[MAX_SAMPLES];
             // Parametri dinamici di calibrazione
@@ -365,6 +362,11 @@ Color borderColor = CLITERAL(Color){60, 70, 80, 255};
             float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
     // fai riapparire finestra dopo caricamento iniziale
+    SetWindowSize(screenWidth,screenHeight);
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    SetWindowPosition(8,40);  
+
+
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose())
@@ -727,7 +729,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
                         if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
-                            DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : accentColor );
+                            DrawTextEx(defaultFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor );
                             DrawTextEx(defaultFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)defaultFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
                         
                         }   
