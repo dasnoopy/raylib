@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.6.7"
+#define TOOL_VERSION            "1.7.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -300,20 +300,20 @@ int main (int argc, char *argv[])
     Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
     UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
     
-    Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
-    Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-    UnloadImage(image); 
+    // Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
+    // Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+    // UnloadImage(image); 
 
     // init Audio
     InitAudioDevice();
     SetAudioStreamBufferSizeDefault(65535);
     
 // some custom colors
-Color accentColor = SKYBLUE; // colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor =  WHITE;
 Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};;
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
-//Color bgColor = CLITERAL(Color){10, 20, 30, 255};
+Color bgColor = darkenColor (accentColor, 0.050f);
 
 // file open/save variables
 
@@ -541,7 +541,10 @@ while (!WindowShouldClose())
 
 
         if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-        if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+        if (IsKeyPressed(KEY_C)) {
+            accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+            bgColor = darkenColor (accentColor, 0.050f);
+        }
 
 if (isVumeter) {  // when mini view is active fileselectio is disabled
         //------------------------------------------------------------------------------
@@ -653,9 +656,9 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
     BeginDrawing();
         ClearBackground (BLANK);
 
-        //drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+        drawRectangleRounded(0,0,screenWidth,screenHeight,Fade(bgColor,0.94f));
         //load player background image
-        DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
+        //DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
         // song Title
         BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -708,7 +711,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
                             // Logica di disegno combinata barra + picco
                             bool drawActiveSegment = (j < segmentsToLight);
                             bool drawPeakSegment = (j == peakSegment);
-                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.60f):darkenColor(accentColor,0.24f) );
+                            DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.60f):darkenColor(accentColor,0.30f) );
                          }
                     }
         EndScissorMode();
@@ -727,7 +730,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
 
                     for (int i = 0; i < visibleRows; i++) {
                         // faded text color
-                        float fadeValue = (i <= 4) ? (i + 1) * 0.4f : (9 - i) * 0.4f;
+                        float fadeValue = (i <= 4) ? (i + 1) * 0.3f : (9 - i) * 0.3f;
                         Color fadeColor = darkenColor(primaryColor,fadeValue);
                         DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
