@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.4"
+#define TOOL_VERSION            "1.7.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -45,8 +45,8 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isVumeter = false; // false:default : show 36 band equalizer , if true show file library
-float volume = 0.80f;            // Default audio volume [0.0f..1.0f]
-float prev_volume = 0.80f;
+float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
+float prev_volume = 0.50f;
 char *musicDir;
 
 // Music library && files management
@@ -309,8 +309,8 @@ int main (int argc, char *argv[])
     
 // some custom colors
 Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
-Color primaryColor =  WHITE;
-Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};;
+Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
+Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};
 Color borderColor = CLITERAL(Color){60, 70, 80, 255};
 //Color bgColor = darkenColor (accentColor, 0.050f);
 
@@ -409,7 +409,6 @@ while (!WindowShouldClose())
             int seconds = (int)timeLength % 60;
             snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
-    
         // set initial volume 
         SetMasterVolume(volume);
 
@@ -729,7 +728,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
-                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, darkenColor(accentColor,0.80f));
                             DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor );
                             DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
                         
