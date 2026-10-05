@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.5"
+#define TOOL_VERSION            "1.7.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -310,8 +310,8 @@ int main (int argc, char *argv[])
 // some custom colors
 Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
-Color secondaryColor = CLITERAL(Color){176, 178, 178, 255};
-Color borderColor = CLITERAL(Color){60, 70, 80, 255};
+Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
+Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 //Color bgColor = darkenColor (accentColor, 0.050f);
 
 // file open/save variables
@@ -728,7 +728,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
                         //if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(textColor,0.42f));
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
-                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, darkenColor(accentColor,0.80f));
+                        if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
                             DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor );
                             DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
                         
@@ -741,7 +741,7 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
 
 
         //volume info
-        DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,isMute?borderColor:secondaryColor);
+        DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,isMute?borderColor:accentColor);
            if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
            else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
          
@@ -751,7 +751,9 @@ if (isVumeter) {  // when mini view is active fileselectio is disabled
         // progress bar lunga in base al font usato per stampare i tempi del brano
         DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo progress bar
         for (int i = 0; i < (progress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+28,1,3},accentColor);
-        
+
+
+
         // tempo totale brano centrato orizzontalmente
         DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y+34},(float)digitFnt.baseSize,0, secondaryColor);
 
