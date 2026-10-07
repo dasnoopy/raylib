@@ -1,7 +1,7 @@
 /*******************************************************************************
 *
-*   raylib simple music player
-*   Small utility to play mp3 musicFiles based on Raylib
+*   raylib simple currMusic player
+*   Small utility to play mp3 currMusicFiles based on Raylib
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
@@ -9,8 +9,8 @@
 		
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
-#define TOOL_COMMENT            "Simple but modern music player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "1.7.6"
+#define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
+#define TOOL_VERSION            "2.0.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -36,6 +36,22 @@
 #define screenWidth   640
 #define screenHeight  408
 
+
+// faded songs
+// faded time 10 seconds
+#define FADE_TIME 5.0f // Durata della dissolvenza in secondi
+typedef enum {
+	STATE_PLAYING_SINGLE, // esecuzione normale
+	STATE_CROSSFADING     // dissolvenza incrociata tra due brani
+} PlayerState;
+
+PlayerState state = STATE_PLAYING_SINGLE;
+float fadeTimer;
+
+// define stream 
+	Music currMusic = { 0 };
+	Music nextMusic = { 0 };
+
 // variables
 #define SEEK_TIME 10.0f // seek time
 
@@ -45,15 +61,15 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isVumeter = false; // false:default : show 36 band equalizer , if true show file library
-float volume = 0.50f;            // Default audio volume [0.0f..1.0f]
-float prev_volume = 0.50f;
-char *musicDir;
+float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
+float prevVolume = 0.50f;
+char *currMusicDir;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
 #define FILTER_OGG      ".ogg"
 
-size_t fileCount;
+size_t trackCount;
 #define MAX_FILES 4096
 #define MAX_NAME 1024
 char files[MAX_FILES][MAX_NAME];
@@ -72,9 +88,6 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-
-// define stream 
-static Music music;
 
 #define MAX_COLORS_COUNT    14// Number of colors available (BLACK & WHITE are excluded)
 Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET, BROWN, BEIGE};
@@ -176,8 +189,14 @@ void GetTagsFromFilename(int idx){
 
 void LoadMusicByIndex(int idx) {
 	currPlay = idx;
-	music = LoadMusicStream(files[idx]);
+	currMusic = LoadMusicStream(files[idx]);
 	GetTagsFromFilename(idx);
+}
+
+void LoadNextMusicByIndex(int idx) {
+	currPlay = idx;
+	nextMusic = LoadMusicStream(files[idx]);
+	//GetTagsFromFilename(idx);
 }
 
 //------------------------------------------------------------------------------------
@@ -224,9 +243,9 @@ int compare_files(const void *a, const void *b) {
 }
 
 void getMusicFolder(void) {
-	// music folder must be a folder called "Music" inside your home dir (could be also aa symbolic link to real Music dir)
-	if ((musicDir = getenv("HOME")) == NULL) musicDir = getpwuid(getuid())->pw_dir;
-	strcat(musicDir,"/Music\0");
+	// currMusic folder must be a folder called "Music" inside your home dir (could be also aa symbolic link to real Music dir)
+	if ((currMusicDir = getenv("HOME")) == NULL) currMusicDir = getpwuid(getuid())->pw_dir;
+	strcat(currMusicDir,"/Music\0");
 }
 
 
@@ -235,7 +254,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 
 	if (!DirectoryExists(path)) {
 		// Failed to locate, write the error and kill the program.
-		TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", musicDir);
+		TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", currMusicDir);
 		exit(1);
 	}   
 
@@ -294,7 +313,7 @@ int main (int argc, char *argv[])
 	SetTextureFilter(defaultFnt.texture, TEXTURE_FILTER_POINT);
 	RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
 	
-	//load volume icon
+	//load currVolume icon
 	Image volumeICO = LoadImage("assets/volumeICO.png");     // Loaded in CPU memory (RAM)
 	Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
@@ -303,9 +322,6 @@ int main (int argc, char *argv[])
 	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(image); 
 
-	// init Audio
-	InitAudioDevice();
-	SetAudioStreamBufferSizeDefault(65535);
 	
 // some custom colors
 Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
@@ -314,14 +330,20 @@ Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 
+
+	// init Audio
+	InitAudioDevice();
+	SetAudioStreamBufferSizeDefault(65535);
+
+
 // file open/save variables
 
-			// load music files into array
+			// load currMusic files into array
 			getMusicFolder();
-			int fileCount = load_files_recursive(musicDir, files, 0);
+			int trackCount = load_files_recursive(currMusicDir, files, 0);
 
 			// load first song to play  based on shuffle setting
-				selectedIndex = isShuffle ? GetRandomValue(0,fileCount-1) : 0;
+				selectedIndex = isShuffle ? GetRandomValue(0,trackCount-1) : 0;
 				LoadMusicByIndex(selectedIndex);
 				prevPlay=selectedIndex;
 
@@ -329,7 +351,7 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 			if (isPlay) {
 				isStop=false;
 				isPause =false;
-				PlayMusicStream(music);  // autoplay at start
+				PlayMusicStream(currMusic);  // autoplay at start
 			}
 
 			// init Audio Processor
@@ -353,11 +375,11 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 			// visualizer  area / variables for effects
 			Rectangle visArea = {16,110,screenWidth-32,200};
 
-			//infoArea e calcolo lunghezza progressbar
+			//infoArea e calcolo lunghezza timeProgressbar
 			Rectangle infoArea = {18,330,screenWidth-36,110};
 			Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
 
-			// flag area / music file info
+			// flag area / currMusic file info
 			Vector2 xyFlags= {556,20};
 
 		 //  vumeter
@@ -380,9 +402,10 @@ while (!WindowShouldClose())
 	//----------------------------------------------------------------------------------
 
 		// Calcola la percentuale di avanzamento della traccia
-		float timePlayed = GetMusicTimePlayed(music);
-		float timeLength = GetMusicTimeLength(music);
-		float progress = (timeLength > 0.0f) ? (timePlayed / timeLength) : 0.0f;
+		float timePlayed = GetMusicTimePlayed(currMusic);
+		float timeLength = GetMusicTimeLength(currMusic);
+		float timeRemaining = timeLength - timePlayed;
+		float timeProgress = (timeLength > 0.0f) ? (timePlayed / timeLength) : 0.0f;
 
 		// set scroll text speed
 		Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
@@ -409,111 +432,167 @@ while (!WindowShouldClose())
 			int seconds = (int)timeLength % 60;
 			snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
-		// set initial volume 
-		SetMasterVolume(volume);
-
+	// set initial currVolume 
+	SetMusicVolume(currMusic, currVolume);
+	SetMusicVolume(nextMusic, currVolume);
+	
 		// update sound stream
-		UpdateMusicStream(music);   // Update music buffer with new stream data
+		UpdateMusicStream(currMusic);
+		if (state == STATE_CROSSFADING) UpdateMusicStream(nextMusic);
 
-		// auto move on next song
-		if (timePlayed >= (timeLength - 0.450f)) {
-				prevPlay = selectedIndex;
-				StopMusicStream(music);
-				UnloadMusicStream(music);
-				if (isShuffle) {
-					int shuffleIndex = GetRandomValue(0,fileCount-1);
-					if (shuffleIndex == fileCount) --shuffleIndex;
-					// if new song is equal to current , select next one
-					if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
-					selectedIndex = shuffleIndex;
-					} 
-				else selectedIndex = (selectedIndex + 1) % fileCount;
+		switch (state)
+		{
+			case STATE_PLAYING_SINGLE:
+				// Se mancano meno di FADE_TIME secondi alla fine, facciamo partire il crossfade
 
-				LoadMusicByIndex(selectedIndex);
-				PlayMusicStream(music);
-				selectedIndex = currPlay;
-			}
-		
-		
+				if (timeRemaining <= FADE_TIME && timeLength > FADE_TIME) 
+				{
+					prevPlay=selectedIndex;
+					// Passa al brano successivo (con ciclo continuo sulla playlist)
+					if (isShuffle) {
+						int shuffleIndex = GetRandomValue(0,trackCount-1);
+						if (shuffleIndex == trackCount) --shuffleIndex;
+						// if new song is equal to current , select next one
+						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
+						selectedIndex = shuffleIndex;
+						} 
+					else selectedIndex = (selectedIndex + 1) % trackCount;
+					
+					LoadNextMusicByIndex(selectedIndex);
+					PlayMusicStream(nextMusic);
+					SetMusicVolume(nextMusic, 0.0f); // Parte silenzioso
 
-		// Set audio volume
+					fadeTimer = 0.0f;
+					state = STATE_CROSSFADING;
+				}
+				// Gestione caso in cui il brano finisce improvvisamente (o è troppo corto per il fade)
+				else if ((!IsMusicStreamPlaying(currMusic) || timeRemaining <= 0.1f) && !isPause && !isStop)
+				{
+					UnloadMusicStream(currMusic);
+				  prevPlay=selectedIndex;
+					if (isShuffle) {
+						int shuffleIndex = GetRandomValue(0,trackCount-1);
+						if (shuffleIndex == trackCount) --shuffleIndex;
+						// if new song is equal to current , select next one
+						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
+						selectedIndex = shuffleIndex;
+						} 
+					else selectedIndex = (selectedIndex + 1) % trackCount;
+					
+					LoadMusicByIndex(selectedIndex);
+					PlayMusicStream(currMusic);
+					SetMusicVolume(currMusic, currVolume);
+				}
+				break;
+
+			case STATE_CROSSFADING:
+				fadeTimer += GetFrameTime(); // Avanzamento del tempo reale del frame
+				
+				// Calcoliamo la percentuale di timeProgresso del fade (da 0.0 a 1.0)
+				float timeProgress = fadeTimer / FADE_TIME;
+				if (timeProgress > 1.0f) timeProgress = 1.0f;
+
+				// cambio volume tra "vecchia" e "nuova" canzone piu' dolce...
+				float currentVol = currVolume * cosf(timeProgress * (PI / 2.0f));
+        float nextVol = currVolume * sinf(timeProgress * (PI / 2.0f));
+
+				SetMusicVolume(currMusic, currentVol);
+				SetMusicVolume(nextMusic, nextVol);
+
+				// Quando il fade è completato
+				if (timeProgress >= 1.0f) 
+				{
+					UnloadMusicStream(currMusic); // Elimina la vecchia canzone
+					currMusic = nextMusic;        // e la nuova canzone diventa quella corrente
+					state = STATE_PLAYING_SINGLE;    // Ritorna allo stato normale
+					selectedIndex = currPlay;
+					// aggiorna info brano
+					GetTagsFromFilename(selectedIndex);
+				}
+				break;
+		}
+
+	
+
+		// Set audio currVolume
 		if (IsKeyDown(KEY_PAGE_DOWN)) {
-			volume -= (volume >= 0.0f) ? 0.01f : 0.0f;
-			if (volume < 0.0f) volume = 0.0f, isMute=true;
+			currVolume -= (currVolume >= 0.0f) ? 0.01f : 0.0f;
+			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
 		if (IsKeyDown(KEY_PAGE_UP)) {
 			isMute = false;
-			volume += (volume <= 1.0f) ? 0.01f : 0.0f;
-			if (volume > 1.0f) volume = 1.0f;
+			currVolume += (currVolume <= 1.0f) ? 0.01f : 0.0f;
+			if (currVolume > 1.0f) currVolume = 1.0f;
 		}
 
 		if (IsKeyPressed(KEY_M)) // MUTE
 		{
 			isMute = !isMute;
 				if (isMute) {
-					prev_volume = volume;
-					volume = 0.0f;
+					prevVolume = currVolume;
+					currVolume = 0.0f;
 					}
-				else volume = prev_volume;
+				else currVolume = prevVolume;
 		}
 
-		if (IsKeyPressed(KEY_P) && isPlay &&!isStop) { // pause
+		if (IsKeyPressed(KEY_P) && isPlay && !isStop) { // pause
 			isPause = !isPause;
-			if (isPause) PauseMusicStream(music);
-			else ResumeMusicStream(music);
+			if (isPause) PauseMusicStream(currMusic);
+			else ResumeMusicStream(currMusic);
 		}
 
 
-		// Restart music playing (stop and play)
+		// stop/play currMusic 
 		if (IsKeyPressed(KEY_SPACE)) {
-				if (!isStop) {
+				if (isPlay) {
 					isStop=true;
 					isPlay=false;
 					isPause=false;
-					StopMusicStream(music);
+					StopMusicStream(currMusic);
 					}
 				else {
 					 isStop=false;
 					 isPlay=true;
 					 isPause=false;
-					 PlayMusicStream(music);
+					 state = STATE_PLAYING_SINGLE;
+					 PlayMusicStream(currMusic);
 					}
 			}
 
-		if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
+		if (IsKeyPressed(KEY_LEFT) && isPlay && state == STATE_PLAYING_SINGLE) // seek -10sec
 		{
 					if (timePlayed < 10.0f) {
 						timePlayed = 0.0f; 
-						SeekMusicStream(music, 0.0f);
+						SeekMusicStream(currMusic, 0.0f);
 					}
-					else SeekMusicStream(music, timePlayed - SEEK_TIME);
+					else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
 
 		}
-		if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
+		if (IsKeyPressed(KEY_RIGHT) && isPlay && state == STATE_PLAYING_SINGLE) // seek +10sec
 		{
 					if (timePlayed + SEEK_TIME > timeLength) {
 						timePlayed = 0.0f;
-						SeekMusicStream(music, 0.0f);
+						SeekMusicStream(currMusic, 0.0f);
 					}
-					else  SeekMusicStream(music, timePlayed + SEEK_TIME);
+					else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
 		}
 
 		if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
 			prevPlay = selectedIndex; //save for 1 shot prev.song
 			if (isShuffle) {
-				int shuffleIndex = GetRandomValue(0,fileCount-1);
-				if (shuffleIndex == fileCount) --shuffleIndex;
+				int shuffleIndex = GetRandomValue(0,trackCount-1);
+				if (shuffleIndex == trackCount) --shuffleIndex;
 				// if new song is equal to current , select next one
-				if (fileCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % fileCount;
+				if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
 				selectedIndex = shuffleIndex;
 				} 
-			else selectedIndex = (selectedIndex + 1) % fileCount;
+			else selectedIndex = (selectedIndex + 1) % trackCount;
 
-				StopMusicStream(music);
-				UnloadMusicStream(music);
+				StopMusicStream(currMusic);
+				UnloadMusicStream(currMusic);
 				LoadMusicByIndex(selectedIndex);
-				PlayMusicStream(music);
+				PlayMusicStream(currMusic);
 				isStop=false;
 				isPlay=true;
 				isPause=false;
@@ -523,10 +602,10 @@ while (!WindowShouldClose())
 				if (isShuffle) selectedIndex = prevPlay;
 				else selectedIndex--;
 				if (selectedIndex < 0) selectedIndex=0;
-				StopMusicStream(music);
-				UnloadMusicStream(music);
+				StopMusicStream(currMusic);
+				UnloadMusicStream(currMusic);
 				LoadMusicByIndex(selectedIndex);
-				PlayMusicStream(music);
+				PlayMusicStream(currMusic);
 				isStop=false;
 				isPlay=true;
 				isPause=false;
@@ -540,23 +619,23 @@ while (!WindowShouldClose())
 		// scrollFiles with mouse and keybinding to manage files navigation
 		//------------------------------------------------------------------------------
 
-			if (fileCount >= visibleRows) {
+			if (trackCount >= visibleRows) {
 						selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
 			
 						if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
 						if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
-						if (IsKeyPressed(KEY_END)) selectedIndex = fileCount -1;
+						if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
 			
 						if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
 						if (IsKeyPressed(KEY_UP)) selectedIndex--;
 						if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 							prevPlay = currPlay; //save for 1 shot prev.song
-							if (selectedIndex >= 0 && selectedIndex < fileCount) {
-								StopMusicStream(music);
-								//UnloadMusicStream(music);
+							if (selectedIndex >= 0 && selectedIndex < trackCount) {
+								StopMusicStream(currMusic);
+								//UnloadMusicStream(currMusic);
 								LoadMusicByIndex(selectedIndex);
-								PlayMusicStream(music);
-								//UpdateMusicStream(music);
+								PlayMusicStream(currMusic);
+								//UpdateMusicStream(currMusic);
 								isStop=false;
 								isPlay=true;
 								isPause=false;
@@ -564,7 +643,7 @@ while (!WindowShouldClose())
 							}
 					// checks
 							if (selectedIndex < 0) selectedIndex=0;
-							if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
+							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
 				}
 
 		if (IsKeyPressed(KEY_F)) isVumeter = !isVumeter;
@@ -711,11 +790,11 @@ while (!WindowShouldClose())
 			// draw file selection
 			//DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
 			BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
-				if (fileCount < visibleRows) visibleRows = fileCount;
+				if (trackCount < visibleRows) visibleRows = trackCount;
 
 				scrollOffset = selectedIndex - centerRow;
 				if (scrollOffset < 0) scrollOffset = 0;
-				int maxOffset = fileCount - visibleRows;
+				int maxOffset = trackCount - visibleRows;
 				if (maxOffset < 0) maxOffset = 0;
 				if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
@@ -727,7 +806,7 @@ while (!WindowShouldClose())
 						// even/odd row background
 						//if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(accentColor,0.12f));
 						int fileIndex = scrollOffset + i;
-						if (fileIndex > fileCount) break;
+						if (fileIndex > trackCount) break;
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
 							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor );
 							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
@@ -740,17 +819,17 @@ while (!WindowShouldClose())
 
 
 
-		//volume info
+		//currVolume info
 		DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,isMute?borderColor:secondaryColor);
-		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
-		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",volume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
+		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
+		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
 		 
 		// tempo avanzamento brano centrato orizzontalmente
 		DrawTextEx(digitFnt,curTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y},(float)digitFnt.baseSize,0, primaryColor);
 		
-		// progress bar lunga in base al font usato per stampare i tempi del brano
-		DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo progress bar
-		for (int i = 0; i < (progress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+28,1,3},accentColor);
+		// timeProgress bar lunga in base al font usato per stampare i tempi del brano
+		DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo timeProgress bar
+		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+28,1,3},accentColor);
 
 
 
@@ -759,26 +838,27 @@ while (!WindowShouldClose())
 
 		// current song position / total songs
 		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%04d",fileCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%04d",trackCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 
 		// file type / KHz / stereo - mono  of current song
 		DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,326}, (float)defaultFnt.baseSize,1, primaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%i kHz",music.stream.sampleRate/1000),(Vector2){xyFlags.x+24,344}, (float)defaultFnt.baseSize,0, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%i bits",music.stream.sampleSize),(Vector2){xyFlags.x+24,360}, (float)defaultFnt.baseSize,0, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%s", (music.stream.channels == 1)? "mono" : (music.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,376}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%i kHz",currMusic.stream.sampleRate/1000),(Vector2){xyFlags.x+24,344}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%i bits",currMusic.stream.sampleSize),(Vector2){xyFlags.x+24,360}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%s", (currMusic.stream.channels == 1)? "mono" : (currMusic.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,376}, (float)defaultFnt.baseSize,0, secondaryColor);
 
 		//statusbar with some info
-		// DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, BLACK); 
-		// DrawText(TextFormat("version %s", TOOL_VERSION), 64, screenHeight-16, 10, GRAY); 
-		// DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, secondaryColor); 
+		DrawText(TextFormat("version %s", TOOL_VERSION), 18, screenHeight-16, 10, borderColor); 
+		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();
 }
 	
 	//unload resource
-
 	DetachAudioMixedProcessor(AudioProcessCallback); // disconnect audio preocessor for vumeter
-	UnloadMusicStream(music); // Unloaad music stream
+	UnloadMusicStream(currMusic);
+	if (state == STATE_CROSSFADING) UnloadMusicStream(nextMusic);
+	
 	// unload fonts
 	UnloadFont(defaultFnt);
 	UnloadFont(titleFnt);
