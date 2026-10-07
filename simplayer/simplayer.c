@@ -634,7 +634,7 @@ while (!WindowShouldClose())
 		}
 
 		// // do something when  window loses focus
-		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
+		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.72f);
 		else SetWindowOpacity(1.0f);
 //----------------------------------------------------------------------------------
 // Draw
@@ -648,7 +648,7 @@ while (!WindowShouldClose())
 
 		drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
+		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, Fade(accentColor, 0.88f)); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
