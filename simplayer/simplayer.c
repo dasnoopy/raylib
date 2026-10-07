@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.0.1"
+#define TOOL_VERSION            "2.0.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -38,7 +38,7 @@
 
 
 // faded songs
-// faded time 10 seconds
+// faded time in seconds
 #define FADE_TIME 5.0f // Durata della dissolvenza in secondi
 typedef enum {
 	STATE_PLAYING_SINGLE, // esecuzione normale
@@ -60,7 +60,7 @@ bool isShuffle = true;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
-bool isVumeter = false; // false:default : show 36 band equalizer , if true show file library
+bool isVumeter = true; // true:default : show 36 band equalizer , if set false show file library
 float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
@@ -432,6 +432,8 @@ while (!WindowShouldClose())
 			int seconds = (int)timeLength % 60;
 			snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
+
+	// faded songs
 	// set initial currVolume 
 	SetMusicVolume(currMusic, currVolume);
 	SetMusicVolume(nextMusic, currVolume);
@@ -443,12 +445,12 @@ while (!WindowShouldClose())
 		switch (state)
 		{
 			case STATE_PLAYING_SINGLE:
-				// Se mancano meno di FADE_TIME secondi alla fine, facciamo partire il crossfade
+				// Se mancano meno di FADE_TIME secondi alla fine dell brano corrente  parte il crossfade
 
 				if (timeRemaining <= FADE_TIME && timeLength > FADE_TIME) 
 				{
 					prevPlay=selectedIndex;
-					// Passa al brano successivo (con ciclo continuo sulla playlist)
+					// Passa al brano successivo (se SHUFFLE brano a caso altrimenti successivo nella lista)
 					if (isShuffle) {
 						int shuffleIndex = GetRandomValue(0,trackCount-1);
 						if (shuffleIndex == trackCount) --shuffleIndex;
@@ -465,7 +467,7 @@ while (!WindowShouldClose())
 					fadeTimer = 0.0f;
 					state = STATE_CROSSFADING;
 				}
-				// Gestione caso in cui il brano finisce improvvisamente (o è troppo corto per il fade)
+				//  caso in cui il brano finisce improvvisamente (o è troppo corto per il fade)
 				else if ((!IsMusicStreamPlaying(currMusic) || timeRemaining <= 0.1f) && !isPause && !isStop)
 				{
 					UnloadMusicStream(currMusic);
@@ -616,9 +618,9 @@ while (!WindowShouldClose())
 		if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
 
 		//------------------------------------------------------------------------------
-		// scrollFiles with mouse and keybinding to manage files navigation
+		// scrollFiles with mouse and keybinding in music library
 		//------------------------------------------------------------------------------
-
+		if (!isVumeter) {
 			if (trackCount >= visibleRows) {
 						selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
 			
@@ -645,6 +647,7 @@ while (!WindowShouldClose())
 							if (selectedIndex < 0) selectedIndex=0;
 							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
 				}
+			}
 
 		if (IsKeyPressed(KEY_F)) isVumeter = !isVumeter;
 
@@ -756,7 +759,7 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 
-	if (!isVumeter) { 
+	if (isVumeter) { 
 		 // draw 40 band vumeter
 		 BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
 
@@ -848,7 +851,7 @@ while (!WindowShouldClose())
 
 		//statusbar with some info
 		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, secondaryColor); 
-		DrawText(TextFormat("version %s", TOOL_VERSION), 18, screenHeight-16, 10, borderColor); 
+		DrawText(TextFormat("version %s", TOOL_VERSION), 18,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();
