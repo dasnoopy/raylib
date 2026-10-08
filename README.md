@@ -46,7 +46,7 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
 ![resistor-calc](https://raw.github.com/dasnoopy/raylib/main/screenshot/resistor-calc.png)
 
-#### rCalendaar
+#### rCalendar
 
 ![rcalendar](https://raw.github.com/dasnoopy/raylib/main/screenshot/rcalendar.png)
 
