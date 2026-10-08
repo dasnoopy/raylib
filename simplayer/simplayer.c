@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.0.3"
+#define TOOL_VERSION            "2.0.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -361,7 +361,7 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 			//SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
 			// scroll title / id3
-			Rectangle displayArea = { 18, 24, 504,90 };
+			Rectangle displayArea = { 18, 24, 532,90 };
 			float titleX = displayArea.x ;
 			float speed = 60.0f;
 
@@ -373,10 +373,10 @@ Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 			int scrollOffset = 0;     // primo file visualizzato
 
 			// visualizer  area / variables for effects
-			Rectangle visArea = {16,110,screenWidth-32,200};
+			Rectangle visArea = {16,110,screenWidth-32,190};
 
 			//infoArea e calcolo lunghezza timeProgressbar
-			Rectangle infoArea = {18,330,screenWidth-36,110};
+			Rectangle infoArea = {18,325,screenWidth-30,110};
 			Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
 
 			// flag area / currMusic file info
@@ -742,22 +742,11 @@ while (!WindowShouldClose())
 			DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 		EndScissorMode();
 
-		// STOP flag
-		DrawRectangle(xyFlags.x-8,xyFlags.y+3,4,12,isStop ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y},(float)defaultFnt.baseSize,1, isStop ? WHITE : borderColor);
-
-		// PLAY flag
-		DrawRectangle(xyFlags.x-8,xyFlags.y+23,4,12,isPlay ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+20},(float)defaultFnt.baseSize,1, isPlay ? WHITE : borderColor);
-
-		// PAUSE flag
-		DrawRectangle(xyFlags.x-8,xyFlags.y+43,4,12,isPause ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+40},(float)defaultFnt.baseSize,1, isPause ? WHITE : borderColor);
-
-		// Shuffle flag
-		DrawRectangle(xyFlags.x-8,xyFlags.y+63,4,12,isShuffle ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+60},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
-
+		// file type / KHz / stereo - mono  of current song
+		DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,xyFlags.y+3}, (float)defaultFnt.baseSize,1, primaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%i kHz",currMusic.stream.sampleRate/1000),(Vector2){xyFlags.x+24,xyFlags.y+23}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%i bits",currMusic.stream.sampleSize),(Vector2){xyFlags.x+24,xyFlags.y+43}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%s", (currMusic.stream.channels == 1)? "mono" : (currMusic.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,xyFlags.y+63}, (float)defaultFnt.baseSize,0, secondaryColor);
 
 	if (isVumeter) { 
 		 // draw 40 band vumeter
@@ -822,8 +811,8 @@ while (!WindowShouldClose())
 
 
 
-		//currVolume info
-		DrawTexture(volumeICO_texture,infoArea.x,infoArea.y +14,isMute?borderColor:secondaryColor);
+		//volume icon and its percentage value
+		DrawTexture(volumeICO_texture,infoArea.x-4,infoArea.y +14,isMute?borderColor:secondaryColor);
 		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
 		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
 		 
@@ -843,11 +832,24 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 		DrawTextEx(defaultFnt,TextFormat("%04d",trackCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 
-		// file type / KHz / stereo - mono  of current song
-		DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,326}, (float)defaultFnt.baseSize,1, primaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%i kHz",currMusic.stream.sampleRate/1000),(Vector2){xyFlags.x+24,344}, (float)defaultFnt.baseSize,0, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%i bits",currMusic.stream.sampleSize),(Vector2){xyFlags.x+24,360}, (float)defaultFnt.baseSize,0, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%s", (currMusic.stream.channels == 1)? "mono" : (currMusic.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,376}, (float)defaultFnt.baseSize,0, secondaryColor);
+
+		// STOP flag
+		DrawRectangle(xyFlags.x-8,xyFlags.y+298,4,12,isStop ? accentColor:borderColor);
+		DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y+294},(float)defaultFnt.baseSize,1, isStop ? WHITE : borderColor);
+
+		// PLAY flag
+		DrawRectangle(xyFlags.x-8,xyFlags.y+318,4,12,isPlay ? accentColor:borderColor);
+		DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+314},(float)defaultFnt.baseSize,1, isPlay ? WHITE : borderColor);
+
+		// PAUSE flag
+		DrawRectangle(xyFlags.x-8,xyFlags.y+338,4,12,isPause ? accentColor:borderColor);
+		DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+334},(float)defaultFnt.baseSize,1, isPause ? WHITE : borderColor);
+
+		// Shuffle flag
+		DrawRectangle(xyFlags.x-8,xyFlags.y+358,4,12,isShuffle ? accentColor:borderColor);
+		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+354},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
+
+
 
 		//statusbar with some info
 		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, secondaryColor); 
