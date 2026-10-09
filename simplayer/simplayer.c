@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.0.7"
+#define TOOL_VERSION            "2.0.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -27,8 +27,6 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-
-
 // gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
 
@@ -36,9 +34,7 @@
 #define screenWidth   640
 #define screenHeight  408
 
-
-// faded songs
-// faded time in seconds
+// faded songs (time in seconds)
 #define FADE_TIME 5.0f // Durata della dissolvenza in secondi
 typedef enum {
 	STATE_PLAYING_SINGLE, // esecuzione normale
@@ -87,7 +83,6 @@ char artistStr[1024] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
-
 
 #define MAX_COLORS_COUNT    14// Number of colors available (BLACK & WHITE are excluded)
 Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET, BROWN, BEIGE};
@@ -835,19 +830,19 @@ while (!WindowShouldClose())
 
 		// STOP flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+298,4,12,isStop ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y+294},(float)defaultFnt.baseSize,1, isStop ? WHITE : borderColor);
+		DrawTextEx(defaultFnt,"STOP",(Vector2){xyFlags.x,xyFlags.y+295},(float)defaultFnt.baseSize,1, isStop ? WHITE : borderColor);
 
 		// PLAY flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+318,4,12,isPlay ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+314},(float)defaultFnt.baseSize,1, isPlay ? WHITE : borderColor);
+		DrawTextEx(defaultFnt,"PLAY",(Vector2){xyFlags.x,xyFlags.y+315},(float)defaultFnt.baseSize,1, isPlay ? WHITE : borderColor);
 
 		// PAUSE flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+338,4,12,isPause ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+334},(float)defaultFnt.baseSize,1, isPause ? WHITE : borderColor);
+		DrawTextEx(defaultFnt,"PAUSE",(Vector2){xyFlags.x,xyFlags.y+335},(float)defaultFnt.baseSize,1, isPause ? WHITE : borderColor);
 
 		// Shuffle flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+358,4,12,isShuffle ? accentColor:borderColor);
-		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+354},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
+		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 
 
