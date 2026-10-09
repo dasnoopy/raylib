@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.0.5"
+#define TOOL_VERSION            "2.0.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -716,7 +716,7 @@ while (!WindowShouldClose())
 		}
 
 		// // do something when  window loses focus
-		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.72f);
+		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
 		else SetWindowOpacity(1.0f);
 //----------------------------------------------------------------------------------
 // Draw
@@ -730,7 +730,7 @@ while (!WindowShouldClose())
 
 		drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, Fade(accentColor, 0.88f)); // WHITE
+		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, lightenColor(accentColor,0.12f)); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
