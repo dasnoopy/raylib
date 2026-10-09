@@ -328,7 +328,7 @@ Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // 
 Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
 Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
-Color bgColor = CLITERAL(Color){10, 20, 30, 248};
+// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 
 
 	// init Audio
@@ -728,9 +728,9 @@ while (!WindowShouldClose())
 	BeginDrawing();
 		ClearBackground (BLANK);
 
-		drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+		//drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, lightenColor(accentColor,0.12f)); // WHITE
+		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);

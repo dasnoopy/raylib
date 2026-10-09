@@ -79,7 +79,7 @@ int main (int argc, char *argv[])
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_WINDOW_TOPMOST); // | 
 	InitWindow(WIDTH, HEIGHT, "rcalendar");
-	SetWindowPosition(8, GetMonitorHeight(0)- HEIGHT - 8); 
+	SetWindowPosition(20, GetMonitorHeight(0)- HEIGHT - 48); 
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
