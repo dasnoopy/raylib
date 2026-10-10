@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.0.8"
+#define TOOL_VERSION            "2.1.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -84,8 +84,36 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-#define MAX_COLORS_COUNT    14// Number of colors available (BLACK & WHITE are excluded)
-Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET, BROWN, BEIGE};
+#define MAX_COLORS_COUNT    21// Number of colors available (BLACK & WHITE are excluded)
+// custom Colors
+#define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
+#define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
+#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
+#define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
+#define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
+#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
+#define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
+#define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
+#define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
+#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
+#define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
+#define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
+#define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
+#define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
+#define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
+#define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
+#define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
+#define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
+#define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
+#define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
+#define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
+
+// Colors to choose from
+const Color colors[MAX_COLORS_COUNT] = {
+        myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
+        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
+        myLIGHTGRAY, myGRAY, myDARKGRAY };
+//
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -103,6 +131,13 @@ float barValues[NUM_BARS] = { 0 };
 // Array per la gestione del picco massimo stile Hi-Fi
 float peakValues[NUM_BARS] = { 0 };
 int peakHoldTimers[NUM_BARS] = { 0 };
+
+// variabile per la ricerca
+int inputBuffer = 0;       // Accumula i numeri digitati
+bool hasTyped = false;     // Flag per lo stato del timer
+float lastTypeTime = 0.0f; // Timestamp dell'ultima cifra inserita
+const float timeoutDuration = 2.0f;
+
 
 // Functions
 
@@ -710,12 +745,51 @@ while (!WindowShouldClose())
 			}
 		}
 
+// numeric search --------------------------------------------------------------
+		float currentTime = (float)GetTime();
+
+// 1. Gestione del Timeout di 2 secondi
+if (hasTyped && (currentTime - lastTypeTime > timeoutDuration)) {
+    inputBuffer = 0;
+    hasTyped = false;
+}
+
+// 2. Intercettazione tasti numerici (0-9)
+int keyPressed = GetKeyPressed();
+if (keyPressed >= KEY_ZERO && keyPressed <= KEY_NINE) {
+    int digit = keyPressed - KEY_ZERO;
+    
+    // Costruzione dinamica del numero per avvicinamento
+    inputBuffer = (inputBuffer * 10) + digit;
+    lastTypeTime = currentTime; 
+    hasTyped = true;
+
+    // Controllo dei limiti su base 0 (Clamping)
+    if (inputBuffer >= trackCount) selectedIndex = trackCount - 1;
+    else selectedIndex = inputBuffer - 1;
+}
+
+// 3. Tasti di controllo (Opzionali ma raccomandati)
+if (IsKeyPressed(KEY_BACKSPACE) && hasTyped) {
+    inputBuffer /= 10;
+    selectedIndex = inputBuffer;
+    lastTypeTime = currentTime;
+    if (inputBuffer == 0) hasTyped = false;
+}
+
+if (IsKeyPressed(KEY_DELETE)) {
+    inputBuffer = 0;
+    selectedIndex = 0;
+    hasTyped = false;
+}
+//------------------------------------------------------------------------------
+
 		// // do something when  window loses focus
 		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
 		else SetWindowOpacity(1.0f);
-//----------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Draw
-//----------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 	BeginTextureMode(target);
 		ClearBackground(BLANK);
 	EndTextureMode();
@@ -758,7 +832,8 @@ while (!WindowShouldClose())
 
 					for (int i = 0; i < NUM_BARS; i++) {
 						float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
-
+						Color barColor = lightenColor(accentColor,0.60f);//colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+						
 						int segmentsToLight = (int)(barValues[i] * maxSegments); 
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
 						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
@@ -768,7 +843,7 @@ while (!WindowShouldClose())
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? lightenColor(accentColor,0.60f):darkenColor(accentColor,0.30f) );
+							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.36f) );
 						 }
 					}
 		EndScissorMode();
@@ -788,15 +863,19 @@ while (!WindowShouldClose())
 					for (int i = 0; i < visibleRows; i++) {
 						// faded text color
 						float fadeValue = (i <= centerRow) ? (i + 1) * 0.3f : (visibleRows - i) * 0.3f;
+
+						// Calcolo dinamico del contrasto per il testo
 						Color fadeColor = darkenColor(primaryColor,fadeValue);
+						Color selColor = (accentColor.r + accentColor.g + accentColor.b) / 3 > 128 ? BLACK : WHITE;
+						
 						DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
 						// even/odd row background
 						//if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(accentColor,0.12f));
 						int fileIndex = scrollOffset + i;
 						if (fileIndex > trackCount) break;
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
-							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor );
-							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? BLACK : fadeColor);
+							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
+							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
 						
 						}   
 				//vertical divider

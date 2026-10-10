@@ -18,8 +18,9 @@ APP KEYBINDINGS:
 
 File Library (note: files are alphaabetically ordered (case sensitive)
 [ cursor up/down ( or mouse wheel ) ] : select file in library
-[ Enter ] : play selected file
 [ HOME ] : go to first song 
 [ END ] : go to last song
+[ 0-9 ] : start to type number and go to indexed song
+[ Enter ] : play selected file
 
 // --------------------------------------------------------------
