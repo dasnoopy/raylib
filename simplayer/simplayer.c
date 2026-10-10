@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.1.7"
+#define TOOL_VERSION            "2.2.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -84,7 +84,7 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-#define MAX_COLORS_COUNT    21// Number of colors available (BLACK & WHITE are excluded)
+#define MAX_COLORS_COUNT    18// Number of colors available (BLACK & WHITE are excluded)
 // custom Colors
 #define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
 #define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
@@ -95,25 +95,20 @@ int prevPlay = 0; //previous played song when shuffle is ON
 #define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
 #define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
-#define mySKYBLUE    CLITERAL(Color){ 19, 160, 189, 255 }   // Sky Blue
+#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
 #define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
 #define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
-#define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
 #define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
 #define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
-#define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
 #define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
 #define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
-#define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
 
 // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
         myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
-        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
-        myLIGHTGRAY, myGRAY, myDARKGRAY };
-//
+        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myBEIGE, myBROWN, myLIGHTGRAY, myGRAY };
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -403,7 +398,7 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 			int scrollOffset = 0;     // primo file visualizzato
 
 			// visualizer  area / variables for effects
-			Rectangle visArea = {16,110,screenWidth-32,190};
+			Rectangle visArea = {18,112,screenWidth-36,192};
 
 			//infoArea e calcolo lunghezza timeProgressbar
 			Rectangle infoArea = {18,325,screenWidth-30,110};
@@ -653,8 +648,7 @@ while (!WindowShouldClose())
 		if (!isVumeter) {
 			if (trackCount >= visibleRows) {
 						selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
-			
-						if (IsKeyPressed(KEY_X)) selectedIndex = currPlay;
+
 						if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
 						if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
 			
@@ -678,26 +672,28 @@ while (!WindowShouldClose())
 							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
 				}
 
-				// numeric search --------------------------------------------------------------
-						float currentTime = (float)GetTime();
+				// --------------------------------------------------------------
+				// numeric search 
+				// --------------------------------------------------------------
+				float currentTime = (float)GetTime();
 
-				// 1. Gestione del Timeout di 2 secondi
+				// Timeout di 2 secondi
 				if (hasTyped && (currentTime - lastTypeTime > timeoutDuration)) {
 				    inputBuffer = 0;
 				    hasTyped = false;
 				}
 
-				// 2. Intercettazione tasti numerici (0-9)
+				// tasti numerici (0-9)
 				int keyPressed = GetKeyPressed();
 				if (keyPressed >= KEY_ZERO && keyPressed <= KEY_NINE) {
 				    int digit = keyPressed - KEY_ZERO;
 				    
-				    // Costruzione dinamica del numero per avvicinamento
+				    // dinamica  avvicinamento in base al numero digitato
 				    inputBuffer = (inputBuffer * 10) + digit;
 				    lastTypeTime = currentTime; 
 				    hasTyped = true;
 
-				    // Controllo dei limiti su base 0 (Clamping)
+				    // Controllo dei limiti sul numero digitato e numero brani
 				    if (inputBuffer >= trackCount) selectedIndex = trackCount - 1;
 				    else selectedIndex = inputBuffer - 1;
 				}
@@ -712,12 +708,12 @@ while (!WindowShouldClose())
 
 				if (IsKeyPressed(KEY_DELETE)) {
 				    inputBuffer = 0;
-				    selectedIndex = 0;
+				    selectedIndex = currPlay;
 				    hasTyped = false;
 				}
 			}
 
-		if (IsKeyPressed(KEY_F)) isVumeter = !isVumeter;
+		if (IsKeyPressed(KEY_ESCAPE)) isVumeter = !isVumeter;
 
 		//-----------------------------------------------------------------------------------------
 		// vumeter update
@@ -833,8 +829,10 @@ while (!WindowShouldClose())
 					float baseYPos = visArea.y + visArea.height; //base del vumeter
 
 					for (int i = 0; i < NUM_BARS; i++) {
-						float xPos = 1 + visArea.x + i * barWidth; // posizione X iniziale vumeter
-						Color barColor = lightenColor(accentColor,0.60f);//colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
+						// unique bar color
+						//Color barColor = lightenColor(accentColor,0.60f);
+						
 						
 						int segmentsToLight = (int)(barValues[i] * maxSegments); 
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
@@ -842,10 +840,13 @@ while (!WindowShouldClose())
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+							// fade bar color
+							Color barColor = darkenColor(accentColor,((float) j * 0.064f)+0.48f);;
+							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.36f) );
+							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.32f) );
 						 }
 					}
 		EndScissorMode();
