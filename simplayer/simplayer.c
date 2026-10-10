@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.1.6"
+#define TOOL_VERSION            "2.1.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -95,7 +95,7 @@ int prevPlay = 0; //previous played song when shuffle is ON
 #define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
 #define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
 #define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
-#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
+#define mySKYBLUE    CLITERAL(Color){ 19, 160, 189, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
 #define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
