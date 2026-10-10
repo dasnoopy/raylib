@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.1.5"
+#define TOOL_VERSION            "2.1.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -354,7 +354,7 @@ int main (int argc, char *argv[])
 
 	
 // some custom colors
-Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = mySKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
 Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -677,6 +677,44 @@ while (!WindowShouldClose())
 							if (selectedIndex < 0) selectedIndex=0;
 							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
 				}
+
+				// numeric search --------------------------------------------------------------
+						float currentTime = (float)GetTime();
+
+				// 1. Gestione del Timeout di 2 secondi
+				if (hasTyped && (currentTime - lastTypeTime > timeoutDuration)) {
+				    inputBuffer = 0;
+				    hasTyped = false;
+				}
+
+				// 2. Intercettazione tasti numerici (0-9)
+				int keyPressed = GetKeyPressed();
+				if (keyPressed >= KEY_ZERO && keyPressed <= KEY_NINE) {
+				    int digit = keyPressed - KEY_ZERO;
+				    
+				    // Costruzione dinamica del numero per avvicinamento
+				    inputBuffer = (inputBuffer * 10) + digit;
+				    lastTypeTime = currentTime; 
+				    hasTyped = true;
+
+				    // Controllo dei limiti su base 0 (Clamping)
+				    if (inputBuffer >= trackCount) selectedIndex = trackCount - 1;
+				    else selectedIndex = inputBuffer - 1;
+				}
+
+				// 3. Tasti di controllo (Opzionali ma raccomandati)
+				if (IsKeyPressed(KEY_BACKSPACE) && hasTyped) {
+				    inputBuffer /= 10;
+				    selectedIndex = inputBuffer;
+				    lastTypeTime = currentTime;
+				    if (inputBuffer == 0) hasTyped = false;
+				}
+
+				if (IsKeyPressed(KEY_DELETE)) {
+				    inputBuffer = 0;
+				    selectedIndex = 0;
+				    hasTyped = false;
+				}
 			}
 
 		if (IsKeyPressed(KEY_F)) isVumeter = !isVumeter;
@@ -745,43 +783,7 @@ while (!WindowShouldClose())
 			}
 		}
 
-// numeric search --------------------------------------------------------------
-		float currentTime = (float)GetTime();
 
-// 1. Gestione del Timeout di 2 secondi
-if (hasTyped && (currentTime - lastTypeTime > timeoutDuration)) {
-    inputBuffer = 0;
-    hasTyped = false;
-}
-
-// 2. Intercettazione tasti numerici (0-9)
-int keyPressed = GetKeyPressed();
-if (keyPressed >= KEY_ZERO && keyPressed <= KEY_NINE) {
-    int digit = keyPressed - KEY_ZERO;
-    
-    // Costruzione dinamica del numero per avvicinamento
-    inputBuffer = (inputBuffer * 10) + digit;
-    lastTypeTime = currentTime; 
-    hasTyped = true;
-
-    // Controllo dei limiti su base 0 (Clamping)
-    if (inputBuffer >= trackCount) selectedIndex = trackCount - 1;
-    else selectedIndex = inputBuffer - 1;
-}
-
-// 3. Tasti di controllo (Opzionali ma raccomandati)
-if (IsKeyPressed(KEY_BACKSPACE) && hasTyped) {
-    inputBuffer /= 10;
-    selectedIndex = inputBuffer;
-    lastTypeTime = currentTime;
-    if (inputBuffer == 0) hasTyped = false;
-}
-
-if (IsKeyPressed(KEY_DELETE)) {
-    inputBuffer = 0;
-    selectedIndex = 0;
-    hasTyped = false;
-}
 //------------------------------------------------------------------------------
 
 		// // do something when  window loses focus
