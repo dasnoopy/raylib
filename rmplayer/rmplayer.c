@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.2.0"
+#define TOOL_VERSION            "3.2.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -126,6 +126,14 @@ float barValues[NUM_BARS] = { 0 };
 // Array per la gestione del picco massimo stile Hi-Fi
 float peakValues[NUM_BARS] = { 0 };
 int peakHoldTimers[NUM_BARS] = { 0 };
+
+
+#define RIGHE 6
+#define COLONNE 22
+#define LATO_RECT 6
+
+#define MAX_COLORS_COUNT    3// Number of colors available (BLACK & WHITE are excluded)
+Color colors[MAX_COLORS_COUNT] = { GRAY, DARKGRAY,LIGHTGRAY};
 
 // Functions
 static char *Trim(char *str)
@@ -548,12 +556,6 @@ int main (int argc, char *argv[]) {
 
             // visualizer  area / variables for effects
             Rectangle visArea = {223,43,135,37};
-            float scanX = visArea.x;          // Posizione X corrente della linea
-            float scanSpeed = 60.0f;    // Velocità di movimento (pixel al secondo)
-            int direction = 1;           // 1 = Destra, -1 = Sinistra
-            const float lineWidth = 3.0f; // Spessore della linea radar
-            const float trailWidth = 32.0f; // Ampiezza della scia di dissolvenza
-
 
             // colors themes
             if (lightTheme) { // use light theme
@@ -583,6 +585,24 @@ int main (int argc, char *argv[]) {
             float maxDb = -0.0f; // sensibilita Decibel
             float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
+            // checkered
+            // Inizializza il generatore di numeri casuali
+            srand((unsigned int)time(NULL));
+
+            // Matrice per salvare lo stato della griglia (0 per coloreA, 1 per coloreB)
+            int griglia[RIGHE][COLONNE];
+
+            // Inizializzazione iniziale della griglia
+            for (int r = 0; r < RIGHE; r++) {
+                for (int c = 0; c < COLONNE; c++) {
+                    griglia[r][c] = rand() % 2;
+                }
+            }
+
+            // Variabili per il controllo del tempo indipendente dai FPS
+            double tempoUltimoAggiornamento = 0.0;
+            double intervalloAggiornamento = 0.50f; // Cambia i colori ogni 0.5 secondi
+
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
@@ -605,16 +625,6 @@ int main (int argc, char *argv[]) {
             if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
         }
 
-        // effetto "radar/sonar" per lo scan...
-        scanX += scanSpeed * direction * dt;
-        // Inversione della marcia ai bordi dello schermo
-        if (scanX >= visArea.x + visArea.width) {
-            scanX = visArea.x + visArea.width;
-            direction = -1; // Cambia direzione verso sinistra
-        } else if (scanX <= visArea.x) {
-            scanX = visArea.x;
-            direction = 1;  // Cambia direzione verso destra
-        }
 
         // Get normalized time played for current music stream
         // used for the progressbar
@@ -997,6 +1007,19 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             }
         }
 
+        // --- CHECKBOARD aggiornamento ---
+        double tempoCorrente = GetTime();
+
+        // Controllo del timer indipendente dai frame al secondo
+        if (tempoCorrente - tempoUltimoAggiornamento >= intervalloAggiornamento) {
+            for (int r = 0; r < RIGHE; r++) {
+                for (int c = 0; c < COLONNE; c++) {
+                    griglia[r][c] = rand() % 2;
+                }
+            }
+            tempoUltimoAggiornamento = tempoCorrente;
+        }
+
         // // do something when  window loses focus
         // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
         // else SetWindowOpacity(1.0f);
@@ -1085,28 +1108,13 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                         }
                      else { // draw a simple "sonar/radar" effect while scan is on
                             // background grid
-                            for (int h = 0; h<7 ; h++) DrawLine(visArea.x, visArea.y + (h*6), visArea.x+visArea.width + 1, visArea.y + (h*6), borderColor);
-                            for (int v = 0; v < 23; v++) DrawLine(visArea.x + (v*6), visArea.y, visArea.x + (v*6), visArea.y + visArea.height+1, borderColor);
-
-                           DrawCircleGradient((Vector2){visArea.x +(visArea.width /2), visArea.y + (visArea.height / 2)}, lightTheme?48:128,ColorAlpha(accentColor, 0.3f), BLANK);
-
-                            // just for fun
-                            DrawText("rmPlayer", 246, 53, 20, BLACK);
-                            DrawText("rmPlayer", 245, 52, 20, lightTheme?RAYWHITE:textColor);
-
-                            // draw trail 
-                            if (direction == 1) {
-                                // In movimento verso destra: la scia è a sinistra della linea
-                                DrawRectangleGradientH((int)(scanX - trailWidth), 43.0f, (int)trailWidth, 38.0f, 
-                                                       BLANK, ColorAlpha(accentColor, 0.3f));
-                            } else {
-                                // In movimento verso sinistra: la scia è a destra della linea
-                                DrawRectangleGradientH((int)scanX, 43.0f, (int)trailWidth,38.0f, 
-                                                       ColorAlpha(accentColor, 0.3f), BLANK);
+                            for (int r = 0; r < RIGHE; r++) {
+                                for (int c = 0; c < COLONNE; c++) {
+                                    Color coloreCorrente = (griglia[r][c] == 0) ? darkenColor(accentColor,0.20f) : darkenColor(accentColor,0.60f);
+                                    DrawRectangle(2 + visArea.x +( c * LATO_RECT), 2 + visArea.y +(r * LATO_RECT), LATO_RECT - 1, LATO_RECT - 1, coloreCorrente);
+                                }
                             }
-                            Vector2 startPos = { scanX, visArea.y };
-                            Vector2 endPos = { scanX, visArea.y + visArea.height };
-                            DrawLineEx(startPos, endPos, lineWidth, ColorAlpha(accentColor, 0.60f));
+
                          }
             EndScissorMode();
 
