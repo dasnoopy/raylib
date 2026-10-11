@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.5"
+#define TOOL_VERSION            "2.2.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -802,7 +802,7 @@ while (!WindowShouldClose())
 
 					// draw vumeter
 					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 4.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
 					
 					const int maxSegments = 48; //nr. segmenti singola barra
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
