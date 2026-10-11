@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.3"
+#define TOOL_VERSION            "2.2.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -85,30 +85,11 @@ int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
 #define MAX_COLORS_COUNT    18// Number of colors available (BLACK & WHITE are excluded)
-// custom Colors
-#define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
-#define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
-#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
-#define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
-#define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
-#define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
-#define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
-#define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
-#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
-#define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
-#define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
-#define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
-#define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
-#define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
-#define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
-#define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
 
 // Colors to choose from
 const Color colors[MAX_COLORS_COUNT] = {
-        myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
-        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myBEIGE, myBROWN, myLIGHTGRAY, myGRAY };
+        YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
+        SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, BEIGE, BROWN, LIGHTGRAY, GRAY };
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -349,7 +330,7 @@ int main (int argc, char *argv[])
 
 	
 // some custom colors
-Color accentColor = mySKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = PURPLE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
 Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -842,9 +823,9 @@ while (!WindowShouldClose())
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// fade bar color
-							Color barColor = lightenColor(accentColor,((float) j * 0.028f)-0.36f);
+							Color barColor = lightenColor(accentColor,0.24f);
 							//Color barColor = darkenColor(accentColor,((float) j*0.028f)+0.36f);
-							if (j >= segmentsToLight) barColor = accentColor; // colore del picco
+							if (j >= segmentsToLight) barColor = darkenColor(accentColor,0.66f); // colore del picco
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
@@ -870,10 +851,10 @@ while (!WindowShouldClose())
 						// faded text color
 						float fadeValue = (i <= centerRow) ? (i + 1) * 0.3f : (visibleRows - i) * 0.3f;
 
-						// Calcolo dinamico del contrasto per il testo
+						// Calcolo empirico del contrasto per il colore testo rispetto al baackground...
 						Color fadeColor = darkenColor(primaryColor,fadeValue);
-						Color selColor = (accentColor.r + accentColor.g + accentColor.b) / 3 > 128 ? BLACK : WHITE;
-						
+						Color selColor = accentColor.g > 180 || (accentColor.r + accentColor.g + accentColor.b) > 450 ? BLACK : WHITE;
+
 						DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
 						// even/odd row background
 						//if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(accentColor,0.12f));
