@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.0"
+#define TOOL_VERSION            "2.2.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -827,12 +827,12 @@ while (!WindowShouldClose())
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
 					const float segmentGap = 2.0f;   // distanza tra i segmenty 
 					float baseYPos = visArea.y + visArea.height; //base del vumeter
-
+					
+					// unique bar color
+					//Color barColor = lightenColor(accentColor,0.60f);
+					
 					for (int i = 0; i < NUM_BARS; i++) {
 						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
-						// unique bar color
-						//Color barColor = lightenColor(accentColor,0.60f);
-						
 						
 						int segmentsToLight = (int)(barValues[i] * maxSegments); 
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
@@ -840,13 +840,16 @@ while (!WindowShouldClose())
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+							
 							// fade bar color
-							Color barColor = darkenColor(accentColor,((float) j * 0.064f)+0.48f);;
+							Color barColor = lightenColor(accentColor,((float) j * 0.028f)-0.36f);
+							//Color barColor = darkenColor(accentColor,((float) j*0.028f)+0.36f);
+							if (j >= segmentsToLight) barColor = accentColor; // colore del picco
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.32f) );
+							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.28f) );
 						 }
 					}
 		EndScissorMode();
@@ -898,7 +901,7 @@ while (!WindowShouldClose())
 		
 		// timeProgress bar lunga in base al font usato per stampare i tempi del brano
 		DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo timeProgress bar
-		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+28,1,3},accentColor);
+		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+27,1,5},accentColor);
 
 
 
