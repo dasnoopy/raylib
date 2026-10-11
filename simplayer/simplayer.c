@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.4"
+#define TOOL_VERSION            "2.2.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -330,7 +330,7 @@ int main (int argc, char *argv[])
 
 	
 // some custom colors
-Color accentColor = PURPLE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
+Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
 Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
 Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -764,7 +764,7 @@ while (!WindowShouldClose())
 //------------------------------------------------------------------------------
 
 		// // do something when  window loses focus
-		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
+		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.92f);
 		else SetWindowOpacity(1.0f);
 //------------------------------------------------------------------------------
 // Draw
@@ -809,9 +809,6 @@ while (!WindowShouldClose())
 					const float segmentGap = 2.0f;   // distanza tra i segmenty 
 					float baseYPos = visArea.y + visArea.height; //base del vumeter
 					
-					// unique bar color
-					//Color barColor = lightenColor(accentColor,0.60f);
-					
 					for (int i = 0; i < NUM_BARS; i++) {
 						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
 						
@@ -823,9 +820,10 @@ while (!WindowShouldClose())
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// fade bar color
-							Color barColor = lightenColor(accentColor,0.24f);
+							Color barColor = darkenColor(accentColor,0.56f);
 							//Color barColor = darkenColor(accentColor,((float) j*0.028f)+0.36f);
-							if (j >= segmentsToLight) barColor = darkenColor(accentColor,0.66f); // colore del picco
+							// peak color
+							if (j >= segmentsToLight) barColor = accentColor; 
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
