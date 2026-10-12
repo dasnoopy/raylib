@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Raylib Music Player"
 #define TOOL_SHORT_NAME         "rmplayer"
 #define TOOL_COMMENT            "A Mod4Win clone for Linux written in C using Raylib- Play MP3 and OGG file"
-#define TOOL_VERSION            "3.2.1"
+#define TOOL_VERSION            "3.2.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -1019,6 +1019,7 @@ if (!isMini) {// when mini view is active fileselectio is disabled
             }
             tempoUltimoAggiornamento = tempoCorrente;
         }
+        Color coloreCorrente;
 
         // // do something when  window loses focus
         // if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.5f);
@@ -1106,11 +1107,12 @@ if (!isMini) {// when mini view is active fileselectio is disabled
                             for (int i = 0; i < 134; ++i) //cambiare questo valore anche nella funzione relativa
                                 DrawLine(225 + i, 81 - (int)(averageVolume[i]*36), 225 + i, 81, accentColor);
                         }
-                     else { // draw a simple "sonar/radar" effect while scan is on
+                     else { // draw a simple "checkboard scan" effect while scan is on
                             // background grid
                             for (int r = 0; r < RIGHE; r++) {
                                 for (int c = 0; c < COLONNE; c++) {
-                                    Color coloreCorrente = (griglia[r][c] == 0) ? darkenColor(accentColor,0.20f) : darkenColor(accentColor,0.60f);
+
+                                    coloreCorrente = (griglia[r][c] == 0) ? textColor : borderColor;
                                     DrawRectangle(2 + visArea.x +( c * LATO_RECT), 2 + visArea.y +(r * LATO_RECT), LATO_RECT - 1, LATO_RECT - 1, coloreCorrente);
                                 }
                             }

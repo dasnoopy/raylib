@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.6"
+#define TOOL_VERSION            "2.2.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -802,7 +802,7 @@ while (!WindowShouldClose())
 
 					// draw vumeter
 					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+					float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
 					
 					const int maxSegments = 48; //nr. segmenti singola barra
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
@@ -828,7 +828,7 @@ while (!WindowShouldClose())
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.28f) );
+							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:darkenColor(accentColor,0.28f) );
 						 }
 					}
 		EndScissorMode();
