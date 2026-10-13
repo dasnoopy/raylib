@@ -49,7 +49,7 @@ float fadeTimer;
 	Music nextMusic = { 0 };
 
 // variables
-#define SEEK_TIME 5.0f // seek time
+#define SEEK_TIME 10.0f // seek time
 
 bool isPlay = true;
 bool isShuffle = true;
