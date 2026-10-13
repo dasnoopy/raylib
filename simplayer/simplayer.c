@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.0"
+#define TOOL_VERSION            "2.3.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -85,25 +85,26 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-// custom Colors
-#define color0  CLITERAL(Color){ 126, 33, 209, 255 }
-#define color1  CLITERAL(Color){ 108, 38, 211, 255 }
-#define color2  CLITERAL(Color){ 90, 43, 213, 255 }
-#define color3  CLITERAL(Color){ 73, 47, 215, 255 }
-#define color4  CLITERAL(Color){ 55, 52, 217, 255 }
-#define color5  CLITERAL(Color){ 37, 57, 219, 255 }
-#define color6  CLITERAL(Color){ 24, 66, 221, 255 }
-#define color7  CLITERAL(Color){ 19, 84, 225, 255 }
-#define color8  CLITERAL(Color){ 15, 101, 228, 255 }
-#define color9  CLITERAL(Color){ 10, 119, 232, 255 }
-#define color10 CLITERAL(Color){ 6, 136, 235, 255 }
-#define color11 CLITERAL(Color){ 1, 154, 239, 255 }
-#define color12 CLITERAL(Color){ 0, 167, 227, 255 }
-#define color13 CLITERAL(Color){ 0, 178, 208, 255 }
-#define color14 CLITERAL(Color){ 0, 188, 188, 255 }
-#define color15 CLITERAL(Color){ 0, 199, 169, 255 }
-#define color16 CLITERAL(Color){ 0, 209, 149, 255 }
-#define color17 CLITERAL(Color){ 0, 220, 130, 255 }
+// Scala Dinamica Pastello: da Viola (Vivido) ad Azzurro (Ciano)
+#define color0  CLITERAL(Color){ 141,  90, 163, 255 } // Viola orchidea pastello (Inizio)
+#define color1  CLITERAL(Color){ 131,  92, 166, 255 } // Viola ametista
+#define color2  CLITERAL(Color){ 120,  95, 168, 255 } // Viola profondo morbido
+#define color3  CLITERAL(Color){ 109,  97, 171, 255 } // Viola bluastro
+#define color4  CLITERAL(Color){  97,  99, 173, 255 } // Indaco intenso pastello
+#define color5  CLITERAL(Color){  94, 107, 176, 255 } // Blu oltremare spento
+#define color6  CLITERAL(Color){  91, 114, 179, 255 } // Pervinca carico
+#define color7  CLITERAL(Color){  89, 122, 181, 255 } // Blu fiordaliso pastello
+#define color8  CLITERAL(Color){  86, 129, 184, 255 } // Blu denim vivido
+#define color9  CLITERAL(Color){  83, 137, 186, 255 } // Avio acceso
+#define color10 CLITERAL(Color){  81, 144, 189, 255 } // Blu cielo pastello
+#define color11 CLITERAL(Color){  78, 152, 191, 255 } // Carta da zucchero vivido
+#define color12 CLITERAL(Color){  76, 159, 194, 255 } // Azzurro glaciale
+#define color13 CLITERAL(Color){  73, 167, 196, 255 } // Turchese morbido
+#define color14 CLITERAL(Color){  71, 174, 199, 255 } // Turchese chiaro
+#define color15 CLITERAL(Color){  68, 182, 201, 255 } // Ciano opaco
+#define color16 CLITERAL(Color){  66, 189, 204, 255 } // Acquamarina pastello
+#define color17 CLITERAL(Color){  63, 197, 207, 255 } // Azzurro ciano vivido (Fine)
+
 // Colors to choose from
 #define MAX_COLORS_COUNT  18  // Number of colors available (BLACK & WHITE are excluded)
 const Color colors[MAX_COLORS_COUNT] = { color0,color1,color2,color3,color4, color5, color6,color7,color8,color9, color10,color11,color12,color13, color14, color15,color16,color17 };
@@ -396,7 +397,7 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 			int scrollOffset = 0;     // primo file visualizzato
 
 			// visualizer  area / variables for effects
-			Rectangle visArea = {18,100,screenWidth-36,192};
+			Rectangle visArea = {18,102,screenWidth-36,192};
 
 			//infoArea e calcolo lunghezza timeProgressbar
 			Rectangle infoArea = {18,312,screenWidth-30,110};
@@ -824,7 +825,7 @@ while (!WindowShouldClose())
 
 					// draw vumeter
 					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+					float barSpacing = 2.0f;  // space between bars (direttamente proporzionale a larghezza barre)
 					
 					const int maxSegments = 48; //nr. segmenti singola barra
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
@@ -843,7 +844,7 @@ while (!WindowShouldClose())
 
 						// fade bar colors
 						if (isSpectrum) {
-							barColor = colors[17-count];
+							barColor = colors[count];
 							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 							if (i % 2) count++;
 						}
