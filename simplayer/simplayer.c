@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.8"
+#define TOOL_VERSION            "2.3.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -32,7 +32,7 @@
 
 // window initial size
 #define screenWidth   640
-#define screenHeight  408
+#define screenHeight  396
 
 // faded songs (time in seconds)
 #define FADE_TIME 5.0f // Durata della dissolvenza in secondi
@@ -60,6 +60,7 @@ bool isVumeter = true; // true:default : show 36 band equalizer , if set false s
 float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
+bool isSpectrum = false;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -84,12 +85,28 @@ int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
 
-#define MAX_COLORS_COUNT    18// Number of colors available (BLACK & WHITE are excluded)
-
+// custom Colors
+#define color0  CLITERAL(Color){ 126, 33, 209, 255 }
+#define color1  CLITERAL(Color){ 108, 38, 211, 255 }
+#define color2  CLITERAL(Color){ 90, 43, 213, 255 }
+#define color3  CLITERAL(Color){ 73, 47, 215, 255 }
+#define color4  CLITERAL(Color){ 55, 52, 217, 255 }
+#define color5  CLITERAL(Color){ 37, 57, 219, 255 }
+#define color6  CLITERAL(Color){ 24, 66, 221, 255 }
+#define color7  CLITERAL(Color){ 19, 84, 225, 255 }
+#define color8  CLITERAL(Color){ 15, 101, 228, 255 }
+#define color9  CLITERAL(Color){ 10, 119, 232, 255 }
+#define color10 CLITERAL(Color){ 6, 136, 235, 255 }
+#define color11 CLITERAL(Color){ 1, 154, 239, 255 }
+#define color12 CLITERAL(Color){ 0, 167, 227, 255 }
+#define color13 CLITERAL(Color){ 0, 178, 208, 255 }
+#define color14 CLITERAL(Color){ 0, 188, 188, 255 }
+#define color15 CLITERAL(Color){ 0, 199, 169, 255 }
+#define color16 CLITERAL(Color){ 0, 209, 149, 255 }
+#define color17 CLITERAL(Color){ 0, 220, 130, 255 }
 // Colors to choose from
-const Color colors[MAX_COLORS_COUNT] = {
-        YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
-        SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, BEIGE, BROWN, LIGHTGRAY, GRAY };
+#define MAX_COLORS_COUNT  18  // Number of colors available (BLACK & WHITE are excluded)
+const Color colors[MAX_COLORS_COUNT] = { color0,color1,color2,color3,color4, color5, color6,color7,color8,color9, color10,color11,color12,color13, color14, color15,color16,color17 };
 
 // vumeter
 #define MAX_SAMPLES          512
@@ -367,26 +384,26 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 			//SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
 
 			// scroll title / id3
-			Rectangle displayArea = { 18, 24, 532,90 };
+			Rectangle displayArea = { 18, 18, 532,90 };
 			float titleX = displayArea.x ;
 			float speed = 60.0f;
 
 			// filelist variables
-			Rectangle filesArea = { 16,108,screenWidth-32,206 };
+			Rectangle filesArea = { 16,96,screenWidth-32,206 };
 			int rowHeight = 23;
 			int visibleRows = 9;
 			const int centerRow = 4;
 			int scrollOffset = 0;     // primo file visualizzato
 
 			// visualizer  area / variables for effects
-			Rectangle visArea = {18,112,screenWidth-36,192};
+			Rectangle visArea = {18,100,screenWidth-36,192};
 
 			//infoArea e calcolo lunghezza timeProgressbar
-			Rectangle infoArea = {18,325,screenWidth-30,110};
+			Rectangle infoArea = {18,312,screenWidth-30,110};
 			Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
 
 			// flag area / currMusic file info
-			Vector2 xyFlags= {556,20};
+			Vector2 xyFlags= {556,8};
 
 		 //  vumeter
 			Complex fftBuffer[MAX_SAMPLES];
@@ -623,8 +640,8 @@ while (!WindowShouldClose())
 		}
 
 		if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
+		if (IsKeyPressed(KEY_C)) isSpectrum = !isSpectrum;
 
-		if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
 
 		//------------------------------------------------------------------------------
 		// scrollFiles with mouse and keybinding in music library
@@ -813,7 +830,10 @@ while (!WindowShouldClose())
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
 					const float segmentGap = 2.0f;   // distanza tra i segmenty 
 					float baseYPos = visArea.y + visArea.height; //base del vumeter
-					
+					int count = 0;
+					Color barColor;
+					Color dimColor;
+
 					for (int i = 0; i < NUM_BARS; i++) {
 						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
 						
@@ -821,15 +841,22 @@ while (!WindowShouldClose())
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
 						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
-						// fade bar color
-						Color barColor = darkenColor(accentColor,0.56f);
-						Color dimColor = darkenColor(accentColor,0.28f);
+						// fade bar colors
+						if (isSpectrum) {
+							barColor = colors[17-count];
+							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
+							if (i % 2) count++;
+						}
+						else {
+							barColor = darkenColor(accentColor,0.56f);
+							dimColor = darkenColor(accentColor,0.28f);
+						}
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// peak color
-							if (j >= segmentsToLight) barColor = accentColor; 
+							if (j >= segmentsToLight && !isSpectrum) barColor = accentColor; 
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
