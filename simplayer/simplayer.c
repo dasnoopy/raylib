@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.2"
+#define TOOL_VERSION            "2.3.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -603,7 +603,7 @@ while (!WindowShouldClose())
 				}
 				if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
 				{
-							if (timePlayed + SEEK_TIME > timeLength) {
+							if (timePlayed + SEEK_TIME > (timeLength - FADE_TIME)) {
 								timePlayed = 0.0f;
 								SeekMusicStream(currMusic, 0.0f);
 							}
