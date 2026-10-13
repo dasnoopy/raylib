@@ -1,4 +1,4 @@
-- Sim(ple)Player 
+Sim(ple)Player 
 a simple MP3/OGG file player coded in C99 and Raylib
 -------------------------------------------------------------
 note: .mp3/.ogg files are loaded from /home/$user/Music folder...
@@ -16,9 +16,12 @@ Vumeter mode:
 [ S ]     : shuffle play on / off
 [ N ]     : play next song
 [ Z ]     : play previous song
+[ C ]     : change spectrum visualizer color from mono to RGB
 [ Q ]     : leave app
 
-File Library (note: files are alphaabetically ordered (case sensitive)
+File Library 
+note: files are alphabetically ordered (case sensitive)
+-----------------------------------------------------------------
 [ cursor up/down ( or mouse wheel ) ] : select file in library
 [ HOME ]  : goes to first song 
 [ END ]   : goes to last song

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.1"
+#define TOOL_VERSION            "2.3.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -49,7 +49,7 @@ float fadeTimer;
 	Music nextMusic = { 0 };
 
 // variables
-#define SEEK_TIME 10.0f // seek time
+#define SEEK_TIME 5.0f // seek time
 
 bool isPlay = true;
 bool isShuffle = true;
@@ -79,8 +79,8 @@ char files[MAX_FILES][MAX_NAME];
 #endif
 
 // file selection
-char titleStr[1024] = { '\0' };
-char artistStr[1024] = { '\0' };
+char titleStr[512] = { '\0' };
+char artistStr[512] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
@@ -132,9 +132,9 @@ bool hasTyped = false;     // Flag per lo stato del timer
 float lastTypeTime = 0.0f; // Timestamp dell'ultima cifra inserita
 const float timeoutDuration = 2.0f;
 
-
-// Functions
-
+// -----------------------------------------------------------------------------
+// 								Functions
+// -----------------------------------------------------------------------------
 void extractArtistAndTitle(char *string, char **artist, char **title)
  {
 	char *separator;
@@ -565,84 +565,101 @@ while (!WindowShouldClose())
 				else currVolume = prevVolume;
 		}
 
-		if (IsKeyPressed(KEY_P) && isPlay && !isStop) { // pause
-			isPause = !isPause;
-			if (isPause) PauseMusicStream(currMusic);
-			else ResumeMusicStream(currMusic);
-		}
+// attiva i seguenti KEYPRESS/opzioni solo se si e' in normale riproduzione del brano
+// (durante il tempo di FADE tra le due canzoni non permette di fare nulla!)
+	if (state == STATE_PLAYING_SINGLE)
+	{
+				if (IsKeyPressed(KEY_P) && isPlay && !isStop) { // pause
+					isPause = !isPause;
+					if (isPause) PauseMusicStream(currMusic);
+					else ResumeMusicStream(currMusic);
+				}
 
-
-		// stop/play currMusic 
-		if (IsKeyPressed(KEY_SPACE)) {
-				if (isPlay) {
-					isStop=true;
-					isPlay=false;
-					isPause=false;
-					StopMusicStream(currMusic);
+				// stop/play currMusic 
+				if (IsKeyPressed(KEY_SPACE)) {
+						if (isPlay) {
+							isStop=true;
+							isPlay=false;
+							isPause=false;
+							StopMusicStream(currMusic);
+							}
+						else {
+							 isStop=false;
+							 isPlay=true;
+							 isPause=false;
+							 state = STATE_PLAYING_SINGLE;
+							 PlayMusicStream(currMusic);
+							}
 					}
-				else {
-					 isStop=false;
-					 isPlay=true;
-					 isPause=false;
-					 state = STATE_PLAYING_SINGLE;
-					 PlayMusicStream(currMusic);
+
+				if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
+				{
+							if (timePlayed < 10.0f) {
+								timePlayed = 0.0f; 
+								SeekMusicStream(currMusic, 0.0f);
+							}
+							else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
+
+				}
+				if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
+				{
+							if (timePlayed + SEEK_TIME > timeLength) {
+								timePlayed = 0.0f;
+								SeekMusicStream(currMusic, 0.0f);
+							}
+							else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
+				}
+
+				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
+					prevPlay = selectedIndex; //save for 1 shot prev.song
+					if (isShuffle) {
+						int shuffleIndex = GetRandomValue(0,trackCount-1);
+						if (shuffleIndex == trackCount) --shuffleIndex;
+						// if new song is equal to current , select next one
+						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
+						selectedIndex = shuffleIndex;
+						} 
+					else selectedIndex = (selectedIndex + 1) % trackCount;
+
+						StopMusicStream(currMusic);
+						UnloadMusicStream(currMusic);
+						LoadMusicByIndex(selectedIndex);
+						PlayMusicStream(currMusic);
+						isStop=false;
+						isPlay=true;
+						isPause=false;
 					}
-			}
 
-		if (IsKeyPressed(KEY_LEFT) && isPlay && state == STATE_PLAYING_SINGLE) // seek -10sec
-		{
-					if (timePlayed < 10.0f) {
-						timePlayed = 0.0f; 
-						SeekMusicStream(currMusic, 0.0f);
-					}
-					else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
+				if (IsKeyPressed(KEY_Z)) { // Previous song : no shuffle on previous song
+						if (isShuffle) selectedIndex = prevPlay;
+						else selectedIndex--;
+						if (selectedIndex < 0) selectedIndex=0;
+						StopMusicStream(currMusic);
+						UnloadMusicStream(currMusic);
+						LoadMusicByIndex(selectedIndex);
+						PlayMusicStream(currMusic);
+						isStop=false;
+						isPlay=true;
+						isPause=false;
+				}
 
-		}
-		if (IsKeyPressed(KEY_RIGHT) && isPlay && state == STATE_PLAYING_SINGLE) // seek +10sec
-		{
-					if (timePlayed + SEEK_TIME > timeLength) {
-						timePlayed = 0.0f;
-						SeekMusicStream(currMusic, 0.0f);
-					}
-					else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
-		}
+				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
+				if (IsKeyPressed(KEY_C)) isSpectrum = !isSpectrum;
 
-		if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
-			prevPlay = selectedIndex; //save for 1 shot prev.song
-			if (isShuffle) {
-				int shuffleIndex = GetRandomValue(0,trackCount-1);
-				if (shuffleIndex == trackCount) --shuffleIndex;
-				// if new song is equal to current , select next one
-				if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
-				selectedIndex = shuffleIndex;
-				} 
-			else selectedIndex = (selectedIndex + 1) % trackCount;
 
-				StopMusicStream(currMusic);
-				UnloadMusicStream(currMusic);
-				LoadMusicByIndex(selectedIndex);
-				PlayMusicStream(currMusic);
-				isStop=false;
-				isPlay=true;
-				isPause=false;
-			}
+        // // Gestione Click sullo spectrum per saltare ad un punto preciso (Seek)
+        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) 
+        // {
+        //     Vector2 mousePos = GetMousePosition();
+        //     if (mousePos.x >= visArea.x && mousePos.x <= (visArea.x + visArea.width) &&
+        //         mousePos.y >= visArea.y && mousePos.y <= (visArea.y + visArea.height)) 
+        //     {
+        //         float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
+        //         SeekMusicStream(currMusic, clickProgress * timeLength);
+        //     }
+        // }
 
-		if (IsKeyPressed(KEY_Z)) { // Previous song : no shuffle on previous song
-				if (isShuffle) selectedIndex = prevPlay;
-				else selectedIndex--;
-				if (selectedIndex < 0) selectedIndex=0;
-				StopMusicStream(currMusic);
-				UnloadMusicStream(currMusic);
-				LoadMusicByIndex(selectedIndex);
-				PlayMusicStream(currMusic);
-				isStop=false;
-				isPlay=true;
-				isPause=false;
-		}
-
-		if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-		if (IsKeyPressed(KEY_C)) isSpectrum = !isSpectrum;
-
+	}
 
 		//------------------------------------------------------------------------------
 		// scrollFiles with mouse and keybinding in music library
@@ -782,7 +799,6 @@ while (!WindowShouldClose())
 		}
 
 //------------------------------------------------------------------------------
-
 		//
 		// do something when  window loses focus
 		//
