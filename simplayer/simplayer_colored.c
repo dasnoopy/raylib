@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.2.6"
+#define TOOL_VERSION            "2.2.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -476,21 +476,22 @@ while (!WindowShouldClose())
 			int seconds = (int)timeLength % 60;
 			snprintf(totTimeStr,sizeof(totTimeStr),"%02d:%02d:%02d", hours, minutes, seconds);
 
-
+	// ---------------------------------------------------------------------------
 	// faded songs
+	// ---------------------------------------------------------------------------
+
 	// set initial currVolume 
 	SetMusicVolume(currMusic, currVolume);
 	SetMusicVolume(nextMusic, currVolume);
 	
 		// update sound stream
-		UpdateMusicStream(currMusic);
-		if (state == STATE_CROSSFADING) UpdateMusicStream(nextMusic);
+		if (IsMusicStreamPlaying(currMusic)) UpdateMusicStream(currMusic);
+		if (state == STATE_CROSSFADING && IsMusicStreamPlaying(nextMusic)) UpdateMusicStream(nextMusic);
 
 		switch (state)
 		{
 			case STATE_PLAYING_SINGLE:
 				// Se mancano meno di FADE_TIME secondi alla fine dell brano corrente  parte il crossfade
-
 				if (timeRemaining <= FADE_TIME && timeLength > FADE_TIME) 
 				{
 					prevPlay=selectedIndex;
@@ -505,12 +506,12 @@ while (!WindowShouldClose())
 					else selectedIndex = (selectedIndex + 1) % trackCount;
 					
 					LoadNextMusicByIndex(selectedIndex);
-					PlayMusicStream(nextMusic);
 					SetMusicVolume(nextMusic, 0.0f); // Parte silenzioso
-
+					PlayMusicStream(nextMusic);
 					fadeTimer = 0.0f;
 					state = STATE_CROSSFADING;
 				}
+
 				//  caso in cui il brano finisce improvvisamente (o è troppo corto per il fade)
 				else if ((!IsMusicStreamPlaying(currMusic) || timeRemaining <= 0.1f) && !isPause && !isStop)
 				{
@@ -526,8 +527,9 @@ while (!WindowShouldClose())
 					else selectedIndex = (selectedIndex + 1) % trackCount;
 					
 					LoadMusicByIndex(selectedIndex);
-					PlayMusicStream(currMusic);
 					SetMusicVolume(currMusic, currVolume);
+					PlayMusicStream(currMusic);
+
 				}
 				break;
 
@@ -548,8 +550,10 @@ while (!WindowShouldClose())
 				// Quando il fade è completato
 				if (timeProgress >= 1.0f) 
 				{
+					StopMusicStream(currMusic);    // 1. IMPORTANTE: Ferma l'audio della vecchia canzone
 					UnloadMusicStream(currMusic); // Elimina la vecchia canzone
 					currMusic = nextMusic;        // e la nuova canzone diventa quella corrente
+					SetMusicVolume(currMusic, currVolume); // Assicurati che la nuova sia a pieno volume
 					state = STATE_PLAYING_SINGLE;    // Ritorna allo stato normale
 					selectedIndex = currPlay;
 					// aggiorna info brano
@@ -557,8 +561,7 @@ while (!WindowShouldClose())
 				}
 				break;
 		}
-
-	
+// -----------------------------------------------------------------------------
 
 		// Set audio currVolume
 		if (IsKeyDown(KEY_PAGE_DOWN)) {
@@ -690,9 +693,9 @@ while (!WindowShouldClose())
 							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
 				}
 
-				// --------------------------------------------------------------
-				// numeric search 
-				// --------------------------------------------------------------
+		// --------------------------------------------------------------
+		// numeric search 
+		// --------------------------------------------------------------
 				float currentTime = (float)GetTime();
 
 				// Timeout di 2 secondi
@@ -797,12 +800,14 @@ while (!WindowShouldClose())
 			}
 		}
 
-
 //------------------------------------------------------------------------------
 
-		// // do something when  window loses focus
+		//
+		// do something when  window loses focus
+		//
 		if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.92f);
 		else SetWindowOpacity(1.0f);
+
 //------------------------------------------------------------------------------
 // Draw
 //------------------------------------------------------------------------------
@@ -839,14 +844,14 @@ while (!WindowShouldClose())
 
 					// draw vumeter
 					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 1.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
 					
 					const int maxSegments = 48; //nr. segmenti singola barra
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
 					const float segmentGap = 2.0f;   // distanza tra i segmenty 
 					float baseYPos = visArea.y + visArea.height; //base del vumeter
-					
 					int count =0;
+					
 					for (int i = 0; i < NUM_BARS; i++) {
 						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
 						
@@ -854,8 +859,8 @@ while (!WindowShouldClose())
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
 						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
-							// fade bar color
-						Color barColor = colors[count];
+						// fade bar color
+						Color barColor = colors[17-count];
 						Color dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 						if (i % 2) count++;
 
@@ -863,13 +868,12 @@ while (!WindowShouldClose())
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// peak color
-							//if (j >= segmentsToLight) barColor = WHITE; 
+							// if (j >= segmentsToLight) barColor = accentColor; 
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos,xPos +(barWidth - barSpacing), segYPos-4 , (drawActiveSegment || drawPeakSegment) ? barColor:dimColor );
-							//DrawLine(xPos, segYPos-1,xPos +(barWidth - barSpacing), segYPos-1, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor );
+							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
 		EndScissorMode();
