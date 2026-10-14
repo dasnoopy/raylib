@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.3.5"
+#define TOOL_VERSION            "2.4.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <id3tag.h>
 
 // gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -43,6 +44,16 @@ typedef enum {
 
 PlayerState state = STATE_PLAYING_SINGLE;
 float fadeTimer;
+
+// Struttura tagID3
+typedef struct AudioMetadata {
+    char title[256];
+    char artist[256];
+    char album[256];
+    char year[32];
+} AudioMetadata;
+
+AudioMetadata songId3;
 
 // define stream 
 	Music currMusic = { 0 };
@@ -79,8 +90,6 @@ char files[MAX_FILES][MAX_NAME];
 #endif
 
 // file selection
-char titleStr[512] = { '\0' };
-char artistStr[512] = { '\0' };
 int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
 int prevPlay = 0; //previous played song when shuffle is ON
@@ -135,27 +144,79 @@ const float timeoutDuration = 2.0f;
 // -----------------------------------------------------------------------------
 // 								Functions
 // -----------------------------------------------------------------------------
-void extractArtistAndTitle(char *string, char **artist, char **title)
- {
-	char *separator;
 
-	if ((string == NULL) || (artist == NULL) || (title == NULL))
-		return;
-	separator = strstr(string, " - ");
-	if (separator != NULL)
-	 {
-		size_t length;
+// estrai il tag da libid3tag
+static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen) {
+    if (frame && frame->nfields > 1) {
+        id3_ucs4_t const *ucs4 = id3_field_getstrings(&frame->fields[1], 0);
+        if (ucs4) {
+            id3_utf8_t *utf8 = id3_ucs4_utf8duplicate(ucs4);
+            if (utf8) {
+                strncpy(dest, (char *)utf8, maxLen - 1);
+                dest[maxLen - 1] = '\0';
+                free(utf8);
+                return; 
+            }
+        }
+    }
+    dest[0] = '\0';
+}
 
-		length  = separator - string;
-		*artist = malloc(1 + length);
-		if (*artist != NULL)
-		{
-			memcpy(*artist, string, length);
-		   (*artist)[length] = '\0';
-		}
-		*title = strdup(separator + 3);
-	 }
- }
+// Legge i tag o applica il fallback dal nome del file
+AudioMetadata GetMp3Metadata(const char *filePath) {
+    AudioMetadata meta = { 0 };
+
+    // 1. Lettura dei tag con libid3tag
+    struct id3_file *file = id3_file_open(filePath, ID3_FILE_MODE_READONLY);
+    if (file) {
+        struct id3_tag *tag = id3_file_tag(file);
+        if (tag) {
+            // Cerchiamo i 4 frame principali
+            struct id3_frame *title_frame  = id3_tag_findframe(tag, ID3_FRAME_TITLE, 0);
+            struct id3_frame *artist_frame = id3_tag_findframe(tag, ID3_FRAME_ARTIST, 0);
+            struct id3_frame *album_frame  = id3_tag_findframe(tag, ID3_FRAME_ALBUM, 0);
+            struct id3_frame *year_frame   = id3_tag_findframe(tag, ID3_FRAME_YEAR, 0);
+
+            ExtractTagString(title_frame,  meta.title,  sizeof(meta.title));
+            ExtractTagString(artist_frame, meta.artist, sizeof(meta.artist));
+            ExtractTagString(album_frame,  meta.album,  sizeof(meta.album));
+            ExtractTagString(year_frame,   meta.year,   sizeof(meta.year));
+        }
+        id3_file_close(file);
+    }
+
+    // 2. LOGICA DI FALLBACK per i nuovi campi
+    const char *fileName = GetFileName(filePath); 
+
+    // Fallback Titolo
+    if (strlen(meta.title) == 0) {
+        char cleanName[256];
+        strncpy(cleanName, fileName, sizeof(cleanName) - 1);
+        cleanName[sizeof(cleanName) - 1] = '\0';
+        char *dot = strrchr(cleanName, '.');
+        if (dot) *dot = '\0';
+        strncpy(meta.title, cleanName, sizeof(meta.title) - 1);
+    }
+
+    // Fallback Artista
+    if (strlen(meta.artist) == 0) {
+        strncpy(meta.artist, "Autore non definito", sizeof(meta.artist) - 1);
+    }
+
+    // Fallback Album
+    if (strlen(meta.album) == 0) {
+        strncpy(meta.album, "Album non definito", sizeof(meta.album) - 1);
+    }
+
+    // Fallback Anno/Data (se vuoto lasciamo semplicemente una stringa vuota o un trattino)
+    if (strlen(meta.year) == 0) {
+        strncpy(meta.year, "....", sizeof(meta.year) - 1);
+    }
+
+        return meta;
+}
+
+
 
 Color darkenColor(Color color, float factor)
 {
@@ -190,37 +251,17 @@ void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
-void GetTagsFromFilename(int idx){
-// get Artist and Title song from filename (format :  "artist name - song titile.mp3")
-		char buffer[512];
-		char *artist;
-		char *title;
 
-		strcpy (buffer, GetFileNameWithoutExt(files[idx]));
-		extractArtistAndTitle(buffer, &artist, &title);
-
-			if (artist != NULL) {
-				strcpy(artistStr, artist );
-				strcat(artistStr, "\0");
-			}
-			if (title != NULL){
-				strcpy(titleStr, title );
-				strcat(titleStr, "\0");
-			}
-		free(artist);
-		free(title);
-	}
 
 void LoadMusicByIndex(int idx) {
 	currPlay = idx;
 	currMusic = LoadMusicStream(files[idx]);
-	GetTagsFromFilename(idx);
+	songId3 = GetMp3Metadata(files[idx]);
 }
 
 void LoadNextMusicByIndex(int idx) {
 	currPlay = idx;
 	nextMusic = LoadMusicStream(files[idx]);
-	//GetTagsFromFilename(idx);
 }
 
 //------------------------------------------------------------------------------------
@@ -432,7 +473,7 @@ while (!WindowShouldClose())
 		float timeProgress = (timeLength > 0.0f) ? (timePlayed / timeLength) : 0.0f;
 
 		// set scroll text speed
-		Vector2 titleSize = MeasureTextEx(titleFnt, titleStr, 36, 0);
+		Vector2 titleSize = MeasureTextEx(titleFnt, songId3.title, 36, 0);
 		float titleWidth = titleSize.x;
 
 		bool needScroll = titleWidth > displayArea.width;
@@ -537,7 +578,7 @@ while (!WindowShouldClose())
 					state = STATE_PLAYING_SINGLE;    // Ritorna allo stato normale
 					selectedIndex = currPlay;
 					// aggiorna info brano
-					GetTagsFromFilename(selectedIndex);
+					songId3 = GetMp3Metadata(files[selectedIndex]);
 				}
 				break;
 		}
@@ -592,23 +633,24 @@ while (!WindowShouldClose())
 							}
 					}
 
-				if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
-				{
-							if (timePlayed < 10.0f) {
-								timePlayed = 0.0f; 
-								SeekMusicStream(currMusic, 0.0f);
-							}
-							else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
+				// if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
+				// {
+				// 			if (timePlayed < 10.0f) {
+				// 				timePlayed = 0.0f; 
+				// 				SeekMusicStream(currMusic, 0.0f);
+				// 			}
+				// 			else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
 
-				}
-				if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
-				{
-							if (timePlayed + SEEK_TIME > (timeLength - FADE_TIME)) {
-								timePlayed = 0.0f;
-								SeekMusicStream(currMusic, 0.0f);
-							}
-							else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
-				}
+				// }
+
+				// if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
+				// {
+				// 			if (timePlayed + SEEK_TIME > (timeLength - FADE_TIME)) {
+				// 				timePlayed = 0.0f;
+				// 				SeekMusicStream(currMusic, 0.0f);
+				// 			}
+				// 			else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
+				// }
 
 				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
 					prevPlay = selectedIndex; //save for 1 shot prev.song
@@ -647,17 +689,17 @@ while (!WindowShouldClose())
 				if (IsKeyPressed(KEY_C)) isSpectrum = !isSpectrum;
 
 
-        // // Gestione Click sullo spectrum per saltare ad un punto preciso (Seek)
-        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) 
-        // {
-        //     Vector2 mousePos = GetMousePosition();
-        //     if (mousePos.x >= visArea.x && mousePos.x <= (visArea.x + visArea.width) &&
-        //         mousePos.y >= visArea.y && mousePos.y <= (visArea.y + visArea.height)) 
-        //     {
-        //         float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
-        //         SeekMusicStream(currMusic, clickProgress * timeLength);
-        //     }
-        // }
+        // Gestione Click sullo spectrum per saltare ad un punto preciso (Seek)
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) 
+        {
+            Vector2 mousePos = GetMousePosition();
+            if (mousePos.x >= visArea.x && mousePos.x <= (visArea.x + visArea.width) &&
+                mousePos.y >= visArea.y && mousePos.y <= (visArea.y + visArea.height)) 
+            {
+                float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
+                SeekMusicStream(currMusic, clickProgress * timeLength);
+            }
+        }
 
 	}
 
@@ -821,12 +863,15 @@ while (!WindowShouldClose())
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
-			if (needScroll) DrawTextEx(titleFnt, titleStr, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
-			else DrawTextEx(titleFnt, titleStr, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
+			if (needScroll) DrawTextEx(titleFnt, songId3.title, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
+			else DrawTextEx(titleFnt, songId3.title, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
+			
+			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
 
 			// song Artist
-			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
-			DrawTextEx(artistFnt, artistStr, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			// // album & year
+			// DrawTextEx(defaultFnt, TextFormat("%s | %s", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+70}, (float)defaultFnt.baseSize, 0, borderColor);
 		EndScissorMode();
 
 		// file type / KHz / stereo - mono  of current song

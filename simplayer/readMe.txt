@@ -10,7 +10,7 @@ APP KEYBINDINGS
 Vumeter mode:
 ------------------------------------------------------------------
 [ Page UP/DOWN ] : volume UP / DOWN
-[ cursor left/right] : audio seek -10sec/+10sec
+[ mouse click on vumeter visualizer]:  back and forth audio seek
 [ SPACE ] : play/stop song
 [ M ]     : mute audio
 [ S ]     : shuffle play on / off
