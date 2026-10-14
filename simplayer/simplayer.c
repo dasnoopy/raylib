@@ -1,7 +1,7 @@
 /*******************************************************************************
 *
-*   raylib simple currMusic player
-*   Small utility to play mp3 currMusicFiles based on Raylib
+*   SIM PLAYER : a raylib simple music player
+*   Small utility to play mp3 files based on raylib version 6.0
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.1"
+#define TOOL_VERSION            "2.4.4"
 
 #include <stdio.h>
 #include <time.h>
@@ -24,7 +24,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <pwd.h>
 #include <id3tag.h>
 
@@ -146,7 +145,7 @@ const float timeoutDuration = 2.0f;
 // 								Functions
 // -----------------------------------------------------------------------------
 
-// estrai il tag descriptot da libid3tag
+// estrai il tag descriptor da libid3tag
 static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen) {
     if (frame && frame->nfields > 1) {
         id3_ucs4_t const *ucs4 = id3_field_getstrings(&frame->fields[1], 0);
@@ -382,8 +381,8 @@ int main (int argc, char *argv[])
 
 	
 // some custom colors
-Color accentColor = SKYBLUE; //colors[GetRandomValue(0,MAX_COLORS_COUNT-1)]; // choose a random color from RAAYLIB color table
-Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; // almnost WHITE
+Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
+Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
 Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 // Color bgColor = CLITERAL(Color){10, 20, 30, 248};
@@ -415,9 +414,6 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 			// init Audio Processor
 			AttachAudioMixedProcessor(AudioProcessCallback);
 
-			// set FPS (uso questo sistema per regolare la velocità di scorrimento)
-			//SetTargetFPS(60);// https://bedroomcoders.co.uk/posts/218
-
 			// scroll title / id3
 			Rectangle displayArea = { 18, 18, 532,90 };
 			float titleX = displayArea.x ;
@@ -440,14 +436,18 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 			// flag area / currMusic file info
 			Vector2 xyFlags= {556,8};
 
-		 //  vumeter
+			// progress bar area to use with mouse seek audio
+			Rectangle progressArea = { 272, 312, timeText.x, 58};
+
+		 	// vumeter
 			Complex fftBuffer[MAX_SAMPLES];
 			// Parametri dinamici di calibrazione
 			float minDb = -55.0f; 
 			float maxDb = -0.0f; // sensibilita Decibel
 			float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
-	// fai riapparire finestra dopo caricamento iniziale
+	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
+    // SetTargetFPS(60);
 	SetWindowSize(screenWidth,screenHeight);
 	SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
 	//SetWindowPosition(8,40);  
@@ -683,14 +683,14 @@ while (!WindowShouldClose())
 				if (IsKeyPressed(KEY_I)) isTooltip = !isTooltip;
 
         // SEEK via mouse click sul vumeter 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic) && isVumeter)
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
         {
             Vector2 mousePos = GetMousePosition();
             // seek music
-            if (mousePos.x >= visArea.x && mousePos.x <= (visArea.x + visArea.width) &&
-                mousePos.y >= visArea.y && mousePos.y <= (visArea.y + visArea.height)) 
+            if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
+                mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
 	            {
-	                float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
+	                float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
 	                SeekMusicStream(currMusic, clickProgress * timeLength);
 	            }
         }
@@ -937,7 +937,7 @@ while (!WindowShouldClose())
 						// faded text color
 						float fadeValue = (i <= centerRow) ? (i + 1) * 0.3f : (visibleRows - i) * 0.3f;
 
-						// Calcolo empirico del contrasto per il colore testo rispetto al baackground...
+						// Calcolo empirico del contrasto per il colore testo rispetto al background (solo file selezionato)
 						Color fadeColor = darkenColor(primaryColor,fadeValue);
 						Color selColor = accentColor.g > 180 || (accentColor.r + accentColor.g + accentColor.b) > 450 ? BLACK : WHITE;
 
@@ -956,8 +956,6 @@ while (!WindowShouldClose())
 			EndScissorMode();
 			}
 
-
-
 		//volume icon and its percentage value
 		DrawTexture(volumeICO_texture,infoArea.x-4,infoArea.y +14,isMute?borderColor:secondaryColor);
 		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
@@ -970,10 +968,8 @@ while (!WindowShouldClose())
 		DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo timeProgress bar
 		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+27,1,5},accentColor);
 
-
-
 		// tempo totale brano centrato orizzontalmente
-		DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y+34},(float)digitFnt.baseSize,0, secondaryColor);
+		DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y+35},(float)digitFnt.baseSize,0, secondaryColor);
 
 		// current song position / total songs
 		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);

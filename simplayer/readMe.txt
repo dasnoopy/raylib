@@ -10,7 +10,7 @@ APP KEYBINDINGS
 Vumeter mode (default):
 ------------------------------------------------------------------
 [ Page UP/DOWN ] : volume UP / DOWN
-[ mouse click on vumeter visualizer]:  back and forth current audio track (seek +/-)
+[ mouse click on progressbar ]:  back and forth current audio track (seek +/-)
 [ SPACE ] : play/stop song
 [ I ]     : switch info between album & year and artist (default artist)
 [ M ]     : mute audio volume
