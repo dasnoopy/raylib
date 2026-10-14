@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.5"
+#define TOOL_VERSION            "2.4.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -680,8 +680,16 @@ while (!WindowShouldClose())
 				}
 
 				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-				if (IsKeyPressed(KEY_C)) isColorSpectrum = !isColorSpectrum;
+				if (IsKeyPressed(KEY_V)) isColorSpectrum = !isColorSpectrum;
 				if (IsKeyPressed(KEY_I)) isTooltip = !isTooltip;
+
+				// Quick copy of filename without path and extension, with keyboard shortcuts
+		        if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))
+		        {
+		            if (IsKeyPressed(KEY_C)) SetClipboardText(GetFileNameWithoutExt(files[selectedIndex]));
+		        }
+
+
 
         // SEEK via mouse click sul vumeter 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
