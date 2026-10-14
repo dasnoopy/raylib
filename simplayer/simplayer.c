@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.0"
+#define TOOL_VERSION            "2.4.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -71,7 +71,8 @@ bool isVumeter = true; // true:default : show 36 band equalizer , if set false s
 float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
-bool isSpectrum = false;
+bool isColorSpectrum = false;
+bool isTooltip = false;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -145,7 +146,7 @@ const float timeoutDuration = 2.0f;
 // 								Functions
 // -----------------------------------------------------------------------------
 
-// estrai il tag da libid3tag
+// estrai il tag descriptot da libid3tag
 static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen) {
     if (frame && frame->nfields > 1) {
         id3_ucs4_t const *ucs4 = id3_field_getstrings(&frame->fields[1], 0);
@@ -185,7 +186,7 @@ AudioMetadata GetMp3Metadata(const char *filePath) {
         id3_file_close(file);
     }
 
-    // 2. LOGICA DI FALLBACK per i nuovi campi
+    // rileva nome file
     const char *fileName = GetFileName(filePath); 
 
     // Fallback Titolo
@@ -199,21 +200,13 @@ AudioMetadata GetMp3Metadata(const char *filePath) {
     }
 
     // Fallback Artista
-    if (strlen(meta.artist) == 0) {
-        strncpy(meta.artist, "Autore non definito", sizeof(meta.artist) - 1);
-    }
-
+    if (strlen(meta.artist) == 0) strncpy(meta.artist, "Autore non definito", sizeof(meta.artist) - 1);
     // Fallback Album
-    if (strlen(meta.album) == 0) {
-        strncpy(meta.album, "Album non definito", sizeof(meta.album) - 1);
-    }
+    if (strlen(meta.album) == 0) strncpy(meta.album, "Album non definito", sizeof(meta.album) - 1);
+    // Fallback Anno/Data
+    if (strlen(meta.year) == 0) strncpy(meta.year, "....", sizeof(meta.year) - 1);
 
-    // Fallback Anno/Data (se vuoto lasciamo semplicemente una stringa vuota o un trattino)
-    if (strlen(meta.year) == 0) {
-        strncpy(meta.year, "....", sizeof(meta.year) - 1);
-    }
-
-        return meta;
+    return meta;
 }
 
 
@@ -563,7 +556,7 @@ while (!WindowShouldClose())
 
 				// cambio volume tra "vecchia" e "nuova" canzone piu' dolce...
 				float currentVol = currVolume * cosf(timeProgress * (PI / 2.0f));
-        float nextVol = currVolume * sinf(timeProgress * (PI / 2.0f));
+				float nextVol = currVolume * sinf(timeProgress * (PI / 2.0f));
 
 				SetMusicVolume(currMusic, currentVol);
 				SetMusicVolume(nextMusic, nextVol);
@@ -686,21 +679,21 @@ while (!WindowShouldClose())
 				}
 
 				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-				if (IsKeyPressed(KEY_C)) isSpectrum = !isSpectrum;
+				if (IsKeyPressed(KEY_C)) isColorSpectrum = !isColorSpectrum;
+				if (IsKeyPressed(KEY_I)) isTooltip = !isTooltip;
 
-
-        // Gestione Click sullo spectrum per saltare ad un punto preciso (Seek)
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) 
+        // SEEK via mouse click sul vumeter 
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic) && isVumeter)
         {
             Vector2 mousePos = GetMousePosition();
+            // seek music
             if (mousePos.x >= visArea.x && mousePos.x <= (visArea.x + visArea.width) &&
                 mousePos.y >= visArea.y && mousePos.y <= (visArea.y + visArea.height)) 
-            {
-                float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
-                SeekMusicStream(currMusic, clickProgress * timeLength);
-            }
+	            {
+	                float clickProgress = (mousePos.x - visArea.x) / (float)visArea.width;
+	                SeekMusicStream(currMusic, clickProgress * timeLength);
+	            }
         }
-
 	}
 
 		//------------------------------------------------------------------------------
@@ -865,13 +858,13 @@ while (!WindowShouldClose())
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
 			if (needScroll) DrawTextEx(titleFnt, songId3.title, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
 			else DrawTextEx(titleFnt, songId3.title, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
+		DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
 			
-			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
+		// song Artist or album|year info (KEYPRESS_I)
+		if (!isTooltip) DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+		else DrawTextEx(artistFnt, TextFormat("%s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 
-			// song Artist
-			DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
-			// // album & year
-			// DrawTextEx(defaultFnt, TextFormat("%s | %s", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+70}, (float)defaultFnt.baseSize, 0, borderColor);
+
 		EndScissorMode();
 
 		// file type / KHz / stereo - mono  of current song
@@ -904,7 +897,7 @@ while (!WindowShouldClose())
 						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
 						// fade bar colors
-						if (isSpectrum) {
+						if (isColorSpectrum) {
 							barColor = colors[count];
 							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 							if (i % 2) count++;
@@ -918,7 +911,7 @@ while (!WindowShouldClose())
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// peak color
-							if (j >= segmentsToLight && !isSpectrum) barColor = accentColor; 
+							if (j >= segmentsToLight && !isColorSpectrum) barColor = accentColor; 
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
@@ -1002,8 +995,6 @@ while (!WindowShouldClose())
 		// Shuffle flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+358,4,12,isShuffle ? accentColor:borderColor);
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
-
-
 
 		//statusbar with some info
 		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, secondaryColor); 

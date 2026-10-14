@@ -7,16 +7,17 @@ APP KEYBINDINGS
 ------------------------------------------------------------------
 [ ESC ] : switch between vumeter / file library  mode
 
-Vumeter mode:
+Vumeter mode (default):
 ------------------------------------------------------------------
 [ Page UP/DOWN ] : volume UP / DOWN
-[ mouse click on vumeter visualizer]:  back and forth audio seek
+[ mouse click on vumeter visualizer]:  back and forth current audio track (seek +/-)
 [ SPACE ] : play/stop song
-[ M ]     : mute audio
-[ S ]     : shuffle play on / off
+[ I ]     : switch info between album & year and artist (default artist)
+[ M ]     : mute audio volume
+[ S ]     : shuffle play on / off (default on)
 [ N ]     : play next song
 [ Z ]     : play previous song
-[ C ]     : change spectrum visualizer color from mono to RGB
+[ C ]     : change spectrum visualizer color from mono to RGB (default mono)
 [ Q ]     : leave app
 
 File Library 
@@ -25,8 +26,8 @@ note: files are alphabetically ordered (case sensitive)
 [ cursor up/down ( or mouse wheel ) ] : select file in library
 [ HOME ]  : goes to first song 
 [ END ]   : goes to last song
-[ 0-9 ]   : start to type index number and goes to relative song
-[ DEL ]   : return to current played song (filelist)
+[ 0-9 ]   : start to type index number and goes directly to numbered song
+[ DEL ]   : select the current playing song..
 [ Enter ] : play selected file
 
 // --------------------------------------------------------------
