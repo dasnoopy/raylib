@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.6"
+#define TOOL_VERSION            "2.4.7"
 
 #include <stdio.h>
 #include <time.h>
@@ -166,7 +166,7 @@ static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen)
 AudioMetadata GetMp3Metadata(const char *filePath) {
     AudioMetadata meta = { 0 };
 
-    // 1. Lettura dei tag con libid3tag
+    // Lettura dei tag con libid3tag
     struct id3_file *file = id3_file_open(filePath, ID3_FILE_MODE_READONLY);
     if (file) {
         struct id3_tag *tag = id3_file_tag(file);
@@ -208,8 +208,6 @@ AudioMetadata GetMp3Metadata(const char *filePath) {
     return meta;
 }
 
-
-
 Color darkenColor(Color color, float factor)
 {
 	if (factor < 0.0f) factor = 0.0f;
@@ -243,8 +241,6 @@ void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
-
-
 void LoadMusicByIndex(int idx) {
 	currPlay = idx;
 	currMusic = LoadMusicStream(files[idx]);
@@ -254,6 +250,7 @@ void LoadMusicByIndex(int idx) {
 void LoadNextMusicByIndex(int idx) {
 	currPlay = idx;
 	nextMusic = LoadMusicStream(files[idx]);
+	songId3 = GetMp3Metadata(files[idx]);
 }
 
 //------------------------------------------------------------------------------------
@@ -305,7 +302,6 @@ void getMusicFolder(void) {
 	strcat(currMusicDir,"/Music\0");
 }
 
-
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
 
@@ -316,7 +312,6 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 	}   
 
 	DIR *dir = opendir(path);
-	
 	struct dirent *entry;
 
 	while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
@@ -349,13 +344,10 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 	return count;
 }
 
-
 int main (int argc, char *argv[]) 
 {
-
 	// Set configuration flags for window creation
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT); // | FLAG_WINDOW_TOPMOST); 
-
 	InitWindow(screenWidth, screenHeight, "simplayer");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -379,19 +371,16 @@ int main (int argc, char *argv[])
 	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(image); 
 
-	
-// some custom colors
-Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
-Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
-Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
-Color borderColor = CLITERAL(Color){50, 70, 70, 255};
-// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
-
+	// some custom colors
+	Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
+	Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
+	Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
+	Color borderColor = CLITERAL(Color){50, 70, 70, 255};
+	// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 
 	// init Audio
 	InitAudioDevice();
 	SetAudioStreamBufferSizeDefault(65535);
-
 
 // file open/save variables
 
@@ -404,7 +393,7 @@ Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 				LoadMusicByIndex(selectedIndex);
 				prevPlay=selectedIndex;
 
-			// auto play song based on autoplay setting
+			// auto play song at start
 			if (isPlay) {
 				isStop=false;
 				isPause =false;
@@ -475,7 +464,6 @@ while (!WindowShouldClose())
 			titleX -= (speed * dt);
 			if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
 		}
-
 
 		// calculating song times in HH:MM:SS
 		  char curTimeStr[32]= { '\0' };
@@ -689,51 +677,50 @@ while (!WindowShouldClose())
 		            if (IsKeyPressed(KEY_C)) SetClipboardText(GetFileNameWithoutExt(files[selectedIndex]));
 		        }
 
-
-
-        // SEEK via mouse click sul vumeter 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
-        {
-            Vector2 mousePos = GetMousePosition();
-            // seek music
-            if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
-                mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
-	            {
-	                float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
-	                SeekMusicStream(currMusic, clickProgress * timeLength);
-	            }
-        }
+		        // SEEK via mouse click sul vumeter 
+		        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
+		        {
+		            Vector2 mousePos = GetMousePosition();
+		            // seek music
+		            if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
+		                mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
+			            {
+			                float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
+			                SeekMusicStream(currMusic, clickProgress * timeLength);
+			            }
+		        }
 	}
 
 		//------------------------------------------------------------------------------
 		// scrollFiles with mouse and keybinding in music library
 		//------------------------------------------------------------------------------
 		if (!isVumeter) {
-			if (trackCount >= visibleRows) {
-						selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
+			if (trackCount >= visibleRows) 
+			{
+				selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
 
-						if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
-						if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
-			
-						if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
-						if (IsKeyPressed(KEY_UP)) selectedIndex--;
-						if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
-							prevPlay = currPlay; //save for 1 shot prev.song
-							if (selectedIndex >= 0 && selectedIndex < trackCount) {
-								StopMusicStream(currMusic);
-								//UnloadMusicStream(currMusic);
-								LoadMusicByIndex(selectedIndex);
-								PlayMusicStream(currMusic);
-								//UpdateMusicStream(currMusic);
-								isStop=false;
-								isPlay=true;
-								isPause=false;
-								}
-							}
-					// checks
-							if (selectedIndex < 0) selectedIndex=0;
-							if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
-				}
+				if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
+				if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
+	
+				if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
+				if (IsKeyPressed(KEY_UP)) selectedIndex--;
+				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+					prevPlay = currPlay; //save for 1 shot prev.song
+					if (selectedIndex >= 0 && selectedIndex < trackCount) {
+						StopMusicStream(currMusic);
+						//UnloadMusicStream(currMusic);
+						LoadMusicByIndex(selectedIndex);
+						PlayMusicStream(currMusic);
+						//UpdateMusicStream(currMusic);
+						isStop=false;
+						isPlay=true;
+						isPause=false;
+						}
+					}
+				// checks
+				if (selectedIndex < 0) selectedIndex=0;
+				if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
+			}
 
 		// --------------------------------------------------------------
 		// numeric search 
@@ -865,15 +852,15 @@ while (!WindowShouldClose())
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
+			// song title
 			if (needScroll) DrawTextEx(titleFnt, songId3.title, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
 			else DrawTextEx(titleFnt, songId3.title, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
-		DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
 			
-		// song Artist or album|year info (KEYPRESS_I)
-		if (!isTooltip) DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
-		else DrawTextEx(artistFnt, TextFormat("%s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
-
-
+			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
+			
+			// song Artist or album|year info (KEYPRESS_I)
+			if (!isTooltip) DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			else DrawTextEx(artistFnt, TextFormat("%s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 		EndScissorMode();
 
 		// file type / KHz / stereo - mono  of current song
@@ -929,7 +916,7 @@ while (!WindowShouldClose())
 						 }
 					}
 		EndScissorMode();
-	}
+		}
 		else {
 			// draw file selection
 			//DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
@@ -983,7 +970,6 @@ while (!WindowShouldClose())
 		// current song position / total songs
 		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 		DrawTextEx(defaultFnt,TextFormat("%04d",trackCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
-
 
 		// STOP flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+298,4,12,isStop ? accentColor:borderColor);
