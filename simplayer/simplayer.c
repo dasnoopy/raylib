@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.4"
+#define TOOL_VERSION            "2.4.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -564,6 +564,7 @@ while (!WindowShouldClose())
 				// Quando il fade è completato
 				if (timeProgress >= 1.0f) 
 				{
+					SetMusicVolume(currMusic, 0.0f); // Azzera il volume della canzone attuale
 					StopMusicStream(currMusic);    // 1. IMPORTANTE: Ferma l'audio della vecchia canzone
 					UnloadMusicStream(currMusic); // Elimina la vecchia canzone
 					currMusic = nextMusic;        // e la nuova canzone diventa quella corrente
