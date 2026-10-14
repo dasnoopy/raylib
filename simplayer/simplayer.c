@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.7"
+#define TOOL_VERSION            "2.4.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -912,6 +912,7 @@ while (!WindowShouldClose())
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
+							DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-5, dimColor);
 							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
