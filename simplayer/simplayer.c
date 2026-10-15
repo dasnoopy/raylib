@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.0"
+#define TOOL_VERSION            "2.6.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -151,8 +151,14 @@ float lastTypeTime = 0.0f; // Timestamp dell'ultima cifra inserita
 const float timeoutDuration = 2.0f;
 
 // -----------------------------------------------------------------------------
-// 								Functions
+//						Functions
 // -----------------------------------------------------------------------------
+
+void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color)  {
+  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
+  int     segs = 12;
+  DrawRectangleRounded ( rect, radius, segs, color );
+}
 
 // Funzione che aggiorna lo stato e restituisce true se l'azione deve essere eseguita
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
@@ -283,13 +289,6 @@ Color lightenColor(Color color, float factor)
 		(unsigned char) ( color.b + (255-color.b) * factor ),
 		color.a
 	};
-}
-
-void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
-  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  float radius = 0.046;                        // rotate degrees
-  int     segs = 12;
-  DrawRectangleRounded ( rect, radius, segs, color );
 }
 
 void LoadMusicByIndex(int idx) {
@@ -629,12 +628,12 @@ while (!WindowShouldClose())
 // -----------------------------------------------------------------------------
 
 		// Set audio currVolume
-		if (IsKeyPressed(KEY_LEFT)) {
+		if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) {
 			currVolume -= (currVolume >= 0.0f) ? 0.05f : 0.0f;
 			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
-		if (IsKeyPressed(KEY_RIGHT)) {
+		if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)){
 			isMute = false;
 			currVolume += (currVolume <= 1.0f) ? 0.05f : 0.0f;
 			if (currVolume > 1.0f) currVolume = 1.0f;
@@ -892,7 +891,7 @@ while (!WindowShouldClose())
 	BeginDrawing();
 		ClearBackground (BLANK);
 
-		//drawRectangleRounded(0,0,screenWidth,screenHeight,bgColor);
+		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.046f,bgColor);
 		//load player background image
 		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
@@ -1010,7 +1009,7 @@ while (!WindowShouldClose())
 		
 		// timeProgress bar lunga in base al font usato per stampare i tempi del brano
 		DrawRectangle((screenWidth/2)-(timeText.x/2),infoArea.y+28,timeText.x,3,borderColor); // sfondo timeProgress bar
-		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){i+((screenWidth/2)-(timeText.x/2)),infoArea.y+27,1,5},accentColor);
+		for (int i = 0; i < (timeProgress * timeText.x); i++) DrawRectangleRec((Rectangle){(screenWidth/2)-(timeText.x/2),infoArea.y+27,i,5},accentColor);
 
 		// tempo totale brano centrato orizzontalmente
 		DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y+35},(float)digitFnt.baseSize,0, secondaryColor);
