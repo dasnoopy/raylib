@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.1"
+#define TOOL_VERSION            "2.6.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -466,7 +466,7 @@ int main (int argc, char *argv[])
 			int scrollOffset = 0;     // primo file visualizzato
 
 			// visualizer  area / variables for effects
-			Rectangle visArea = {18,102,screenWidth-36,192};
+			Rectangle visArea = {14,102,screenWidth-28,192};
 
 			//infoArea e calcolo lunghezza timeProgressbar
 			Rectangle infoArea = {18,312,screenWidth-30,110};
@@ -931,7 +931,7 @@ while (!WindowShouldClose())
 					Color dimColor;
 
 					for (int i = 0; i < NUM_BARS; i++) {
-						float xPos = visArea.x + i * barWidth; // posizione X iniziale vumeter
+						float xPos = visArea.x + (i * barWidth); // posizione X iniziale vumeter
 						
 						int segmentsToLight = (int)(barValues[i] * maxSegments); 
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
@@ -941,7 +941,9 @@ while (!WindowShouldClose())
 						if (isColorSpectrum) {
 							barColor = colors[count];
 							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
-							if (i % 2) count++;
+							if (i < 17) count++;
+							else count = 17 - (i-17);
+							// if (i %2) count++;
 						}
 						else {
 							barColor = darkenColor(accentColor,0.56f);
