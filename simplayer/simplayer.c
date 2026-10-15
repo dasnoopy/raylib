@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.5.1"
+#define TOOL_VERSION            "2.6.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -58,6 +58,15 @@ AudioMetadata songId3;
 	Music currMusic = { 0 };
 	Music nextMusic = { 0 };
 
+// Key repeat structure
+typedef struct {
+    int currentKey;      // Il tasto attualmente premuto
+    float timer;         // Timer per calcolare i delay
+    bool isRepeating;    // true se ha superato il delay iniziale
+    float firstDelay;    // Tempo di attesa iniziale 
+    float repeatRate;    // Intervallo di ripetizione 
+} KeyRepeater;
+
 // variables
 #define SEEK_TIME 10.0f // seek time
 
@@ -71,7 +80,7 @@ float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
 bool isColorSpectrum = false;
-bool isTooltip = false;
+bool isAlbumYearTag = false;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
@@ -144,6 +153,48 @@ const float timeoutDuration = 2.0f;
 // -----------------------------------------------------------------------------
 // 								Functions
 // -----------------------------------------------------------------------------
+
+// Funzione che aggiorna lo stato e restituisce true se l'azione deve essere eseguita
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
+    // Se il tasto passato non è premuto, non fare nulla
+    if (!IsKeyDown(key)) {
+        // Se era il tasto che stavamo tracciando, resettiamo lo stato
+        if (repeater->currentKey == key) {
+            repeater->currentKey = 0;
+            repeater->timer = 0.0f;
+            repeater->isRepeating = false;
+        }
+        return false;
+    }
+
+    // Se un nuovo tasto viene premuto (o cambiamo direzione), resettiamo il timer sul nuovo tasto
+    if (repeater->currentKey != key) {
+        repeater->currentKey = key;
+        repeater->timer = 0.0f;
+        repeater->isRepeating = false;
+        return true; // Ritorna true immediatamente per il primo click (reattività)
+    }
+
+    // Se stiamo continuando a tenere premuto lo stesso tasto
+    repeater->timer += dt;
+
+    if (!repeater->isRepeating) {
+        // Fase 1: Aspetta il delay iniziale
+        if (repeater->timer >= repeater->firstDelay) {
+            repeater->timer = 0.0f;
+            repeater->isRepeating = true;
+            return true;
+        }
+    } else {
+        // Fase 2: Ripetizione continua a ritmo fisso
+        if (repeater->timer >= repeater->repeatRate) {
+            repeater->timer -= repeater->repeatRate;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 // estrai il tag descriptor da libid3tag
 static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen) {
@@ -435,6 +486,16 @@ int main (int argc, char *argv[])
 			float maxDb = -0.0f; // sensibilita Decibel
 			float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
+
+		    // set key repeater speed (400ms initial delay, 80ms repeat rate)
+		    KeyRepeater repeater = {
+		        .currentKey = 0,
+		        .timer = 0.0f,
+		        .isRepeating = false,
+		        .firstDelay = 0.40f,
+		        .repeatRate = 0.064f
+		    };
+
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     // SetTargetFPS(60);
 	SetWindowSize(screenWidth,screenHeight);
@@ -616,25 +677,6 @@ while (!WindowShouldClose())
 							}
 					}
 
-				// if (IsKeyPressed(KEY_LEFT) && isPlay) // seek -10sec
-				// {
-				// 			if (timePlayed < 10.0f) {
-				// 				timePlayed = 0.0f; 
-				// 				SeekMusicStream(currMusic, 0.0f);
-				// 			}
-				// 			else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
-
-				// }
-
-				// if (IsKeyPressed(KEY_RIGHT) && isPlay) // seek +10sec
-				// {
-				// 			if (timePlayed + SEEK_TIME > (timeLength - FADE_TIME)) {
-				// 				timePlayed = 0.0f;
-				// 				SeekMusicStream(currMusic, 0.0f);
-				// 			}
-				// 			else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
-				// }
-
 				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
 					prevPlay = selectedIndex; //save for 1 shot prev.song
 					if (isShuffle) {
@@ -670,7 +712,7 @@ while (!WindowShouldClose())
 
 				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
 				if (IsKeyPressed(KEY_V)) isColorSpectrum = !isColorSpectrum;
-				if (IsKeyPressed(KEY_I)) isTooltip = !isTooltip;
+				if (IsKeyPressed(KEY_I)) isAlbumYearTag = !isAlbumYearTag;
 
 				// Quick copy of filename without path and extension, with keyboard shortcuts
 		        if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))
@@ -694,7 +736,7 @@ while (!WindowShouldClose())
 
 		//------------------------------------------------------------------------------
 		// scrollFiles with mouse and keybinding in music library
-		//------------------------------------------------------------------------------
+		//----------------------------------------------------------------------
 		if (!isVumeter) {
 			if (trackCount >= visibleRows) 
 			{
@@ -702,11 +744,12 @@ while (!WindowShouldClose())
 
 				if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
 				if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
-	
-				if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
-				if (IsKeyPressed(KEY_UP)) selectedIndex--;
-				if (IsKeyPressed(KEY_PAGE_DOWN)) selectedIndex = selectedIndex + 9;
-				if (IsKeyPressed(KEY_PAGE_UP)) selectedIndex = selectedIndex - 9;
+				// tasti con il repeat rate attivo -----------------------------
+		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) selectedIndex++;
+		        else if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) selectedIndex--;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, dt)) selectedIndex = selectedIndex + 9;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, dt)) selectedIndex = selectedIndex - 9;
+		        // -------------------------------------------------------------
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 					prevPlay = currPlay; //save for 1 shot prev.song
 					if (selectedIndex >= 0 && selectedIndex < trackCount) {
@@ -862,7 +905,7 @@ while (!WindowShouldClose())
 			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
 			
 			// song Artist or album|year info (KEYPRESS_I)
-			if (!isTooltip) DrawTextEx(artistFnt, TextFormat("%.50s",songId3.artist), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			if (!isAlbumYearTag) DrawTextEx(artistFnt, TextFormat("%.50s",songId3.artist), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 			else DrawTextEx(artistFnt, TextFormat("%.50s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 		EndScissorMode();
 
