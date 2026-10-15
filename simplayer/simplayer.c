@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.5.0"
+#define TOOL_VERSION            "2.5.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -568,14 +568,14 @@ while (!WindowShouldClose())
 // -----------------------------------------------------------------------------
 
 		// Set audio currVolume
-		if (IsKeyDown(KEY_PAGE_DOWN)) {
-			currVolume -= (currVolume >= 0.0f) ? 0.01f : 0.0f;
+		if (IsKeyPressed(KEY_LEFT)) {
+			currVolume -= (currVolume >= 0.0f) ? 0.05f : 0.0f;
 			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
-		if (IsKeyDown(KEY_PAGE_UP)) {
+		if (IsKeyPressed(KEY_RIGHT)) {
 			isMute = false;
-			currVolume += (currVolume <= 1.0f) ? 0.01f : 0.0f;
+			currVolume += (currVolume <= 1.0f) ? 0.05f : 0.0f;
 			if (currVolume > 1.0f) currVolume = 1.0f;
 		}
 
@@ -705,6 +705,8 @@ while (!WindowShouldClose())
 	
 				if (IsKeyPressed(KEY_DOWN)) selectedIndex++;
 				if (IsKeyPressed(KEY_UP)) selectedIndex--;
+				if (IsKeyPressed(KEY_PAGE_DOWN)) selectedIndex = selectedIndex + 9;
+				if (IsKeyPressed(KEY_PAGE_UP)) selectedIndex = selectedIndex - 9;
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 					prevPlay = currPlay; //save for 1 shot prev.song
 					if (selectedIndex >= 0 && selectedIndex < trackCount) {

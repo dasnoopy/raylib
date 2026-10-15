@@ -9,7 +9,7 @@ APP KEYBINDINGS
 
 Vumeter mode (default):
 ------------------------------------------------------------------
-[ Page UP/DOWN ] : volume UP / DOWN
+[ cursor left / right ] : volume up / down by 5%
 [ mouse click on progressbar area ]:  back and forth current audio track (seek +/-)
 [ SPACE ] : play/stop song
 [ I ]     : switch info between album & year and artist (default artist)
@@ -22,6 +22,7 @@ File Library:
 note: files are alphabetically ordered (case sensitive)
 -----------------------------------------------------------------
 [ cursor up/down ( or mouse wheel ) ] : select file in library
+[ page UP / DOWN ] : fast up or down scroll
 [ HOME ]  : goes to first song 
 [ END ]   : goes to last song
 [ 0-9 ]   : start to type index number and goes directly to numbered song
