@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.4.8"
+#define TOOL_VERSION            "2.5.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -199,11 +199,11 @@ AudioMetadata GetMp3Metadata(const char *filePath) {
     }
 
     // Fallback Artista
-    if (strlen(meta.artist) == 0) strncpy(meta.artist, "Autore non definito", sizeof(meta.artist) - 1);
+    if (strlen(meta.artist) == 0) strncpy(meta.artist, "Artist not defined", sizeof(meta.artist) - 1);
     // Fallback Album
-    if (strlen(meta.album) == 0) strncpy(meta.album, "Album non definito", sizeof(meta.album) - 1);
+    if (strlen(meta.album) == 0) strncpy(meta.album, "Album not defined", sizeof(meta.album) - 1);
     // Fallback Anno/Data
-    if (strlen(meta.year) == 0) strncpy(meta.year, "....", sizeof(meta.year) - 1);
+    if (strlen(meta.year) == 0) strncpy(meta.year, "...", sizeof(meta.year) - 1);
 
     return meta;
 }
@@ -453,13 +453,14 @@ while (!WindowShouldClose())
 		float timeLength = GetMusicTimeLength(currMusic);
 		float timeRemaining = timeLength - timePlayed;
 		float timeProgress = (timeLength > 0.0f) ? (timePlayed / timeLength) : 0.0f;
+		// get frame time
+		float dt = GetFrameTime();
 
 		// set scroll text speed
-		Vector2 titleSize = MeasureTextEx(titleFnt, songId3.title, 36, 0);
+		Vector2 titleSize = MeasureTextEx(titleFnt, songId3.title, (float)titleFnt.baseSize, 0);
 		float titleWidth = titleSize.x;
-
 		bool needScroll = titleWidth > displayArea.width;
-		float dt = GetFrameTime();
+
 		if (needScroll) {
 			titleX -= (speed * dt);
 			if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
@@ -859,8 +860,8 @@ while (!WindowShouldClose())
 			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
 			
 			// song Artist or album|year info (KEYPRESS_I)
-			if (!isTooltip) DrawTextEx(artistFnt, songId3.artist, (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
-			else DrawTextEx(artistFnt, TextFormat("%s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			if (!isTooltip) DrawTextEx(artistFnt, TextFormat("%.50s",songId3.artist), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			else DrawTextEx(artistFnt, TextFormat("%.50s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 		EndScissorMode();
 
 		// file type / KHz / stereo - mono  of current song
@@ -912,8 +913,9 @@ while (!WindowShouldClose())
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-5, dimColor);
-							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+							
+							//DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-6, (drawActiveSegment || drawPeakSegment) ? dimColor:darkenColor(dimColor,0.80f));
+							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-5, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
 		EndScissorMode();
