@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.2"
+#define TOOL_VERSION            "2.6.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -403,7 +403,7 @@ int main (int argc, char *argv[])
 
 	// Set UI style
 	// Custom GUI font loading
-	Font titleFnt = LoadFontEx("fonts/ManropeV5-Bold.otf", 36, NULL, 0);
+	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, NULL, 0);
 	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
 	Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
 	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
@@ -476,7 +476,7 @@ int main (int argc, char *argv[])
 			Vector2 xyFlags= {556,8};
 
 			// progress bar area to use with mouse seek audio
-			Rectangle progressArea = { 272, 312, timeText.x, 58};
+			//Rectangle progressArea = { 272, 312, timeText.x, 58};
 
 		 	// vumeter
 			Complex fftBuffer[MAX_SAMPLES];
@@ -628,12 +628,12 @@ while (!WindowShouldClose())
 // -----------------------------------------------------------------------------
 
 		// Set audio currVolume
-		if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) {
+		if (UpdateKeyRepeater(&repeater, KEY_KP_SUBTRACT, dt)) {
 			currVolume -= (currVolume >= 0.0f) ? 0.05f : 0.0f;
 			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
-		if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)){
+		if (UpdateKeyRepeater(&repeater, KEY_KP_ADD, dt)){
 			isMute = false;
 			currVolume += (currVolume <= 1.0f) ? 0.05f : 0.0f;
 			if (currVolume > 1.0f) currVolume = 1.0f;
@@ -675,6 +675,19 @@ while (!WindowShouldClose())
 							 PlayMusicStream(currMusic);
 							}
 					}
+
+				if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt) && isPlay) // seek -10sec
+				{
+							if (timePlayed < 10.0f) SeekMusicStream(currMusic, 0.0f);
+							else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
+				}
+
+				if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt) && isPlay) // seek +10sec
+				{
+							if (timePlayed + SEEK_TIME > timeLength) SeekMusicStream(currMusic, timePlayed);
+							else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
+				}
+
 
 				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
 					prevPlay = selectedIndex; //save for 1 shot prev.song
@@ -720,17 +733,17 @@ while (!WindowShouldClose())
 		        }
 
 		        // SEEK via mouse click sul vumeter 
-		        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
-		        {
-		            Vector2 mousePos = GetMousePosition();
-		            // seek music
-		            if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
-		                mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
-			            {
-			                float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
-			                SeekMusicStream(currMusic, clickProgress * timeLength);
-			            }
-		        }
+		        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
+		        // {
+		        //     Vector2 mousePos = GetMousePosition();
+		        //     // seek music
+		        //     if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
+		        //         mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
+			    //         {
+			    //             float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
+			    //             SeekMusicStream(currMusic, clickProgress * timeLength);
+			    //         }
+		        // }
 	}
 
 		//------------------------------------------------------------------------------
