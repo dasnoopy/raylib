@@ -130,7 +130,7 @@ while (!WindowShouldClose())
 		// calendar header
 		Vector2 mywPos = MeasureTextEx(calFnt, buffer, calFnt.baseSize, 0);
 		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(WIDTH/2)-(mywPos.x/2),124},calFnt.baseSize,0,LIGHTGRAY);
-		DrawLineDashed((Vector2){16,142},(Vector2){WIDTH-16,142},1,1,GRAY);
+		DrawLineDashed((Vector2){10,142},(Vector2){WIDTH-10,142},1,1,GRAY);
 		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},calFnt.baseSize,0,GRAY);
 
 		// monthly calendar

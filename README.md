@@ -15,6 +15,7 @@ $ `pacman -S gcc raylib libid3tag` ** libid3tag for rmplayer
 3) to compile source code and get the executable:
 $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 
+4) Support notes & info in the readMe.txt located in each project folder..(if needed)
 4) run executable and enjoy!
 
 #### Simple Audio Player (modern style)

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.5"
+#define TOOL_VERSION            "2.6.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -79,7 +79,7 @@ bool isVumeter = true; // true:default : show 36 band equalizer , if set false s
 float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
-bool isColorSpectrum = false;
+bool isVumColored = true;
 bool isAlbumYearTag = false;
 
 // Music library && files management
@@ -723,7 +723,7 @@ while (!WindowShouldClose())
 				}
 
 				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-				if (IsKeyPressed(KEY_V)) isColorSpectrum = !isColorSpectrum;
+				if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
 				if (IsKeyPressed(KEY_I)) isAlbumYearTag = !isAlbumYearTag;
 
 				// Quick copy of filename without path and extension, with keyboard shortcuts
@@ -950,24 +950,23 @@ while (!WindowShouldClose())
 						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
 						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
-						// fade bar colors
-						if (isColorSpectrum) {
+						// bar color
+						if (isVumColored) {
 							barColor = colors[count];
-							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 							if (i < 17) count++;
 							else count = 17 - (i-17);
 							// if (i % 2) count++;
 						}
-						else {
-							barColor = darkenColor(accentColor,0.56f);
-							dimColor = darkenColor(accentColor,0.28f);
-						}
+						else barColor = darkenColor(accentColor,0.56f);
+						
+						// dimmed bar color
+						dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
 							
 							// peak color
-							if (j >= segmentsToLight && !isColorSpectrum) barColor = accentColor; 
+							if (j >= segmentsToLight && !isVumColored) barColor = accentColor; 
 							
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
