@@ -15,8 +15,8 @@ Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYB
 
 // NORD colors
 #define bgColor CLITERAL(Color){10, 20, 30, 248}
-//#define accentColor CLITERAL(Color){ 136, 192, 208, 255 }
-Color accentColor = SKYBLUE; //CLITERAL(Color){ 198, 208, 245, 255 }
+#define accentColor CLITERAL(Color){ 136, 192, 208, 255 }
+//Color accentColor = SKYBLUE; //CLITERAL(Color){ 198, 208, 245, 255 }
 
 // BCD dots color
 #define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
@@ -124,6 +124,35 @@ while (!WindowShouldClose())
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
 		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 36}, 88,0, WHITE);
 
+
+		// get week number
+		strftime(buffer, sizeof(buffer), "%B %G (w%V)", t);
+		// calendar header
+		//Vector2 mywPos = MeasureTextEx(calFnt, buffer, 16, 0);
+		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){12,128},16,0,LIGHTGRAY);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},16,0,GRAY);
+
+		// monthly calendar
+		start = getStartDay(month, year);
+		int days = getDays(month, year);
+		Color dayColor;
+		int offX=18;
+		int offY=164;
+		// calcola offset primo giorno del mese/settimanaa
+		for (int y = 0; y < start; y++) offX+=25;
+		// stampa giorni del mese
+		for (int i = 1; i <= days; i++)  {
+			if ( (i + start) % 7  == 0 || 6 - ((i + start)%7) == 0 )  dayColor = inner_Color;
+			else dayColor=WHITE;
+			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,accentColor);
+			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?BLACK:dayColor);
+		   	offX = offX + 25;
+		    if ( (i + start) % 7  == 0) {
+		    	offX = 18;
+		        offY = offY + 20;
+		    }
+		}
+
 		//BDC clock
 		snprintf(buffer, sizeof(buffer),"%02i:%02i:%02i", t->tm_hour, t->tm_min,t->tm_sec);
 		int num;
@@ -138,31 +167,6 @@ while (!WindowShouldClose())
 				dec2bin(44+(count*(size+dist)),340,size,num,outer_Color,accentColor);
 				count++;
 			}
-		}
-		// get week number
-		strftime(buffer, sizeof(buffer), "%B %G (week %V)", t);
-		// calendar header
-		Vector2 mywPos = MeasureTextEx(calFnt, buffer, 16, 0);
-		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(WIDTH - mywPos.x)/2,128},16,0,accentColor);
-		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},16,0,LIGHTGRAY);
-
-		// monthly calendar
-		start = getStartDay(month, year);
-		int days = getDays(month, year);
-
-		int offX=18;
-		int offY=164;
-		// calcola offset primo giorno del mese/settimanaa
-		for (int y = 0; y < start; y++) offX+=25;
-		// stampa giorni del mese
-		for (int i = 1; i <= days; i++)  {
-			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,accentColor);
-			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?BLACK:WHITE);
-		   	offX = offX + 25;
-		    if ( (i + start) % 7  == 0) {
-		    	offX = 18;
-		        offY = offY + 20;
-		    }
 		}
 
 		// get uptime and horizontal text centering

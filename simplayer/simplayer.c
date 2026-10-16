@@ -628,12 +628,12 @@ while (!WindowShouldClose())
 // -----------------------------------------------------------------------------
 
 		// Set audio currVolume
-		if (UpdateKeyRepeater(&repeater, KEY_KP_SUBTRACT, dt)) {
+		if (UpdateKeyRepeater(&repeater, KEY_KP_SUBTRACT, dt) || IsKeyPressed(KEY_F1)) {
 			currVolume -= (currVolume >= 0.0f) ? 0.05f : 0.0f;
 			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
-		if (UpdateKeyRepeater(&repeater, KEY_KP_ADD, dt)){
+		if (UpdateKeyRepeater(&repeater, KEY_KP_ADD, dt) || IsKeyPressed(KEY_F2)) {
 			isMute = false;
 			currVolume += (currVolume <= 1.0f) ? 0.05f : 0.0f;
 			if (currVolume > 1.0f) currVolume = 1.0f;
@@ -956,7 +956,7 @@ while (!WindowShouldClose())
 							dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 							if (i < 17) count++;
 							else count = 17 - (i-17);
-							// if (i %2) count++;
+							// if (i % 2) count++;
 						}
 						else {
 							barColor = darkenColor(accentColor,0.56f);

@@ -12,7 +12,7 @@ Global keybindings:
 [ S ]     : shuffle play on / off (default on)
 [ N ]     : play next song
 [ Z ]     : play previous song
-[ KP + / KP - ] : volume up / down by 5%
+[ F1 or KP+ / F2 or KP- ] : volume up / down by 5%
 [ cursor left/right ] : back and forth current track time position (seek +/-)
 [ V ]     : change spectrum visualizer color from mono to RGB (default mono)
 [ ctrl + C ] : copy in clipboard the title - artist info...
