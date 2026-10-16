@@ -115,22 +115,23 @@ while (!WindowShouldClose())
 
 		// format date and center horizontally
 		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
-		Vector2 datePos = MeasureTextEx(textFnt, buffer, 28, 0);
-		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 18}, 28,0, accentColor);
+		Vector2 datePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
+		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 18}, textFnt.baseSize,0, accentColor);
 
 
 		// format clock and centering horizontally
 		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
-		Vector2 timePos = MeasureTextEx(nothOS, buffer, 88, 0);
-		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 36}, 88,0, WHITE);
+		Vector2 timePos = MeasureTextEx(nothOS, buffer, nothOS.baseSize, 0);
+		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 36}, nothOS.baseSize,0, WHITE);
 
 
-		// get week number
+		// monthly calendar header and week number
 		strftime(buffer, sizeof(buffer), "%B %G (w%V)", t);
 		// calendar header
-		//Vector2 mywPos = MeasureTextEx(calFnt, buffer, 16, 0);
-		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){12,128},16,0,LIGHTGRAY);
-		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},16,0,GRAY);
+		Vector2 mywPos = MeasureTextEx(calFnt, buffer, calFnt.baseSize, 0);
+		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(WIDTH/2)-(mywPos.x/2),124},calFnt.baseSize,0,LIGHTGRAY);
+		DrawLineDashed((Vector2){16,142},(Vector2){WIDTH-16,142},1,1,GRAY);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},calFnt.baseSize,0,GRAY);
 
 		// monthly calendar
 		start = getStartDay(month, year);
@@ -145,7 +146,7 @@ while (!WindowShouldClose())
 			if ( (i + start) % 7  == 0 || 6 - ((i + start)%7) == 0 )  dayColor = inner_Color;
 			else dayColor=WHITE;
 			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,accentColor);
-			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},16,0,(i==t->tm_mday)?BLACK:dayColor);
+			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},calFnt.baseSize,0,(i==t->tm_mday)?BLACK:dayColor);
 		   	offX = offX + 25;
 		    if ( (i + start) % 7  == 0) {
 		    	offX = 18;
@@ -171,8 +172,8 @@ while (!WindowShouldClose())
 
 		// get uptime and horizontal text centering
 	    get_uptime();
-	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, 28, 0);
-	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-44}, 28,0, WHITE);
+	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
+	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-44}, textFnt.baseSize,0, WHITE);
 
 
 	EndDrawing();
