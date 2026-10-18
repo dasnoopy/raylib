@@ -10,10 +10,9 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.6.6"
+#define TOOL_VERSION            "2.7.1"
 
 #include <stdio.h>
-#include <time.h>
 #include <raylib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -71,7 +70,6 @@ typedef struct {
 #define SEEK_TIME 10.0f // seek time
 
 bool isPlay = true;
-bool isShuffle = true;
 bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
@@ -79,16 +77,17 @@ bool isVumeter = true; // true:default : show 36 band equalizer , if set false s
 float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
-bool isVumColored = true;
+bool isVumColored = false; //false:default : start with monocrome vumeter / true: use colored vumeter
 bool isAlbumYearTag = false;
 
 // Music library && files management
 #define FILTER_MP3      ".mp3"
 #define FILTER_OGG      ".ogg"
 
-size_t trackCount;
 #define MAX_FILES 4096
 #define MAX_NAME 1024
+bool isShuffle = true;
+int totalFiles = 0;
 char files[MAX_FILES][MAX_NAME];
 
 // barra path su Linux oppure su WIN
@@ -101,7 +100,7 @@ char files[MAX_FILES][MAX_NAME];
 // file selection
 int selectedIndex = 0; // selected song in the file list
 int currPlay = 0; //playing song
-int prevPlay = 0; //previous played song when shuffle is ON
+
 
 // Scala Dinamica Pastello: da Viola (Vivido) ad Azzurro (Ciano)
 #define color0  CLITERAL(Color){ 141,  90, 163, 255 } // Viola orchidea pastello (Inizio)
@@ -303,48 +302,6 @@ void LoadNextMusicByIndex(int idx) {
 	songId3 = GetMp3Metadata(files[idx]);
 }
 
-//------------------------------------------------------------------------------------
-// Audio processing function
-//------------------------------------------------------------------------------------
-
-// Struttura FFT In-Place
-void FFT(Complex *X, int n) {
-	if (n <= 1) return;
-	Complex *even = malloc(n / 2 * sizeof(Complex));
-	Complex *odd  = malloc(n / 2 * sizeof(Complex));
-	for (int i = 0; i < n / 2; i++) {
-		even[i] = X[2 * i];
-		odd[i]  = X[2 * i + 1];
-	}
-	FFT(even, n / 2);
-	FFT(odd, n / 2);
-	for (int k = 0; k < n / 2; k++) {
-		float angle = -2.0f * PI * k / n;
-		Complex t = {
-			.real = cosf(angle) * odd[k].real - sinf(angle) * odd[k].imag,
-			.imag = sinf(angle) * odd[k].real + cosf(angle) * odd[k].imag
-		};
-		X[k] = (Complex){ .real = even[k].real + t.real, .imag = even[k].imag + t.imag };
-		X[k + n / 2] = (Complex){ .real = even[k].real - t.real, .imag = even[k].imag - t.imag };
-	}
-	free(even);
-	free(odd);
-}
-
-void AudioProcessCallback(void *buffer, unsigned int frames) {
-	float *samples = (float *)buffer;
-	for (unsigned int i = 0; i < frames && i < MAX_SAMPLES; i++) {
-		// Attenuazione preventiva di sicurezza (0.1f) per evitare saturazione hardware
-		rawSamples[i] = samples[i * 2] * 0.1f; 
-	}
-}
-
-int compare_files(const void *a, const void *b) {
-	const char *fa = (const char *)a;
-	const char *fb = (const char *)b;
-	return strcmp(fa, fb); // case sensitive
-	//return strcasecmp((const char *)fa, (const char *)fb); // no case sensitive
-}
 
 void getMusicFolder(void) {
 	// currMusic folder must be a folder called "Music" inside your home dir (could be also aa symbolic link to real Music dir)
@@ -352,46 +309,131 @@ void getMusicFolder(void) {
 	strcat(currMusicDir,"/Music\0");
 }
 
+int compare_files(const void *a, const void *b) {
+    const char *path_a = (const char *)a;
+    const char *path_b = (const char *)b;
+
+    // ottieni solo nome del file usando raylib
+    const char *filename_a = GetFileName(path_a);
+    const char *filename_b = GetFileName(path_b);
+    
+    // Confronto case sensitive...A <> a
+    //return strcmp(filename_a, filename_b);
+    
+    // Confronto case insensitive A = a
+    return strcasecmp(filename_a, filename_b);
+}
+
 int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
+    // Controllo numero files
+    if (count >= MAX_FILES) return count;
 
-	if (!DirectoryExists(path)) {
-		// Failed to locate, write the error and kill the program.
-		TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", currMusicDir);
-		exit(1);
-	}   
+    // controllo percorso se esiste o meno...
+    if (!DirectoryExists(path)) {
+        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
+        exit(1);
+    }   
 
-	DIR *dir = opendir(path);
-	struct dirent *entry;
+    DIR *dir = opendir(path);
+    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
 
-	while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
-		const char *name = entry->d_name;
+    struct dirent *entry;
 
-		// salta "." e ".."
-		if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+    // Controllo sul limite ad ogni iterazione
+    while ((entry = readdir(dir)) != NULL) {
+        if (count >= MAX_FILES) break; 
 
-		char fullpath[512];
-		snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+        const char *name = entry->d_name;
 
-		struct stat st;
-		if (stat(fullpath, &st) == -1) continue;
+        // Salta "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
 
-		// se directory procedi con ricorsione
-		if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
-		// se è file → controlla estensione
-		else if (S_ISREG(st.st_mode)) {
-			const char *ext = strrchr(name, '.');
+        // MAX_NAME lunghezza massima del path+filename
+        char fullpath[MAX_NAME];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
 
-			if (ext && ( strcmp(ext, FILTER_MP3) == 0  || strcmp(ext, FILTER_OGG) == 0)) {
-				 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
-				if (written >= 0 && written < MAX_NAME) count++;
-			}
-		}
-	}
-	closedir(dir);
-	// sort files list
-	qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
-	return count;
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // Se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) {
+            count = load_files_recursive(fullpath, files, count);
+        }
+        // Se è un file controlla l'estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && (strcmp(ext, FILTER_MP3) == 0 || strcmp(ext, FILTER_OGG) == 0)) {
+                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) {
+                    count++;
+                }
+            }
+        }
+    }
+    closedir(dir);
+    return count;
+}
+
+void shuffle_files(char files[MAX_FILES][MAX_NAME], int count) 
+{
+    // Se c'è solo un file o nessuno, non serve mescolare
+    if (count <= 1) return;
+
+    // Variabile temporanea per lo scambio delle stringhe
+    char temp[MAX_NAME];
+
+    // Algoritmo di Fisher-Yates
+    for (int i = count - 1; i > 0; i--) {
+        // Sceglie un indice casuale tra 0 e i (inclusi)
+        int j = GetRandomValue(0, i);
+
+        // Se l'indice è identico, salta lo scambio (evita doppioni)
+        if (i == j) continue;
+
+        // Scambia files[i] con files[j]
+        strcpy(temp, files[i]);
+        strcpy(files[i], files[j]);
+        strcpy(files[j], temp);
+    }
+}
+
+
+//------------------------------------------------------------------------------------
+// Audio processing function
+//------------------------------------------------------------------------------------
+
+// Struttura FFT In-Place
+void FFT(Complex *X, int n) {
+    if (n <= 1) return;
+    Complex *even = malloc(n / 2 * sizeof(Complex));
+    Complex *odd  = malloc(n / 2 * sizeof(Complex));
+    for (int i = 0; i < n / 2; i++) {
+        even[i] = X[2 * i];
+        odd[i]  = X[2 * i + 1];
+    }
+    FFT(even, n / 2);
+    FFT(odd, n / 2);
+    for (int k = 0; k < n / 2; k++) {
+        float angle = -2.0f * PI * k / n;
+        Complex t = {
+            .real = cosf(angle) * odd[k].real - sinf(angle) * odd[k].imag,
+            .imag = sinf(angle) * odd[k].real + cosf(angle) * odd[k].imag
+        };
+        X[k] = (Complex){ .real = even[k].real + t.real, .imag = even[k].imag + t.imag };
+        X[k + n / 2] = (Complex){ .real = even[k].real - t.real, .imag = even[k].imag - t.imag };
+    }
+    free(even);
+    free(odd);
+}
+
+void AudioProcessCallback(void *buffer, unsigned int frames) {
+    float *samples = (float *)buffer;
+    for (unsigned int i = 0; i < frames && i < MAX_SAMPLES; i++) {
+        // Attenuazione preventiva di sicurezza (0.1f) per evitare saturazione hardware
+        rawSamples[i] = samples[i * 2] * 0.1f; 
+    }
 }
 
 int main (int argc, char *argv[]) 
@@ -432,68 +474,72 @@ int main (int argc, char *argv[])
 	InitAudioDevice();
 	SetAudioStreamBufferSizeDefault(65535);
 
-// file open/save variables
 
-			// load currMusic files into array
-			getMusicFolder();
-			int trackCount = load_files_recursive(currMusicDir, files, 0);
+	// load currMusic files into array
+	getMusicFolder();
+	int totalFiles = load_files_recursive(currMusicDir, files, 0);
 
-			// load first song to play  based on shuffle setting
-				selectedIndex = isShuffle ? GetRandomValue(0,trackCount-1) : 0;
-				LoadMusicByIndex(selectedIndex);
-				prevPlay=selectedIndex;
+    // 2. Ordina file all' inizio se non è richiesto lo shuffle
+    if (!isShuffle && totalFiles > 0) {
+        qsort(files, totalFiles, MAX_NAME, compare_files); 
+    }
+    else shuffle_files(files, totalFiles);
 
-			// auto play song at start
-			if (isPlay) {
-				isStop=false;
-				isPause =false;
-				PlayMusicStream(currMusic);  // autoplay at start
-			}
+	// load first song to play  based on shuffle setting
+		selectedIndex = 0;
+		LoadMusicByIndex(selectedIndex);
 
-			// init Audio Processor
-			AttachAudioMixedProcessor(AudioProcessCallback);
+	// auto play song at start
+	if (isPlay) {
+		isStop=false;
+		isPause =false;
+		PlayMusicStream(currMusic);  // autoplay at start
+	}
 
-			// scroll title / id3
-			Rectangle displayArea = { 18, 18, 532,90 };
-			float titleX = displayArea.x ;
-			float speed = 60.0f;
+	// init Audio Processor
+	AttachAudioMixedProcessor(AudioProcessCallback);
 
-			// filelist variables
-			Rectangle filesArea = { 16,96,screenWidth-32,206 };
-			int rowHeight = 23;
-			int visibleRows = 9;
-			const int centerRow = 4;
-			int scrollOffset = 0;     // primo file visualizzato
+	// scroll title / id3
+	Rectangle displayArea = { 18, 18, 532,90 };
+	float titleX = displayArea.x ;
+	float speed = 60.0f;
 
-			// visualizer  area / variables for effects
-			Rectangle visArea = {14,102,screenWidth-28,192};
+	// filelist variables
+	Rectangle filesArea = { 16,96,screenWidth-32,206 };
+	int rowHeight = 23;
+	int visibleRows = 9;
+	const int centerRow = 4;
+	int scrollOffset = 0;     // primo file visualizzato
 
-			//infoArea e calcolo lunghezza timeProgressbar
-			Rectangle infoArea = {18,312,screenWidth-30,110};
-			Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
+	// visualizer  area / variables for effects
+	Rectangle visArea = {14,102,screenWidth-28,192};
 
-			// flag area / currMusic file info
-			Vector2 xyFlags= {556,8};
+	//infoArea e calcolo lunghezza timeProgressbar
+	Rectangle infoArea = {18,312,screenWidth-30,110};
+	Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
 
-			// progress bar area to use with mouse seek audio
-			//Rectangle progressArea = { 272, 312, timeText.x, 58};
+	// flag area / currMusic file info
+	Vector2 xyFlags= {556,8};
 
-		 	// vumeter
-			Complex fftBuffer[MAX_SAMPLES];
-			// Parametri dinamici di calibrazione
-			float minDb = -55.0f; 
-			float maxDb = -0.0f; // sensibilita Decibel
-			float maxSeenMagnitude = 0.01f; // Auto-gain tracker
+	// progress bar area to use with mouse seek audio
+	//Rectangle progressArea = { 272, 312, timeText.x, 58};
+
+ 	// vumeter
+	Complex fftBuffer[MAX_SAMPLES];
+	// Parametri dinamici di calibrazione
+	float minDb = -55.0f; 
+	float maxDb = -0.0f; // sensibilita Decibel
+	float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
 
-		    // set key repeater speed (400ms initial delay, 80ms repeat rate)
-		    KeyRepeater repeater = {
-		        .currentKey = 0,
-		        .timer = 0.0f,
-		        .isRepeating = false,
-		        .firstDelay = 0.40f,
-		        .repeatRate = 0.064f
-		    };
+    // set key repeater speed (400ms initial delay, 80ms repeat rate)
+    KeyRepeater repeater = {
+        .currentKey = 0,
+        .timer = 0.0f,
+        .isRepeating = false,
+        .firstDelay = 0.40f,
+        .repeatRate = 0.064f
+    };
 
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     // SetTargetFPS(60);
@@ -557,17 +603,7 @@ while (!WindowShouldClose())
 				// Se mancano meno di FADE_TIME secondi alla fine dell brano corrente  parte il crossfade
 				if (timeRemaining <= FADE_TIME && timeLength > FADE_TIME) 
 				{
-					prevPlay=selectedIndex;
-					// Passa al brano successivo (se SHUFFLE brano a caso altrimenti successivo nella lista)
-					if (isShuffle) {
-						int shuffleIndex = GetRandomValue(0,trackCount-1);
-						if (shuffleIndex == trackCount) --shuffleIndex;
-						// if new song is equal to current , select next one
-						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
-						selectedIndex = shuffleIndex;
-						} 
-					else selectedIndex = (selectedIndex + 1) % trackCount;
-					
+					selectedIndex = (selectedIndex + 1) % totalFiles;
 					LoadNextMusicByIndex(selectedIndex);
 					SetMusicVolume(nextMusic, 0.0f); // Parte silenzioso
 					PlayMusicStream(nextMusic);
@@ -579,16 +615,7 @@ while (!WindowShouldClose())
 				else if ((!IsMusicStreamPlaying(currMusic) || timeRemaining <= 0.1f) && !isPause && !isStop)
 				{
 					UnloadMusicStream(currMusic);
-				  prevPlay=selectedIndex;
-					if (isShuffle) {
-						int shuffleIndex = GetRandomValue(0,trackCount-1);
-						if (shuffleIndex == trackCount) --shuffleIndex;
-						// if new song is equal to current , select next one
-						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
-						selectedIndex = shuffleIndex;
-						} 
-					else selectedIndex = (selectedIndex + 1) % trackCount;
-					
+                    selectedIndex = (selectedIndex + 1) % totalFiles;
 					LoadMusicByIndex(selectedIndex);
 					SetMusicVolume(currMusic, currVolume);
 					PlayMusicStream(currMusic);
@@ -690,16 +717,8 @@ while (!WindowShouldClose())
 
 
 				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
-					prevPlay = selectedIndex; //save for 1 shot prev.song
-					if (isShuffle) {
-						int shuffleIndex = GetRandomValue(0,trackCount-1);
-						if (shuffleIndex == trackCount) --shuffleIndex;
-						// if new song is equal to current , select next one
-						if (trackCount > 0 && shuffleIndex == selectedIndex) shuffleIndex = (shuffleIndex + 1) % trackCount;
-						selectedIndex = shuffleIndex;
-						} 
-					else selectedIndex = (selectedIndex + 1) % trackCount;
 
+                        selectedIndex = (selectedIndex + 1) % totalFiles;
 						StopMusicStream(currMusic);
 						UnloadMusicStream(currMusic);
 						LoadMusicByIndex(selectedIndex);
@@ -709,9 +728,8 @@ while (!WindowShouldClose())
 						isPause=false;
 					}
 
-				if (IsKeyPressed(KEY_Z)) { // Previous song : no shuffle on previous song
-						if (isShuffle) selectedIndex = prevPlay;
-						else selectedIndex--;
+				if (IsKeyPressed(KEY_Z)) { 
+                        selectedIndex--;
 						if (selectedIndex < 0) selectedIndex=0;
 						StopMusicStream(currMusic);
 						UnloadMusicStream(currMusic);
@@ -722,8 +740,13 @@ while (!WindowShouldClose())
 						isPause=false;
 				}
 
-				if (IsKeyPressed(KEY_S)) isShuffle = !isShuffle;
-				if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
+				if (IsKeyPressed(KEY_S)) {
+                    isShuffle = !isShuffle;
+                    if (isShuffle) shuffle_files(files, totalFiles);
+                    else qsort(files, totalFiles, MAX_NAME, compare_files);  // ordinamento file
+				    }
+                    
+                if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
 				if (IsKeyPressed(KEY_I)) isAlbumYearTag = !isAlbumYearTag;
 
 				// Quick copy of filename without path and extension, with keyboard shortcuts
@@ -750,12 +773,12 @@ while (!WindowShouldClose())
 		// scrollFiles with mouse and keybinding in music library
 		//----------------------------------------------------------------------
 		if (!isVumeter) {
-			if (trackCount >= visibleRows) 
+			if (totalFiles >= visibleRows) 
 			{
 				selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
 
 				if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
-				if (IsKeyPressed(KEY_END)) selectedIndex = trackCount -1;
+				if (IsKeyPressed(KEY_END)) selectedIndex = totalFiles -1;
 				// tasti con il repeat rate attivo -----------------------------
 		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) selectedIndex++;
 		        else if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) selectedIndex--;
@@ -763,8 +786,7 @@ while (!WindowShouldClose())
 		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, dt)) selectedIndex = selectedIndex - 9;
 		        // -------------------------------------------------------------
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
-					prevPlay = currPlay; //save for 1 shot prev.song
-					if (selectedIndex >= 0 && selectedIndex < trackCount) {
+					if (selectedIndex >= 0 && selectedIndex < totalFiles) {
 						StopMusicStream(currMusic);
 						//UnloadMusicStream(currMusic);
 						LoadMusicByIndex(selectedIndex);
@@ -777,7 +799,7 @@ while (!WindowShouldClose())
 					}
 				// checks
 				if (selectedIndex < 0) selectedIndex=0;
-				if (selectedIndex > trackCount-1) selectedIndex=trackCount-1;
+				if (selectedIndex > totalFiles-1) selectedIndex=totalFiles-1;
 			}
 
 		// --------------------------------------------------------------
@@ -802,7 +824,7 @@ while (!WindowShouldClose())
 				    hasTyped = true;
 
 				    // Controllo dei limiti sul numero digitato e numero brani
-				    if (inputBuffer >= trackCount) selectedIndex = trackCount - 1;
+				    if (inputBuffer >= totalFiles) selectedIndex = totalFiles - 1;
 				    else selectedIndex = inputBuffer - 1;
 				}
 
@@ -982,11 +1004,11 @@ while (!WindowShouldClose())
 			// draw file selection
 			//DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
 			BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
-				if (trackCount < visibleRows) visibleRows = trackCount;
+				if (totalFiles < visibleRows) visibleRows = totalFiles;
 
 				scrollOffset = selectedIndex - centerRow;
 				if (scrollOffset < 0) scrollOffset = 0;
-				int maxOffset = trackCount - visibleRows;
+				int maxOffset = totalFiles - visibleRows;
 				if (maxOffset < 0) maxOffset = 0;
 				if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
@@ -1002,7 +1024,7 @@ while (!WindowShouldClose())
 						// even/odd row background
 						//if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(accentColor,0.12f));
 						int fileIndex = scrollOffset + i;
-						if (fileIndex > trackCount) break;
+						if (fileIndex > totalFiles) break;
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
 							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
 							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
@@ -1030,7 +1052,7 @@ while (!WindowShouldClose())
 
 		// current song position / total songs
 		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%04d",trackCount),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%04d",totalFiles),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
 
 		// STOP flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+298,4,12,isStop ? accentColor:borderColor);
@@ -1049,8 +1071,8 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 		//statusbar with some info
-		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 8, screenHeight-16, 10, secondaryColor); 
-		DrawText(TextFormat("version %s", TOOL_VERSION), 18,screenHeight-18, 10, borderColor); 
+		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
+		DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();

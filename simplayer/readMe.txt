@@ -9,9 +9,9 @@ Global keybindings:
 [ SPACE ] : play/stop song
 [ I ]     : switch info between album & year and artist (default artist)
 [ M ]     : mute audio volume
-[ S ]     : shuffle play on / off (default on)
-[ N ]     : play next song
-[ Z ]     : play previous song
+[ S ]     : shuffle on : file list will be shuffled / Off: ordered list by filesystem loading
+[ N ]     : play next song in the list
+[ Z ]     : play previous song in the list
 [ F1 or KP+ / F2 or KP- ] : volume up / down by 5%
 [ cursor left/right ] : back and forth current track time position (seek +/-)
 [ V ]     : change spectrum visualizer color from mono to RGB (default mono)
