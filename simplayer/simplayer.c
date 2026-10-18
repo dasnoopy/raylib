@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.1"
+#define TOOL_VERSION            "2.7.2"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -80,15 +80,18 @@ char *currMusicDir;
 bool isVumColored = false; //false:default : start with monocrome vumeter / true: use colored vumeter
 bool isAlbumYearTag = false;
 
-// Music library && files management
+// files extension
 #define FILTER_MP3      ".mp3"
 #define FILTER_OGG      ".ogg"
 
+// file selection
 #define MAX_FILES 4096
 #define MAX_NAME 1024
+char files[MAX_FILES][MAX_NAME];
 bool isShuffle = true;
 int totalFiles = 0;
-char files[MAX_FILES][MAX_NAME];
+int selectedIndex = 0; // selected song in the file list
+int currPlay = 0; //playing song
 
 // barra path su Linux oppure su WIN
 #ifdef _WIN32
@@ -97,12 +100,7 @@ char files[MAX_FILES][MAX_NAME];
 #define SEPARATOR "/"
 #endif
 
-// file selection
-int selectedIndex = 0; // selected song in the file list
-int currPlay = 0; //playing song
-
-
-// Scala Dinamica Pastello: da Viola (Vivido) ad Azzurro (Ciano)
+// colori vumeter se colorato..
 #define color0  CLITERAL(Color){ 141,  90, 163, 255 } // Viola orchidea pastello (Inizio)
 #define color1  CLITERAL(Color){ 131,  92, 166, 255 } // Viola ametista
 #define color2  CLITERAL(Color){ 120,  95, 168, 255 } // Viola profondo morbido
@@ -159,7 +157,8 @@ void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color
   DrawRectangleRounded ( rect, radius, segs, color );
 }
 
-// Funzione che aggiorna lo stato e restituisce true se l'azione deve essere eseguita
+// Funzione che aggiorna lo stato delle pressione di un tasto
+// e restituisce true se l'azione deve essere eseguita
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
     // Se il tasto passato non è premuto, non fare nulla
     if (!IsKeyDown(key)) {
@@ -184,24 +183,23 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
     repeater->timer += dt;
 
     if (!repeater->isRepeating) {
-        // Fase 1: Aspetta il delay iniziale
+        // ritardo iniziale
         if (repeater->timer >= repeater->firstDelay) {
             repeater->timer = 0.0f;
             repeater->isRepeating = true;
             return true;
         }
     } else {
-        // Fase 2: Ripetizione continua a ritmo fisso
+        // ripetizione continua e rate
         if (repeater->timer >= repeater->repeatRate) {
             repeater->timer -= repeater->repeatRate;
             return true;
         }
     }
-
     return false;
 }
 
-// estrai il tag descriptor da libid3tag
+// estrai ID3 tag descriptor usando libid3tag
 static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen) {
     if (frame && frame->nfields > 1) {
         id3_ucs4_t const *ucs4 = id3_field_getstrings(&frame->fields[1], 0);
@@ -218,7 +216,7 @@ static void ExtractTagString(struct id3_frame *frame, char *dest, size_t maxLen)
     dest[0] = '\0';
 }
 
-// Legge i tag o applica il fallback dal nome del file
+// Legge i tagID3 o applica il fallback dal nome del file
 AudioMetadata GetMp3Metadata(const char *filePath) {
     AudioMetadata meta = { 0 };
 
@@ -290,16 +288,16 @@ Color lightenColor(Color color, float factor)
 	};
 }
 
-void LoadMusicByIndex(int idx) {
-	currPlay = idx;
-	currMusic = LoadMusicStream(files[idx]);
-	songId3 = GetMp3Metadata(files[idx]);
+void LoadMusicByIndex(int index) {
+	currPlay = index;
+	currMusic = LoadMusicStream(files[index]);
+	songId3 = GetMp3Metadata(files[index]);
 }
 
-void LoadNextMusicByIndex(int idx) {
-	currPlay = idx;
-	nextMusic = LoadMusicStream(files[idx]);
-	songId3 = GetMp3Metadata(files[idx]);
+void LoadNextMusicByIndex(int index) {
+	currPlay = index;
+	nextMusic = LoadMusicStream(files[index]);
+	songId3 = GetMp3Metadata(files[index]);
 }
 
 
@@ -309,11 +307,11 @@ void getMusicFolder(void) {
 	strcat(currMusicDir,"/Music\0");
 }
 
-int compare_files(const void *a, const void *b) {
+int compareFiles(const void *a, const void *b) {
     const char *path_a = (const char *)a;
     const char *path_b = (const char *)b;
 
-    // ottieni solo nome del file usando raylib
+    // estrapola nome del file dalla path completo, usando raylib
     const char *filename_a = GetFileName(path_a);
     const char *filename_b = GetFileName(path_b);
     
@@ -324,7 +322,7 @@ int compare_files(const void *a, const void *b) {
     return strcasecmp(filename_a, filename_b);
 }
 
-int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
     // Controllo numero files
     if (count >= MAX_FILES) return count;
@@ -358,7 +356,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
 
         // Se directory procedi con ricorsione
         if (S_ISDIR(st.st_mode)) {
-            count = load_files_recursive(fullpath, files, count);
+            count = loadFilesRecursive(fullpath, files, count);
         }
         // Se è un file controlla l'estensione
         else if (S_ISREG(st.st_mode)) {
@@ -376,7 +374,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
     return count;
 }
 
-void shuffle_files(char files[MAX_FILES][MAX_NAME], int count) 
+void shuffleFiles(char files[MAX_FILES][MAX_NAME], int count) 
 {
     // Se c'è solo un file o nessuno, non serve mescolare
     if (count <= 1) return;
@@ -398,7 +396,6 @@ void shuffle_files(char files[MAX_FILES][MAX_NAME], int count)
         strcpy(files[j], temp);
     }
 }
-
 
 //------------------------------------------------------------------------------------
 // Audio processing function
@@ -474,16 +471,15 @@ int main (int argc, char *argv[])
 	InitAudioDevice();
 	SetAudioStreamBufferSizeDefault(65535);
 
-
-	// load currMusic files into array
+	// load music files into array
 	getMusicFolder();
-	int totalFiles = load_files_recursive(currMusicDir, files, 0);
+	int totalFiles = loadFilesRecursive(currMusicDir, files, 0);
 
-    // 2. Ordina file all' inizio se non è richiesto lo shuffle
+    // 2. Ordina o mescola files nella lista
     if (!isShuffle && totalFiles > 0) {
-        qsort(files, totalFiles, MAX_NAME, compare_files); 
+        qsort(files, totalFiles, MAX_NAME, compareFiles); 
     }
-    else shuffle_files(files, totalFiles);
+    else shuffleFiles(files, totalFiles);
 
 	// load first song to play  based on shuffle setting
 		selectedIndex = 0;
@@ -729,7 +725,7 @@ while (!WindowShouldClose())
 					}
 
 				if (IsKeyPressed(KEY_Z)) { 
-                        selectedIndex--;
+                        selectedIndex-=1;
 						if (selectedIndex < 0) selectedIndex=0;
 						StopMusicStream(currMusic);
 						UnloadMusicStream(currMusic);
@@ -742,8 +738,8 @@ while (!WindowShouldClose())
 
 				if (IsKeyPressed(KEY_S)) {
                     isShuffle = !isShuffle;
-                    if (isShuffle) shuffle_files(files, totalFiles);
-                    else qsort(files, totalFiles, MAX_NAME, compare_files);  // ordinamento file
+                    if (isShuffle) shuffleFiles(files, totalFiles);
+                    else qsort(files, totalFiles, MAX_NAME, compareFiles);  // ordinamento file
 				    }
                     
                 if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
@@ -782,8 +778,8 @@ while (!WindowShouldClose())
 				// tasti con il repeat rate attivo -----------------------------
 		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) selectedIndex++;
 		        else if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) selectedIndex--;
-		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, dt)) selectedIndex = selectedIndex + 9;
-		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, dt)) selectedIndex = selectedIndex - 9;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, dt)) selectedIndex += 9;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, dt)) selectedIndex -= 9;
 		        // -------------------------------------------------------------
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 					if (selectedIndex >= 0 && selectedIndex < totalFiles) {
