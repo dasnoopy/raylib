@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.2"
+#define TOOL_VERSION            "2.7.3"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -642,7 +642,7 @@ while (!WindowShouldClose())
 					currMusic = nextMusic;        // e la nuova canzone diventa quella corrente
 					SetMusicVolume(currMusic, currVolume); // Assicurati che la nuova sia a pieno volume
 					state = STATE_PLAYING_SINGLE;    // Ritorna allo stato normale
-					selectedIndex = currPlay;
+					currPlay = selectedIndex;
 					// aggiorna info brano
 					songId3 = GetMp3Metadata(files[selectedIndex]);
 				}
@@ -740,6 +740,11 @@ while (!WindowShouldClose())
                     isShuffle = !isShuffle;
                     if (isShuffle) shuffleFiles(files, totalFiles);
                     else qsort(files, totalFiles, MAX_NAME, compareFiles);  // ordinamento file
+
+                    // ricarica subito la canzone presente nella stessa posizione prima dello shuffle on/off
+                        StopMusicStream(currMusic);
+                        LoadMusicByIndex(currPlay);
+                        PlayMusicStream(currMusic);
 				    }
                     
                 if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
@@ -751,18 +756,6 @@ while (!WindowShouldClose())
 		            if (IsKeyPressed(KEY_C)) SetClipboardText(GetFileNameWithoutExt(files[selectedIndex]));
 		        }
 
-		        // SEEK via mouse click sul vumeter 
-		        // if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsMusicStreamPlaying(currMusic))
-		        // {
-		        //     Vector2 mousePos = GetMousePosition();
-		        //     // seek music
-		        //     if (mousePos.x >= progressArea.x && mousePos.x <= (progressArea.x + progressArea.width) &&
-		        //         mousePos.y >= progressArea.y && mousePos.y <= (progressArea.y + progressArea.height)) 
-			    //         {
-			    //             float clickProgress = (mousePos.x - progressArea.x) / (float)progressArea.width;
-			    //             SeekMusicStream(currMusic, clickProgress * timeLength);
-			    //         }
-		        // }
 	}
 
 		//------------------------------------------------------------------------------
