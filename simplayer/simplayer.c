@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.3"
+#define TOOL_VERSION            "2.7.4"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -599,8 +599,9 @@ while (!WindowShouldClose())
 				// Se mancano meno di FADE_TIME secondi alla fine dell brano corrente  parte il crossfade
 				if (timeRemaining <= FADE_TIME && timeLength > FADE_TIME) 
 				{
-					selectedIndex = (selectedIndex + 1) % totalFiles;
-					LoadNextMusicByIndex(selectedIndex);
+                    currPlay = (currPlay + 1) % totalFiles;
+                    selectedIndex = currPlay;
+					LoadNextMusicByIndex(currPlay);
 					SetMusicVolume(nextMusic, 0.0f); // Parte silenzioso
 					PlayMusicStream(nextMusic);
 					fadeTimer = 0.0f;
@@ -611,8 +612,8 @@ while (!WindowShouldClose())
 				else if ((!IsMusicStreamPlaying(currMusic) || timeRemaining <= 0.1f) && !isPause && !isStop)
 				{
 					UnloadMusicStream(currMusic);
-                    selectedIndex = (selectedIndex + 1) % totalFiles;
-					LoadMusicByIndex(selectedIndex);
+                    currPlay = (currPlay + 1) % totalFiles;
+					LoadMusicByIndex(currPlay);
 					SetMusicVolume(currMusic, currVolume);
 					PlayMusicStream(currMusic);
 
@@ -642,7 +643,7 @@ while (!WindowShouldClose())
 					currMusic = nextMusic;        // e la nuova canzone diventa quella corrente
 					SetMusicVolume(currMusic, currVolume); // Assicurati che la nuova sia a pieno volume
 					state = STATE_PLAYING_SINGLE;    // Ritorna allo stato normale
-					currPlay = selectedIndex;
+					selectedIndex = currPlay;
 					// aggiorna info brano
 					songId3 = GetMp3Metadata(files[selectedIndex]);
 				}
@@ -712,28 +713,32 @@ while (!WindowShouldClose())
 				}
 
 
-				if (IsKeyPressed(KEY_N)) { // Next song based on SHUFFLE setting
-
-                        selectedIndex = (selectedIndex + 1) % totalFiles;
+				if (IsKeyPressed(KEY_N)) { // Next song
+                        currPlay = (currPlay + 1) % totalFiles;
+                        selectedIndex = currPlay;
 						StopMusicStream(currMusic);
 						UnloadMusicStream(currMusic);
-						LoadMusicByIndex(selectedIndex);
+						LoadMusicByIndex(currPlay);
 						PlayMusicStream(currMusic);
 						isStop=false;
 						isPlay=true;
 						isPause=false;
 					}
 
-				if (IsKeyPressed(KEY_Z)) { 
-                        selectedIndex-=1;
-						if (selectedIndex < 0) selectedIndex=0;
+				if (IsKeyPressed(KEY_Z)) { //previous song
+                        currPlay-=1;
+
+                        if (currPlay < 0) currPlay=0;
+                        else {
+                        selectedIndex = currPlay;
 						StopMusicStream(currMusic);
 						UnloadMusicStream(currMusic);
-						LoadMusicByIndex(selectedIndex);
+						LoadMusicByIndex(currPlay);
 						PlayMusicStream(currMusic);
 						isStop=false;
 						isPlay=true;
 						isPause=false;
+                    }
 				}
 
 				if (IsKeyPressed(KEY_S)) {
@@ -768,6 +773,7 @@ while (!WindowShouldClose())
 
 				if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
 				if (IsKeyPressed(KEY_END)) selectedIndex = totalFiles -1;
+
 				// tasti con il repeat rate attivo -----------------------------
 		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) selectedIndex++;
 		        else if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) selectedIndex--;
@@ -776,9 +782,10 @@ while (!WindowShouldClose())
 		        // -------------------------------------------------------------
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 					if (selectedIndex >= 0 && selectedIndex < totalFiles) {
-						StopMusicStream(currMusic);
+						currPlay = selectedIndex;
+                        StopMusicStream(currMusic);
 						//UnloadMusicStream(currMusic);
-						LoadMusicByIndex(selectedIndex);
+						LoadMusicByIndex(currPlay);
 						PlayMusicStream(currMusic);
 						//UpdateMusicStream(currMusic);
 						isStop=false;
@@ -1040,8 +1047,8 @@ while (!WindowShouldClose())
 		DrawTextEx(digitFnt,totTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y+35},(float)digitFnt.baseSize,0, secondaryColor);
 
 		// current song position / total songs
-		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%04d",totalFiles),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%04d",currPlay + 1),(Vector2){infoArea.x+210,infoArea.y+20},(float)defaultFnt.baseSize,1, accentColor);
+		DrawTextEx(defaultFnt,TextFormat("%04d",totalFiles),(Vector2){infoArea.x+360,infoArea.y+20},(float)defaultFnt.baseSize,1, accentColor);
 
 		// STOP flag
 		DrawRectangle(xyFlags.x-8,xyFlags.y+298,4,12,isStop ? accentColor:borderColor);
