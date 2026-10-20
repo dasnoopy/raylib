@@ -176,22 +176,23 @@ int main (int argc, char *argv[])
 	InitWindow(screenWidth, screenHeight, "rcalendar");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
-  Font textFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/SF-Mono-Semibold.ttf", 52, NULL, 0); 
-  Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
+  Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 72, NULL, 0); 
+  Font calFnt = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 16, NULL, 0); // all other text
 
     // dimensioni orologio
-    Rectangle clockRect = { 12,54,screenWidth-24,80};
+    Rectangle clockRect = { 18,52,screenWidth-36,88};
     
     // roundess globale orologio
     // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
     float cornerRadius = 12.0f; 
 
-    SetTargetFPS(60);
+    SetTargetFPS(5); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
 
     // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     SetWindowSize(screenWidth,screenHeight);
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    SetWindowPosition(8,GetMonitorHeight(0) - screenHeight -8);  
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose()) {
@@ -211,6 +212,7 @@ while (!WindowShouldClose()) {
 		BeginDrawing();
 		ClearBackground (bgColor);
 
+        DrawRectangleLines(0,0,screenWidth,screenHeight, outer_Color);
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 
@@ -220,11 +222,9 @@ while (!WindowShouldClose()) {
 		// format date and center horizontally
 		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
-		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, accentColor);
+		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, WHITE);
 
-
-
-            // Disegno dei 60 marker 
+            // Disegno dei 60 secondi
             for (int i = 0; i < 60; i++) 
             {
                 float progress = (float)i / 60.0f;
@@ -264,13 +264,10 @@ while (!WindowShouldClose()) {
                 DrawCircle(startPoint.x, startPoint.y, thickness, markerColor);
                 }
 
-
-
-
 		// format clock and centering horizontally
-		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
+		snprintf(buffer, sizeof(buffer),"%02i%02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, nothOS.baseSize, 0);
-		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(screenWidth - timePos.x)/2, 68}, nothOS.baseSize,0, WHITE);
+		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(screenWidth - timePos.x)/2, 60}, nothOS.baseSize,0, accentColor);
 
 
 		// monthly calendar header and week number
@@ -278,13 +275,13 @@ while (!WindowShouldClose()) {
 		// calendar header
 		Vector2 mywPos = MeasureTextEx(calFnt, buffer, calFnt.baseSize, 0);
 		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(screenWidth/2)-(mywPos.x/2),156},calFnt.baseSize,0,LIGHTGRAY);
-		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,172},calFnt.baseSize,0,GRAY);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){20,172},calFnt.baseSize,0,GRAY);
 
 		// monthly calendar
 		start = getStartDay(month, year);
 		int days = getDays(month, year);
 		Color dayColor;
-		int offX=18;
+		int offX=22;
 		int offY=188;
 		// calcola offset primo giorno del mese/settimanaa
 		for (int y = 0; y < start; y++) offX+=25;
@@ -294,9 +291,9 @@ while (!WindowShouldClose()) {
 			else dayColor=WHITE;
 			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,accentColor);
 			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},calFnt.baseSize,0,(i==t->tm_mday)?BLACK:dayColor);
-		   	offX = offX + 25;
+		   	offX = offX + 24;
 		    if ( (i + start) % 7  == 0) {
-		    	offX = 18;
+		    	offX = 22;
 		        offY = offY + 20;
 		    }
 		}
