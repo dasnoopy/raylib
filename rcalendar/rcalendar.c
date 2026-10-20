@@ -192,11 +192,9 @@ int main (int argc, char *argv[])
     // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     SetWindowSize(screenWidth,screenHeight);
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
-    //SetWindowPosition(8,40);  
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose()) {
-
 //
 // Update
 //
@@ -204,10 +202,9 @@ while (!WindowShouldClose()) {
 
 	    Vector2 center = { clockRect.x + clockRect.width / 2.0f, clockRect.y + clockRect.height / 2.0f };
 	    
-	    // // do something when  window loses focus
+	    // do something when  window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
         else SetWindowOpacity(1.0f);
-
 //
 // Draw
 // 

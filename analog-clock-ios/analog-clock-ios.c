@@ -284,10 +284,10 @@ int main(void)
                 Vector2 hourEnd = { center.x + cosf(angleHour) * 54.0f, center.y + sinf(angleHour) * 54.0f };
                 DrawLineEx(center, hourEnd, 6.5f, currentTheme.hourHand);
                 // Minuti
-                Vector2 minEnd = { center.x + cosf(angleMin) * 74.0f, center.y + sinf(angleMin) * 74.0f };
+                Vector2 minEnd = { center.x + cosf(angleMin) * 72.0f, center.y + sinf(angleMin) * 72.0f };
                 DrawLineEx(center, minEnd, 4.5f, currentTheme.minHand);
                 // Secondi
-                Vector2 secEnd = { center.x + cosf(angleSec) * 88.0f, center.y + sinf(angleSec) * 88.0f };
+                Vector2 secEnd = { center.x + cosf(angleSec) * 82.0f, center.y + sinf(angleSec) * 82.0f };
                 Vector2 secBack = { center.x - cosf(angleSec) * 20.0f, center.y - sinf(angleSec) * 20.0f };
                 DrawLineEx(secBack, secEnd, 1.5f, currentTheme.secHand);
                 // Perno centrale
