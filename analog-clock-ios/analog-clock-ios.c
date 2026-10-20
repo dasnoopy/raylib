@@ -180,10 +180,10 @@ int main(void)
     // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     // SetTargetFPS(60);
     SetWindowSize(screenWidth,screenHeight);
-    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
-    //SetWindowPosition(8,40);  
+    //SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    SetWindowPosition(8,GetMonitorHeight(0) - screenHeight -8);  
     ClearWindowState(FLAG_WINDOW_HIDDEN);
-    while (!WindowShouldClose()) 
+while (!WindowShouldClose()) 
     {
         // Rileva pressione tasto T per invertire il tema
         if (IsKeyPressed(KEY_T)) {

@@ -212,8 +212,9 @@ while (!WindowShouldClose()) {
 		BeginDrawing();
 		ClearBackground (bgColor);
 
-        DrawRectangleLines(0,0,screenWidth,screenHeight, outer_Color);
-		time_t now = time (NULL);
+        //DrawRectangleLines(0,0,screenWidth,screenHeight, outer_Color);
+		
+        time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 
 		month = t->tm_mon + 1; // current month

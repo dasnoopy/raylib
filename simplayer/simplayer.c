@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.5"
+#define TOOL_VERSION            "2.7.6"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -32,6 +32,13 @@
 // window initial size
 #define screenWidth   640
 #define screenHeight  396
+
+// some custom colors
+Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
+Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
+Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
+Color borderColor = CLITERAL(Color){50, 70, 70, 255};
+// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 
 // faded songs (time in seconds)
 #define FADE_TIME 5.0f // Durata della dissolvenza in secondi
@@ -460,13 +467,6 @@ int main (int argc, char *argv[])
 	Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
 	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(image); 
-
-	// some custom colors
-	Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
-	Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
-	Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
-	Color borderColor = CLITERAL(Color){50, 70, 70, 255};
-	// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
 
 	// init Audio
 	InitAudioDevice();
