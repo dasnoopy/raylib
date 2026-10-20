@@ -143,15 +143,18 @@ int main (int argc, char *argv[])
 	SetConfigFlags(FLAG_WINDOW_TRANSPARENT);
 	InitWindow(WIDTH, HEIGHT, "Digital Clock");
 	// center window on the screen
-	SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
 	
-	SetWindowState(FLAG_WINDOW_UNDECORATED);
-    SetWindowState(FLAG_WINDOW_TOPMOST);
+  SetWindowPosition(GetMonitorWidth(0) / 2 - WIDTH/2, GetMonitorHeight(0) / 2 - HEIGHT/2); 
+  SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+	SetTargetFPS(60);
+	
+  SetWindowState(FLAG_WINDOW_UNDECORATED);
+  SetWindowState(FLAG_WINDOW_TOPMOST);
+
 //  SetWindowOpacity(0.9);
 	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
-	int currentFps = 1;
-  	SetTargetFPS(currentFps);
+
   	
 	while (!WindowShouldClose())
 	{

@@ -36,7 +36,7 @@ void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
 
 void TextHour(Color color, Font font, int fontSize);
 
-void DrawMinuteMarkers(Color color)
+void DrawMarkers(Color minCol, Color hourCol)
 {
 float alpha_deg = 0;
 for (int i=0; i<60; i++)
@@ -49,24 +49,8 @@ for (int i=0; i<60; i++)
    // int sides = 4;
    // int radius = 3;
    // int rotation = 90;
- 		DrawCircle (x,y,2,color);
-  }
-}
-
-void DrawHourMarkers(Color color)
-{
-	float alpha_deg = 0;
-	for (int i=0; i<60; i++)
-	  {	
-   	float x = center.x + clockRadius * sinf(alpha_deg * DEG2RAD);
-		float y = center.y + clockRadius * cosf(alpha_deg * DEG2RAD);
-	  // Vector2 coords = {x, y};
-
-   	alpha_deg += 360/12;
-   	// int sides = 4;
-   	// int radius = 6;
-   	// int rotation = 90;
-   DrawCircle (x,y,4,color);
+ 		if (i % 5 == 0)    DrawCircle (x,y,4,hourCol);
+ 		else DrawCircle (x,y,2,minCol);
   }
 }
 
@@ -140,8 +124,7 @@ int main (int argc, char *argv[])
 		now = time (NULL);
 		t = localtime(&now);
 		//DrawCircleV(center, clockRadius,BACK_COLOR);
-	    DrawMinuteMarkers(GRAY);	
-			DrawHourMarkers(ON_COLOR);
+	    DrawMarkers(GRAY, HOUR_MARK_COLOR);	
 			TextHour(WHITE,textFont,20);
 
 			DrawHourHand(t);

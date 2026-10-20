@@ -211,7 +211,7 @@ int main (int argc, char *argv[])
     }
 
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_MSAA_4X_HINT ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
@@ -248,13 +248,13 @@ int main (int argc, char *argv[])
 // Main game loop
 while (!WindowShouldClose())    // Detect window close button or ESC key
 	{
-        // Load a dropped TTF file dynamically (at current fontSize)
+        // Load a dropped file dynamically
         if (IsFileDropped()) {
             FilePathList droppedFiles = LoadDroppedFiles();
-        
+            DrawRectangleRec((Rectangle){0,0,screenWidth,screenHeight},Fade(SKYBLUE, 0.50f));
          if (droppedFiles.count == 1) // Only support one file dropped
             {
-                // NOTE: We only support first ttf file dropped
+                // NOTE: We only support file dropped
                 if (IsFileExtension(droppedFiles.paths[0], ".png"))
                 
                 {
@@ -266,7 +266,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
                     isPasted = false;
                     isDragged = true;
-                    
+
                     strcpy(fName, droppedFiles.paths[0]);
                     img = LoadImage(droppedFiles.paths[0]);
                     img1 = GenImageChecked((int)img.width, (int)img.height, 8,8, WHITE, RAYWHITE);

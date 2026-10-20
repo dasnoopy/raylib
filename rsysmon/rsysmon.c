@@ -157,8 +157,8 @@ void drawLetter(int col,int row,int ASCII_CODE,Color color)
             HexToBin(TableFont[pos][y],byte);
             int posX = col * dotSize;
             for (int i=ASCII_WIDTH -1; i>-1 ; i--) {
-                //DrawRectangle(posX,posY,dotSize -1,dotSize -1, byte[i] ? FG_COLOR : BLANK);
-                DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? color : BLANK);
+                //DrawRectangle(posX,posY,dotSize-1,dotSize-1, byte[i] ? color : BLANK);
+                DrawRectangle(posX,posY,dotSize,dotSize, byte[i] ? color : BLANK);
                 posX += dotSize;
                 }
             posY += dotSize;
@@ -180,18 +180,17 @@ void drawString(int col, int row, char *str,Color color)
 void get_dateTime (int col, int row)
 {
         time_t timer;
-        char buffer_date[26];
-        char buffer_time[26];
+        char buffer[26];
         struct tm* tm_info;
 
         time(&timer);
         tm_info = localtime(&timer);
            
-        strftime(buffer_date, 26, "%d/%m/%Y", tm_info);
-        drawString(col,row,buffer_date,SKYBLUE);
+        strftime(buffer, sizeof(buffer), "%d/%m/%Y", tm_info);
+        drawString(col,row,buffer,SKYBLUE);
 
-        strftime(buffer_time, 26, "%H:%M:%S", tm_info);
-        drawString(col+120,row,buffer_time,SKYBLUE);
+        strftime(buffer, sizeof(buffer), "%H:%M:%S", tm_info);
+        drawString(col+120,row,buffer,SKYBLUE);
 }
 
 

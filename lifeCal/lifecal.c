@@ -9,7 +9,7 @@
 #define HEIGHT 580
 
 
-// NORD colors
+// NORD colors 
 #define BACK_COLOR CLITERAL(Color){46, 52, 64, 255}
 #define ON_COLOR CLITERAL(Color){ 128, 128, 130, 255 }
 #define OFF_COLOR CLITERAL(Color){ 50, 50, 52, 255 } 

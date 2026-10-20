@@ -503,7 +503,7 @@ int main (int argc, char *argv[])
                         // sposta verso destra bit righe
                         matrice[j][i] = matrice[j+1][i];
                     }
-                    // alla fine ultimo bit prende il valore del prim
+                    // alla fine ultimo bit prende il valore del primo
                     matrice[BIN_COLS-1][i] = tmp;
                 }
         }

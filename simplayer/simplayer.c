@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.4"
+#define TOOL_VERSION            "2.7.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -152,9 +152,10 @@ const float timeoutDuration = 2.0f;
 // -----------------------------------------------------------------------------
 
 void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color)  {
+// raylib vuole il "roundness" espresso come frazione rispetto al lato più corto (300)
   Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  int     segs = 12;
-  DrawRectangleRounded ( rect, radius, segs, color );
+  int segments = 24;
+  DrawRectangleRounded ( rect, radius, segments, color );
 }
 
 // Funzione che aggiorna lo stato delle pressione di un tasto
@@ -289,13 +290,13 @@ Color lightenColor(Color color, float factor)
 }
 
 void LoadMusicByIndex(int index) {
-	currPlay = index;
+	//currPlay = index;
 	currMusic = LoadMusicStream(files[index]);
 	songId3 = GetMp3Metadata(files[index]);
 }
 
 void LoadNextMusicByIndex(int index) {
-	currPlay = index;
+	//currPlay = index;
 	nextMusic = LoadMusicStream(files[index]);
 	songId3 = GetMp3Metadata(files[index]);
 }
@@ -436,7 +437,7 @@ void AudioProcessCallback(void *buffer, unsigned int frames) {
 int main (int argc, char *argv[]) 
 {
 	// Set configuration flags for window creation
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT); // | FLAG_WINDOW_TOPMOST); 
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
 	InitWindow(screenWidth, screenHeight, "simplayer");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -455,7 +456,7 @@ int main (int argc, char *argv[])
 	Image volumeICO = LoadImage("assets/volumeICO.png");     // Loaded in CPU memory (RAM)
 	Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
-	
+	//background image
 	Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
 	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 	UnloadImage(image); 
@@ -496,7 +497,7 @@ int main (int argc, char *argv[])
 	AttachAudioMixedProcessor(AudioProcessCallback);
 
 	// scroll title / id3
-	Rectangle displayArea = { 18, 18, 532,90 };
+	Rectangle displayArea = { 18, 18, 548,90 };
 	float titleX = displayArea.x ;
 	float speed = 60.0f;
 

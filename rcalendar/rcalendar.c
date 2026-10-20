@@ -1,14 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 #include <ctype.h>
 #include <string.h>
 #include <raylib.h>
 #include <stdbool.h>
 #include <sys/sysinfo.h>
 
-#define WIDTH 200 //preferibilmento multiplo di 60
-#define HEIGHT 408
+#define screenWidth 200 
+#define screenHeight 420
 
 #define MAX_COLORS_COUNT    14// Number of colors available (BLACK & WHITE are excluded)
 Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET, BROWN, BEIGE};
@@ -51,13 +52,6 @@ int getStartDay(int month, int year) {
     return (d + 5) % 7; // Sunday = 0
 }
 
-void drawRectangleRounded (int X, int Y, int W, int H, Color color)  {
-  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  float radius = 0.086;                        // rotate degrees
-  int     segs = 12;
-  DrawRectangleRounded ( rect, radius, segs, color );
-}
-
 void get_uptime (void) {
     sysinfo(&info);
     snprintf(buffer, sizeof(buffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
@@ -75,37 +69,150 @@ void dec2bin(int x, int y, int size, int value, Color outerColor,Color innerColo
 	for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?innerColor:outerColor);
 }
 
+typedef struct {
+    Vector2 position;
+    Vector2 normal; 
+} PathPoint;
+
+// posizione tick lungo il perimtro di un rettangolo, quadrato
+PathPoint GetRoundedRectPathPoint(Rectangle rect, float radius, float progress) 
+{
+    PathPoint result = { 0 };
+    
+    float w_straight = rect.width - 2.0f * radius;
+    float h_straight = rect.height - 2.0f * radius;
+    
+    float len_top = w_straight;
+    float len_corner1 = (PI / 2.0f) * radius;
+    float len_right = h_straight;
+    float len_corner2 = (PI / 2.0f) * radius;
+    float len_bottom = w_straight;
+    float len_corner3 = (PI / 2.0f) * radius;
+    float len_left = h_straight;
+    float len_corner4 = (PI / 2.0f) * radius;
+    
+    float total_perimeter = len_top + len_corner1 + len_right + len_corner2 + 
+                            len_bottom + len_corner3 + len_left + len_corner4;
+    
+    float target_dist = progress * total_perimeter;
+    target_dist = fmodf(target_dist + (len_top / 2.0f), total_perimeter);
+    
+    Vector2 c_top_right = { rect.x + rect.width - radius, rect.y + radius };
+    Vector2 c_bot_right = { rect.x + rect.width - radius, rect.y + rect.height - radius };
+    Vector2 c_bot_left  = { rect.x + radius, rect.y + rect.height - radius };
+    Vector2 c_top_left  = { rect.x + radius, rect.y + radius };
+
+    if (target_dist < len_top) {
+        result.position.x = rect.x + radius + target_dist;
+        result.position.y = rect.y;
+        result.normal = (Vector2){ 0.0f, 1.0f };
+        return result;
+    }
+    target_dist -= len_top;
+    
+    if (target_dist < len_corner1) {
+        float angle = -PI/2.0f + (target_dist / len_corner1) * (PI/2.0f);
+        result.position.x = c_top_right.x + cosf(angle) * radius;
+        result.position.y = c_top_right.y + sinf(angle) * radius;
+        result.normal = (Vector2){ -cosf(angle), -sinf(angle) };
+        return result;
+    }
+    target_dist -= len_corner1;
+    
+    if (target_dist < len_right) {
+        result.position.x = rect.x + rect.width;
+        result.position.y = rect.y + radius + target_dist;
+        result.normal = (Vector2){ -1.0f, 0.0f };
+        return result;
+    }
+    target_dist -= len_right;
+    
+    if (target_dist < len_corner2) {
+        float angle = 0.0f + (target_dist / len_corner2) * (PI/2.0f);
+        result.position.x = c_bot_right.x + cosf(angle) * radius;
+        result.position.y = c_bot_right.y + sinf(angle) * radius;
+        result.normal = (Vector2){ -cosf(angle), -sinf(angle) };
+        return result;
+    }
+    target_dist -= len_corner2;
+    
+    if (target_dist < len_bottom) {
+        result.position.x = rect.x + rect.width - radius - target_dist;
+        result.position.y = rect.y + rect.height;
+        result.normal = (Vector2){ 0.0f, -1.0f };
+        return result;
+    }
+    target_dist -= len_bottom;
+    
+    if (target_dist < len_corner3) {
+        float angle = PI/2.0f + (target_dist / len_corner3) * (PI/2.0f);
+        result.position.x = c_bot_left.x + cosf(angle) * radius;
+        result.position.y = c_bot_left.y + sinf(angle) * radius;
+        result.normal = (Vector2){ -cosf(angle), -sinf(angle) };
+        return result;
+    }
+    target_dist -= len_corner3;
+    
+    if (target_dist < len_left) {
+        result.position.x = rect.x;
+        result.position.y = rect.y + rect.height - radius - target_dist;
+        result.normal = (Vector2){ 1.0f, 0.0f };
+        return result;
+    }
+    target_dist -= len_left;
+    
+    float angle = PI + (target_dist / len_corner4) * (PI/2.0f);
+    result.position.x = c_top_left.x + cosf(angle) * radius;
+    result.position.y = c_top_left.y + sinf(angle) * radius;
+    result.normal = (Vector2){ -cosf(angle), -sinf(angle) };
+    
+    return result;
+}
+
+
 int main (int argc, char *argv[]) 
 {
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_WINDOW_TOPMOST); // | 
-	InitWindow(WIDTH, HEIGHT, "rcalendar");
-	SetWindowPosition(20, GetMonitorHeight(0)- HEIGHT - 48); 
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); 
+	InitWindow(screenWidth, screenHeight, "rcalendar");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
-  Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/ChakraPetch-Medium.ttf", 88, NULL, 0); 
+  Font textFnt = LoadFontEx("fonts/rmplayer.otf", 28, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/SF-Mono-Semibold.ttf", 52, NULL, 0); 
   Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
-	RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);	
 
-  // fai riapparire finestra dopo caricamento iniziale
-	ClearWindowState(FLAG_WINDOW_HIDDEN);
+    // dimensioni orologio
+    Rectangle clockRect = { 12,54,screenWidth-24,80};
+    
+    // roundess globale orologio
+    // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
+    float cornerRadius = 12.0f; 
 
-while (!WindowShouldClose())
-	{
+    SetTargetFPS(60);
+
+    // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
+    SetWindowSize(screenWidth,screenHeight);
+    SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
+    //SetWindowPosition(8,40);  
+    ClearWindowState(FLAG_WINDOW_HIDDEN);
+
+while (!WindowShouldClose()) {
+
+//
+// Update
+//
 		if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
+
+	    Vector2 center = { clockRect.x + clockRect.width / 2.0f, clockRect.y + clockRect.height / 2.0f };
 	    
 	    // // do something when  window loses focus
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.80f);
         else SetWindowOpacity(1.0f);
 
-		BeginTextureMode(target);
-		ClearBackground(BLANK);
-		EndTextureMode();
-
+//
+// Draw
+// 
 		BeginDrawing();
-		ClearBackground (BLANK);
-
-		drawRectangleRounded(0,0,WIDTH,HEIGHT,bgColor);
+		ClearBackground (bgColor);
 
 		time_t now = time (NULL);
 		struct tm *t = localtime(&now);
@@ -116,29 +223,72 @@ while (!WindowShouldClose())
 		// format date and center horizontally
 		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
-		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH-datePos.x)/2, 18}, textFnt.baseSize,0, accentColor);
+		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, accentColor);
+
+
+
+            // Disegno dei 60 marker 
+            for (int i = 0; i < 60; i++) 
+            {
+                float progress = (float)i / 60.0f;
+                PathPoint pt = GetRoundedRectPathPoint(clockRect, cornerRadius, progress);
+                
+                float thickness = 2.0f; // diametro punti secondi
+				Color markerColor = outer_Color; 
+                
+                Vector2 drawNormal;
+                float dirX = center.x - pt.position.x;
+                float dirY = center.y - pt.position.y;
+                float len = sqrtf(dirX * dirX + dirY * dirY);
+                
+                if (len > 0.0f) {
+                    drawNormal.x = dirX / len;
+                    drawNormal.y = dirY / len;
+                } 
+                else drawNormal = pt.normal;
+
+                if (i % 15 == 0) // marker ogni 15 min in evidenza con diametro e colore diversi
+                {
+                    thickness = 4.0f;
+                    markerColor = WHITE; 
+                }
+
+                // disegna secondo che avanza
+				if (i == t->tm_sec) {
+					thickness = 4.0f;
+					markerColor = accentColor; 
+				}
+                // distanza dal bordo dei marker
+                float edgeOffset = 0.0f;//cambiando offset cambia anche problema marker con andamento a onda
+                Vector2 startPoint = {
+                    pt.position.x + drawNormal.x * edgeOffset,
+                    pt.position.y + drawNormal.y * edgeOffset
+                };
+                DrawCircle(startPoint.x, startPoint.y, thickness, markerColor);
+                }
+
+
 
 
 		// format clock and centering horizontally
 		snprintf(buffer, sizeof(buffer),"%02i:%02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, buffer, nothOS.baseSize, 0);
-		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(WIDTH - timePos.x)/2, 36}, nothOS.baseSize,0, WHITE);
+		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(screenWidth - timePos.x)/2, 68}, nothOS.baseSize,0, WHITE);
 
 
 		// monthly calendar header and week number
 		strftime(buffer, sizeof(buffer), "%B %G (w%V)", t);
 		// calendar header
 		Vector2 mywPos = MeasureTextEx(calFnt, buffer, calFnt.baseSize, 0);
-		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(WIDTH/2)-(mywPos.x/2),124},calFnt.baseSize,0,LIGHTGRAY);
-		DrawLineDashed((Vector2){10,142},(Vector2){WIDTH-10,142},1,1,GRAY);
-		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,144},calFnt.baseSize,0,GRAY);
+		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(screenWidth/2)-(mywPos.x/2),156},calFnt.baseSize,0,LIGHTGRAY);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){12,172},calFnt.baseSize,0,GRAY);
 
 		// monthly calendar
 		start = getStartDay(month, year);
 		int days = getDays(month, year);
 		Color dayColor;
 		int offX=18;
-		int offY=164;
+		int offY=188;
 		// calcola offset primo giorno del mese/settimanaa
 		for (int y = 0; y < start; y++) offX+=25;
 		// stampa giorni del mese
@@ -165,7 +315,7 @@ while (!WindowShouldClose())
 			 if (isdigit((unsigned char)buffer[i])) 
 			{
 				num = buffer[i] - '0';
-				dec2bin(44+(count*(size+dist)),340,size,num,outer_Color,accentColor);
+				dec2bin(44+(count*(size+dist)),360,size,num,outer_Color,accentColor);
 				count++;
 			}
 		}
@@ -173,13 +323,12 @@ while (!WindowShouldClose())
 		// get uptime and horizontal text centering
 	    get_uptime();
 	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
-	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(WIDTH - uptimePos.x)/2, HEIGHT-44}, textFnt.baseSize,0, WHITE);
+	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth - uptimePos.x)/2, screenHeight-40}, textFnt.baseSize,0, WHITE);
 
 
 	EndDrawing();
 	}
 	
-  UnloadRenderTexture(target);
   UnloadFont(textFnt);
   UnloadFont(nothOS);
   UnloadFont(calFnt);
