@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.9"
+#define TOOL_VERSION            "2.8.1"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -85,7 +85,6 @@ float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
 bool isVumColored = false; //false:default : start with monocrome vumeter / true: use colored vumeter
-bool isAlbumYearTag = false;
 
 // files extension
 #define FILTER_MP3      ".mp3"
@@ -167,7 +166,7 @@ void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color
 
 // Funzione che aggiorna lo stato delle pressione di un tasto
 // e restituisce true se l'azione deve essere eseguita
-bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
     // Se il tasto passato non è premuto, non fare nulla
     if (!IsKeyDown(key)) {
         // Se era il tasto che stavamo tracciando, resettiamo lo stato
@@ -188,7 +187,7 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
     }
 
     // Se stiamo continuando a tenere premuto lo stesso tasto
-    repeater->timer += dt;
+    repeater->timer += deltaTime;
 
     if (!repeater->isRepeating) {
         // ritardo iniziale
@@ -538,6 +537,11 @@ int main (int argc, char *argv[])
         .repeatRate = 0.064f
     };
 
+    // Variabili per gestire il tempo della transizione tra tag artista e tag albu,
+    bool isTransitioning = true;
+    float transitionProgress = 0.0f; // Va da 0.0 (inizio) a 1.0 (fine)
+    const float transitionDuration = 10.00f; // Durata della transizione: 1.0f = 1 sec
+
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     // SetTargetFPS(60);
 	SetWindowSize(screenWidth,screenHeight);
@@ -557,7 +561,7 @@ while (!WindowShouldClose())
 		float timeRemaining = timeLength - timePlayed;
 		float timeProgress = (timeLength > 0.0f) ? (timePlayed / timeLength) : 0.0f;
 		// get frame time
-		float dt = GetFrameTime();
+		float deltaTime = GetFrameTime();
 
 		// set scroll text speed
 		Vector2 titleSize = MeasureTextEx(titleFnt, songId3.title, (float)titleFnt.baseSize, 0);
@@ -565,7 +569,7 @@ while (!WindowShouldClose())
 		bool needScroll = titleWidth > displayArea.width;
 
 		if (needScroll) {
-			titleX -= (speed * dt);
+			titleX -= (speed * deltaTime);
 			if (titleX <= displayArea.x - titleWidth) titleX += titleWidth + displayArea.width;
 		}
 
@@ -653,12 +657,12 @@ while (!WindowShouldClose())
 // -----------------------------------------------------------------------------
 
 		// Set audio currVolume
-		if (UpdateKeyRepeater(&repeater, KEY_KP_SUBTRACT, dt) || IsKeyPressed(KEY_F1)) {
+		if (UpdateKeyRepeater(&repeater, KEY_KP_SUBTRACT, deltaTime) || IsKeyPressed(KEY_F1)) {
 			currVolume -= (currVolume >= 0.0f) ? 0.05f : 0.0f;
 			if (currVolume < 0.0f) currVolume = 0.0f, isMute=true;
 		}
 
-		if (UpdateKeyRepeater(&repeater, KEY_KP_ADD, dt) || IsKeyPressed(KEY_F2)) {
+		if (UpdateKeyRepeater(&repeater, KEY_KP_ADD, deltaTime) || IsKeyPressed(KEY_F2)) {
 			isMute = false;
 			currVolume += (currVolume <= 1.0f) ? 0.05f : 0.0f;
 			if (currVolume > 1.0f) currVolume = 1.0f;
@@ -701,13 +705,13 @@ while (!WindowShouldClose())
 							}
 					}
 
-				if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt) && isPlay) // seek -10sec
+				if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime) && isPlay) // seek -10sec
 				{
 							if (timePlayed < 10.0f) SeekMusicStream(currMusic, 0.0f);
 							else SeekMusicStream(currMusic, timePlayed - SEEK_TIME);
 				}
 
-				if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt) && isPlay) // seek +10sec
+				if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime) && isPlay) // seek +10sec
 				{
 							if (timePlayed + SEEK_TIME > timeLength) SeekMusicStream(currMusic, timePlayed);
 							else  SeekMusicStream(currMusic, timePlayed + SEEK_TIME);
@@ -753,8 +757,7 @@ while (!WindowShouldClose())
                         PlayMusicStream(currMusic);
 				    }
                     
-                if (IsKeyPressed(KEY_V)) isVumColored = !isVumColored;
-				if (IsKeyPressed(KEY_I)) isAlbumYearTag = !isAlbumYearTag;
+                if (IsKeyPressed(KEY_R)) isVumColored = !isVumColored;
 
 				// Quick copy of filename without path and extension, with keyboard shortcuts
 		        if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))
@@ -776,10 +779,10 @@ while (!WindowShouldClose())
 				if (IsKeyPressed(KEY_END)) selectedIndex = totalFiles -1;
 
 				// tasti con il repeat rate attivo -----------------------------
-		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) selectedIndex++;
-		        else if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) selectedIndex--;
-		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, dt)) selectedIndex += 9;
-		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, dt)) selectedIndex -= 9;
+		        if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime)) selectedIndex++;
+		        else if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) selectedIndex--;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) selectedIndex += 9;
+		        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
 		        // -------------------------------------------------------------
 				if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
 					if (selectedIndex >= 0 && selectedIndex < totalFiles) {
@@ -906,6 +909,13 @@ while (!WindowShouldClose())
 			}
 		}
 
+
+            transitionProgress += (deltaTime / transitionDuration);
+            if (transitionProgress >= 1.0f) {
+                transitionProgress = 0.0f;
+                isTransitioning = !isTransitioning;
+            }
+
 //------------------------------------------------------------------------------
 		//
 		// do something when  window loses focus
@@ -933,10 +943,10 @@ while (!WindowShouldClose())
 			if (needScroll) DrawTextEx(titleFnt, songId3.title, (Vector2){ titleX, displayArea.y }, (float)titleFnt.baseSize, 0, primaryColor);
 			else DrawTextEx(titleFnt, songId3.title, (Vector2){ displayArea.x, displayArea.y}, (float)titleFnt.baseSize,0, primaryColor);
 			
-			DrawLineDashed((Vector2){displayArea.x,displayArea.y+39},(Vector2){displayArea.width+20,displayArea.y+39},1,1,accentColor);
+			DrawLine(displayArea.x,displayArea.y+39,displayArea.width+20,displayArea.y+39,borderColor);
 			
-			// song Artist or album|year info (KEYPRESS_I)
-			if (!isAlbumYearTag) DrawTextEx(artistFnt, TextFormat("%.50s",songId3.artist), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
+			// song Artist or album|year info (KEY PRESS_I)
+			if (isTransitioning) DrawTextEx(artistFnt, TextFormat("%.50s",songId3.artist), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 			else DrawTextEx(artistFnt, TextFormat("%.50s (%s)", songId3.album, songId3.year), (Vector2){ displayArea.x, displayArea.y+42 }, (float)artistFnt.baseSize, 0, secondaryColor);
 		EndScissorMode();
 
