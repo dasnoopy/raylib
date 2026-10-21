@@ -11,13 +11,10 @@
 #define screenWidth 200 
 #define screenHeight 420
 
-#define MAX_COLORS_COUNT    14// Number of colors available (BLACK & WHITE are excluded)
-Color colors[MAX_COLORS_COUNT] = { ORANGE, RED, MAROON, GOLD, YELLOW, BLUE, SKYBLUE, LIME, GREEN, PINK, PURPLE, VIOLET, BROWN, BEIGE};
-
 // NORD colors
 #define bgColor CLITERAL(Color){10, 20, 30, 248}
 #define accentColor CLITERAL(Color){ 136, 192, 208, 255 }
-//Color accentColor = SKYBLUE; //CLITERAL(Color){ 198, 208, 245, 255 }
+// Color accentColor = SKYBLUE; //CLITERAL(Color){ 198, 208, 245, 255 }
 
 // BCD dots color
 #define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
@@ -185,7 +182,7 @@ int main (int argc, char *argv[])
     
     // roundess globale orologio
     // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
-    float cornerRadius = 12.0f; 
+    float cornerRadius = 14.0f; 
 
     SetTargetFPS(5); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
 
@@ -199,7 +196,6 @@ while (!WindowShouldClose()) {
 //
 // Update
 //
-		if (IsKeyPressed(KEY_C)) accentColor = colors[GetRandomValue(0,MAX_COLORS_COUNT-1)];
 
 	    Vector2 center = { clockRect.x + clockRect.width / 2.0f, clockRect.y + clockRect.height / 2.0f };
 	    
@@ -256,8 +252,9 @@ while (!WindowShouldClose()) {
 					thickness = 4.0f;
 					markerColor = accentColor; 
 				}
+
                 // distanza dal bordo dei marker
-                float edgeOffset = 0.0f;//cambiando offset cambia anche problema marker con andamento a onda
+                float edgeOffset = -1.0f;//cambiando offset cambia anche problema marker con andamento a onda
                 Vector2 startPoint = {
                     pt.position.x + drawNormal.x * edgeOffset,
                     pt.position.y + drawNormal.y * edgeOffset
