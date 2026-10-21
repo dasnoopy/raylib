@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.6"
+#define TOOL_VERSION            "2.7.8"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -979,7 +979,7 @@ while (!WindowShouldClose())
 						else barColor = darkenColor(accentColor,0.56f);
 						
 						// dimmed bar color
-						dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
+						dimColor = BLANK; //(Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
@@ -992,7 +992,7 @@ while (!WindowShouldClose())
 							bool drawPeakSegment = (j == peakSegment);
 							
 							//DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-6, (drawActiveSegment || drawPeakSegment) ? dimColor:darkenColor(dimColor,0.80f));
-							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-5, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
 		EndScissorMode();

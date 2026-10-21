@@ -14,7 +14,7 @@
 // NORD colors
 #define bgColor CLITERAL(Color){10, 20, 30, 248}
 #define accentColor CLITERAL(Color){ 136, 192, 208, 255 }
-// Color accentColor = SKYBLUE; //CLITERAL(Color){ 198, 208, 245, 255 }
+#define bgClockColor CLITERAL(Color){ 20, 30, 40, 255 }
 
 // BCD dots color
 #define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
@@ -207,8 +207,6 @@ while (!WindowShouldClose()) {
 // 
 		BeginDrawing();
 		ClearBackground (bgColor);
-
-        //DrawRectangleLines(0,0,screenWidth,screenHeight, outer_Color);
 		
         time_t now = time (NULL);
 		struct tm *t = localtime(&now);
@@ -221,14 +219,18 @@ while (!WindowShouldClose()) {
 		Vector2 datePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
 		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, WHITE);
 
+        float roundness = (cornerRadius * 2.0f) / clockRect.height;
+        DrawRectangleRounded(clockRect, roundness,24,bgClockColor);
+
             // Disegno dei 60 secondi
             for (int i = 0; i < 60; i++) 
             {
                 float progress = (float)i / 60.0f;
                 PathPoint pt = GetRoundedRectPathPoint(clockRect, cornerRadius, progress);
                 
+                // defaul marker
                 float thickness = 2.0f; // diametro punti secondi
-				Color markerColor = outer_Color; 
+				Color markerColor = bgColor; 
                 
                 Vector2 drawNormal;
                 float dirX = center.x - pt.position.x;
@@ -241,11 +243,15 @@ while (!WindowShouldClose()) {
                 } 
                 else drawNormal = pt.normal;
 
-                if (i % 15 == 0) // marker ogni 15 min in evidenza con diametro e colore diversi
-                {
-                    thickness = 4.0f;
-                    markerColor = WHITE; 
-                }
+                if (i < t->tm_sec) {
+                    markerColor = outer_Color;
+
+                        if (i % 15 == 0) // marker ogni 15 min in evidenza con diametro e colore diversi
+                        {
+                            thickness = 4.0f;
+                            markerColor = WHITE; 
+                        }
+                    }
 
                 // disegna secondo che avanza
 				if (i == t->tm_sec) {
@@ -254,7 +260,7 @@ while (!WindowShouldClose()) {
 				}
 
                 // distanza dal bordo dei marker
-                float edgeOffset = -1.0f;//cambiando offset cambia anche problema marker con andamento a onda
+                float edgeOffset = 0.0f;//cambiando offset cambia anche problema marker con andamento a onda
                 Vector2 startPoint = {
                     pt.position.x + drawNormal.x * edgeOffset,
                     pt.position.y + drawNormal.y * edgeOffset
