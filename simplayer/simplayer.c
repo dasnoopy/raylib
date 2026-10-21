@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.7.8"
+#define TOOL_VERSION            "2.7.9"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -952,7 +952,7 @@ while (!WindowShouldClose())
 
 					// draw vumeter
 					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 2.0f;  // space between bars (direttamente proporzionale a larghezza barre)
+					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
 					
 					const int maxSegments = 48; //nr. segmenti singola barra
 					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
@@ -991,8 +991,9 @@ while (!WindowShouldClose())
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
 							
-							//DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-6, (drawActiveSegment || drawPeakSegment) ? dimColor:darkenColor(dimColor,0.80f));
-							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos-4, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+                            //DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-1, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+                            //DrawRectangle(xPos, segYPos-1,(barWidth - barSpacing), segmentHeight, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
 		EndScissorMode();

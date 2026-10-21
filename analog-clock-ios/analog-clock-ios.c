@@ -168,7 +168,7 @@ int main(void)
     
     // roundess globale orologio
     // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
-    float cornerRadius = 24.0f; 
+    float cornerRadius = 24.0f;  //24.0f
 
     // Stato del tema
     bool isDarkMode = true;
