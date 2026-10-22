@@ -17,11 +17,11 @@
 #define bgClockColor CLITERAL(Color){ 20, 30, 40, 255 }
 
 // BCD dots color
-#define inner_Color CLITERAL(Color){ 136, 192, 208, 255}
-#define outer_Color CLITERAL(Color){ 76, 86, 106, 255 }      // Dark Gray
+#define innerColor CLITERAL(Color){ 136, 192, 208, 255} // equal to accent color 
+#define outerColor CLITERAL(Color){ 76, 86, 106, 255 }      // Dark Gray
 
 struct sysinfo info;
-char buffer[64]= { 0 };
+char tmpBuffer[64]= { 0 }; // buffure temporaneo per la gestione delle varie stringhe snprintf...
 
 int month, year, start; 
 const char *months[] = {"", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
@@ -51,19 +51,19 @@ int getStartDay(int month, int year) {
 
 void get_uptime (void) {
     sysinfo(&info);
-    snprintf(buffer, sizeof(buffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
+    snprintf(tmpBuffer, sizeof(tmpBuffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
-void dec2bin(int x, int y, int size, int value, Color outerColor,Color innerColor) 
+void dec2bin(int x, int y, float size, int value, Color onColor,Color offColor) 
 {
-	int a[4] = { 0 };
-	for (int i = 0; value > 0; i++)
-	{
-		a[i] = value % 2;
+	int bits[4] = { 0 }; //4bit
+    // conversione di value (dec) to binario (bits[])
+	for (int i = 0; value > 0; i++) {
+		bits[i] = value % 2;
 		value /= 2;
 	}
-	//for (int j = 3; j>=0 ; j--) DrawCircleGradient ((Vector2){x,y-(j*size)},size/3,a[j]?innerColor:GRAY, a[j]?outerColor:DARKGRAY);
-	for (int j = 3; j>=0 ; j--) DrawCircle(x,y-(j*size),size/3,a[j]?innerColor:outerColor);
+    // disegna, in colonna, i 4 bit del numero passato come parametro (value= 0-9) 
+	for (int i = 3; i>=0 ; i--) DrawCircle(x,y-(i*size),size/3.0f,bits[i]?onColor:offColor);
 }
 
 typedef struct {
@@ -175,7 +175,7 @@ int main (int argc, char *argv[])
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
   Font nothOS = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 72, NULL, 0); 
-  Font calFnt = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 16, NULL, 0); // all other text
+  Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
 
     // dimensioni orologio
     Rectangle clockRect = { 18,52,screenWidth-36,88};
@@ -184,7 +184,7 @@ int main (int argc, char *argv[])
     // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
     float cornerRadius = 14.0f; 
 
-    SetTargetFPS(5); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
+    SetTargetFPS(10); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
 
     // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     SetWindowSize(screenWidth,screenHeight);
@@ -215,9 +215,9 @@ while (!WindowShouldClose()) {
 		year = t->tm_year + 1900; // current year
 
 		// format date and center horizontally
-		strftime(buffer, sizeof(buffer), "%a, %d %b", t);
-		Vector2 datePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
-		DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, WHITE);
+		strftime(tmpBuffer, sizeof(tmpBuffer), "%a, %d %b", t);
+		Vector2 datePos = MeasureTextEx(textFnt, tmpBuffer, textFnt.baseSize, 0);
+		DrawTextEx(textFnt, TextFormat("%s", tmpBuffer), (Vector2){(screenWidth-datePos.x)/2, 12}, textFnt.baseSize,0, WHITE);
 
         float roundness = (cornerRadius * 2.0f) / clockRect.height;
         DrawRectangleRounded(clockRect, roundness,24,bgClockColor);
@@ -244,7 +244,7 @@ while (!WindowShouldClose()) {
                 else drawNormal = pt.normal;
 
                 if (i < t->tm_sec) {
-                    markerColor = outer_Color;
+                    markerColor = outerColor;
 
                         if (i % 15 == 0) // marker ogni 15 min in evidenza con diametro e colore diversi
                         {
@@ -269,60 +269,56 @@ while (!WindowShouldClose()) {
                 }
 
 		// format clock and centering horizontally
-		snprintf(buffer, sizeof(buffer),"%02i%02i", t->tm_hour, t->tm_min);
-		Vector2 timePos = MeasureTextEx(nothOS, buffer, nothOS.baseSize, 0);
-		DrawTextEx(nothOS, TextFormat("%s", buffer), (Vector2){(screenWidth - timePos.x)/2, 60}, nothOS.baseSize,0, accentColor);
+		snprintf(tmpBuffer, sizeof(tmpBuffer),"%02i%02i", t->tm_hour, t->tm_min);
+		Vector2 timePos = MeasureTextEx(nothOS, tmpBuffer, nothOS.baseSize, 0);
+		DrawTextEx(nothOS, TextFormat("%s", tmpBuffer), (Vector2){(screenWidth - timePos.x)/2, 60}, nothOS.baseSize,0, accentColor);
 
 
 		// monthly calendar header and week number
-		strftime(buffer, sizeof(buffer), "%B %G (w%V)", t);
+		strftime(tmpBuffer, sizeof(tmpBuffer), "%B %G (w%V)", t);
 		// calendar header
-		Vector2 mywPos = MeasureTextEx(calFnt, buffer, calFnt.baseSize, 0);
-		DrawTextEx(calFnt,TextFormat("%s", buffer),(Vector2){(screenWidth/2)-(mywPos.x/2),156},calFnt.baseSize,0,LIGHTGRAY);
-		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){20,172},calFnt.baseSize,0,GRAY);
+		Vector2 mywPos = MeasureTextEx(calFnt, tmpBuffer, calFnt.baseSize, 0);
+		DrawTextEx(calFnt,TextFormat("%s", tmpBuffer),(Vector2){(screenWidth/2)-(mywPos.x/2),156},calFnt.baseSize,0,LIGHTGRAY);
+		DrawTextEx(calFnt,"Mon Tue Wed Thu Fri Sat Sun", (Vector2){14,172},calFnt.baseSize,0,GRAY);
 
 		// monthly calendar
 		start = getStartDay(month, year);
 		int days = getDays(month, year);
 		Color dayColor;
-		int offX=22;
-		int offY=188;
+		int startX=22;
+		int startY=188;
 		// calcola offset primo giorno del mese/settimanaa
-		for (int y = 0; y < start; y++) offX+=25;
+		for (int y = 0; y < start; y++) startX+=24;
 		// stampa giorni del mese
 		for (int i = 1; i <= days; i++)  {
-			if ( (i + start) % 7  == 0 || 6 - ((i + start)%7) == 0 )  dayColor = inner_Color;
+			// sab e dom di colore diverso
+            if ( (i + start) % 7  == 0 || 6 - ((i + start)%7) == 0 )  dayColor = innerColor;
 			else dayColor=WHITE;
-			if (i == t->tm_mday) DrawCircle(offX+7,offY+8,10,accentColor);
-			DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){offX,offY},calFnt.baseSize,0,(i==t->tm_mday)?BLACK:dayColor);
-		   	offX = offX + 24;
+
+            // evidenzia giorno corrente
+			if (i == t->tm_mday) DrawCircle(startX+7,startY+8,10,accentColor);
+			
+            DrawTextEx(calFnt,TextFormat("%02d",i),(Vector2){startX,startY},calFnt.baseSize,0,(i==t->tm_mday)?BLACK:dayColor);
+		   	startX = startX + 24;
 		    if ( (i + start) % 7  == 0) {
-		    	offX = 22;
-		        offY = offY + 20;
+		    	startX = 22;
+		        startY = startY + 20;
 		    }
 		}
 
-		//BDC clock
-		snprintf(buffer, sizeof(buffer),"%02i:%02i:%02i", t->tm_hour, t->tm_min,t->tm_sec);
-		int num;
-		int count = 0;
-		int size = 18;
-		int dist = 4;
-		for (int i = 0; buffer[i] != '\0' && count < 6; i++)
-		{
-			 if (isdigit((unsigned char)buffer[i])) 
-			{
-				num = buffer[i] - '0';
-				dec2bin(44+(count*(size+dist)),360,size,num,outer_Color,accentColor);
-				count++;
-			}
-		}
+        //BDC clock
+        snprintf(tmpBuffer, sizeof(tmpBuffer),"%02i%02i%02i", t->tm_hour, t->tm_min,t->tm_sec); //ottieni stringa: 'HHMMSS'
+        float size = 18.0f;
+        int dist = 4;
+        startX=44;
+        startY=360;
+        // disegna le 6 cifre in punti
+        for (int i = 0; tmpBuffer[i] != '\0';  i++) dec2bin(startX+(i*(size+dist)), startY, size, tmpBuffer[i], innerColor, outerColor);
 
-		// get uptime and horizontal text centering
+		// print uptime  horizontallly centered
 	    get_uptime();
-	    Vector2 uptimePos = MeasureTextEx(textFnt, buffer, textFnt.baseSize, 0);
-	    DrawTextEx(textFnt, TextFormat("%s", buffer), (Vector2){(screenWidth - uptimePos.x)/2, screenHeight-40}, textFnt.baseSize,0, WHITE);
-
+	    Vector2 uptimePos = MeasureTextEx(textFnt, tmpBuffer, textFnt.baseSize, 0);
+	    DrawTextEx(textFnt, TextFormat("%s", tmpBuffer), (Vector2){(screenWidth - uptimePos.x)/2, screenHeight-40}, textFnt.baseSize,0, WHITE);
 
 	EndDrawing();
 	}
