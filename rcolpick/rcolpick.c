@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.7.3"
+#define TOOL_VERSION            "1.8.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -31,8 +31,8 @@ const int txtOffset = 32;
 const int fntSize = 18;
 char buffer[64];
 const char *clipboardText = NULL;
-Color pixelCol;
-Color clickCol = CLITERAL(Color){ 0, 0, 0, 255};
+Color leftCol;
+Color rightCol;
 Color *pixels;
 char fName[384] = { '\0' };
 bool showGrid = false;
@@ -52,10 +52,18 @@ int maxG=1;
 int maxB=1;
 int maxA=1;
 
+int xr = 0;
+int yr = 0;
+int xl = 0;
+int yl = 0;
+
 Vector2 barPos = {0,screenHeight-txtOffset};
 //Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-Rectangle rectPixel = { 8,8,272,272 }; // 1002 - right  / 8 left , height 208 with shaaded/tinted color
-Rectangle rectHist = { 8,136,272,110 };
+Rectangle rectPixel = { 8,8,272,280 };
+Rectangle rectHist = { 8,289,272,110 };
+
+
+
 
 //mimimap variables
 const float maxMapSize = 196.0f; 
@@ -66,6 +74,7 @@ float mapPosX ;
 float mapPosY ;
 float scaleX;
 float scaleY;
+
 
 // color conversion variables
 #define MIN(a,b) ((a)<(b)?(a):(b))
@@ -366,13 +375,13 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 }
 
                 if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C)) {
-                          snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA color", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
+                          snprintf(buffer, sizeof(buffer), "%i,%i,%i,%i //RGBA color", leftCol.r,leftCol.g,leftCol.b,leftCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
                       
                 if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_C)) {
-                          snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA color", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a);
+                          snprintf(buffer, sizeof(buffer), "#%X%X%X%X //HEXA color", leftCol.r,leftCol.g,leftCol.b,leftCol.a);
                           SetClipboardText(buffer); // Copy text to clipboard
                           clipboardText = GetClipboardText(); // Get text from clipboard
                       }
@@ -381,6 +390,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         float wheel = GetMouseWheelMove();
             int x = (int)world.x;
             int y = (int)world.y;
+
             
             if (wheel != 0.0f) {
                     Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), cam);
@@ -400,20 +410,26 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     if (cam.zoom > maxZoom) cam.zoom = maxZoom;
                 }
 
-                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-                    if (x >= 0 && x < background.width && y >= 0 && y < background.height) clickCol = pixels[y * background.width + x];
-                }
-
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    if (x >= 0 && x < background.width && y >= 0 && y < background.height) pixelCol = pixels[y * background.width + x];
-                }
+                    if (x >= 0 && x < background.width && y >= 0 && y < background.height) leftCol = pixels[y * background.width + x];
+                        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                            xl=x;
+                            yl=y;
+                            }
+                    }
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                    if (x >= 0 && x < background.width && y >= 0 && y < background.height) rightCol = pixels[y * background.width + x];
+                    xr=x;
+                    yr=y;
+                    }
 
                 // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
-                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
                     Vector2 delta = GetMouseDelta();
                     cam.target.x -= delta.x / cam.zoom;
                     cam.target.y -= delta.y / cam.zoom;
-                }
+                    }
 
                 // --- CONTROLLO DEI LIMITI DELL'IMMAGINE ---
                 Vector2 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
@@ -434,9 +450,12 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 Vector2 center = GetWorldToScreen2D(cursor, cam);
                
                 // funzione di conversione HSV di raylib
-                Vector3 hsv = ColorToHSV(pixelCol);
+                Vector3 hsv = ColorToHSV(leftCol);
+                Vector3 hsv1 = ColorToHSV(rightCol);
+
                 // funzione di conversione HSL da RGB color
-                HSL res = rgb2hsl(pixelCol.r, pixelCol.g, pixelCol.b);
+                HSL res = rgb2hsl(leftCol.r, leftCol.g, leftCol.b);
+                HSL res1 = rgb2hsl(rightCol.r, rightCol.g, rightCol.b);
 
                 // modified time convert
                struct tm  ts;
@@ -492,38 +511,54 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             
             // pixel panel ("floating")
             DrawRectangleRec (rectPixel, Fade(BLACK,0.7f));
-            // cursor x,y
-            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 4},fntSize,0,LIGHTGRAY);
-            // RGBA
-            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 26,270, 96}, pixelCol);
-
-            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 28},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+            // MAIN cursor x,y
+            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 2},fntSize,0,ORANGE);
+            
+            // info per left pixel (left mouse click)
+            //------------------------------------------------------------------
+            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,270, 118}, Fade(leftCol,0.7f));
+            DrawTextEx(txtFont,TextFormat("x1: %i, y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            // RGBA            
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 48},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", pixelCol.r,pixelCol.g,pixelCol.b,pixelCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 52},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 72},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 76},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 96},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
            // HSL
-           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 100},fntSize,0,(pixelCol.r<=128 && pixelCol.g<=128 && pixelCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 120},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);   
             
-            //  stored color (right click mouse)
-            DrawRectangleRec((Rectangle){rectPixel.x + 1,(rectPixel.y + rectPixel.height) - 25 ,270, 24}, clickCol);
-            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",clickCol.r, clickCol.g,clickCol.b,clickCol.a),(Vector2){rectPixel.x+10,(rectPixel.y + rectPixel.height) - 23},fntSize,0,(clickCol.r<=128 && clickCol.g<=128 && clickCol.b<=128)? WHITE : BLACK);
-            
+
+            // info per right pixel (right mouse click)
+            //---------------------------------------------------------------------------------------
+            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 142 ,270, 112}, Fade(rightCol,0.7f));
+            // cursor x,y right
+            DrawTextEx(txtFont,TextFormat("x2: %i, y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 144},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            // RGBA 
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 166},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            // HEXA
+           DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", rightCol.r,rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 188},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           // HSVLighter variations created by adding white to your base color.
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv1.x,hsv1.y*100.0f,hsv1.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 210},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           // HSL
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 232},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);   
+
+            // distance in pixels from xr to xl and yr to yl
+           DrawTextEx(txtFont,TextFormat("x2-x1= %i, y2-y1= %i", (xr-xl) + 1, (yr-yl) +1 ),(Vector2){rectPixel.x + 10, rectPixel.y + 258},fntSize,0,ORANGE);   
+
             // shaded and tinted colors (starting from hover color)
             // for (int i = 1; i < 10; ++i) {
             //     // shaded -10% / -90%
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, shadesColor(pixelCol,( i*0.1f )));
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, shadesColor(leftCol,( i*0.1f )));
             //     //DrawText(TextFormat("-%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-41,10,WHITE);
             //     // tinted +10% / +90%                
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, tintedColor(pixelCol,( i * 0.1f )));
+            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, tintedColor(leftCol,( i * 0.1f )));
             //     //DrawText(TextFormat("+%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-14,10,BLACK);
             // }
 
         	  // disegna istogramma RGBA 
               // sfondo 
             if (showHist) {
-                rectPixel.height = 268;
-                   //DrawRectangleRec(rectHist, Fade(BLACK,0.7f));
+            DrawRectangleRec(rectHist, Fade(BLACK,0.7f));
                       // disegno istrogramma
                       for (int i = 0; i < 256; i++) {
                        	  float hR = (float)histR[i] / maxR;
@@ -536,9 +571,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                             DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
                             DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));
                       }
-            }
-            else rectPixel.height = 148;
-
+        }
                 // --- Minimap show/hide with M key
             if (showMinimap) {
                 // Sfondo/Bordo
@@ -558,7 +591,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 float rectW = (bottomRight.x - topLeft.x) * scaleX;
                 float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
-                // Disegno del rettangolo rosso (con limiti visivi per non uscire dalla mini-mappa)
+                // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
                 DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.25f));
                 DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
                 }
