@@ -54,7 +54,7 @@ void get_uptime (void) {
     snprintf(tmpBuffer, sizeof(tmpBuffer),"up %02ldh %02ldm", info.uptime / 3600, (info.uptime % 3600) / 60 );
 }
 
-void dec2bin(int x, int y, float size, int value, Color onColor,Color offColor) 
+void dec2bin(int x, int y, float radius, int value, Color onColor,Color offColor) 
 {
 	int bits[4] = { 0 }; //4bit
     // conversione di value (dec) to binario (bits[])
@@ -63,7 +63,7 @@ void dec2bin(int x, int y, float size, int value, Color onColor,Color offColor)
 		value /= 2;
 	}
     // disegna, in colonna, i 4 bit del numero passato come parametro (value= 0-9) 
-	for (int i = 3; i>=0 ; i--) DrawCircle(x,y-(i*size),size/3.0f,bits[i]?onColor:offColor);
+	for (int i = 3; i>=0 ; i--) DrawCircle(x,y-(i*radius),radius/3,bits[i]?onColor:offColor);
 }
 
 typedef struct {
@@ -174,7 +174,7 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
   Font textFnt = LoadFontEx("fonts/rmplayerdot.otf", 28, NULL, 0); 
-  Font nothOS = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 72, NULL, 0); 
+  Font nothOS = LoadFontEx("fonts/IosevkaFixedSS13-SemiBold.ttf", 76, NULL, 0); 
   Font calFnt = LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); // all other text
 
     // dimensioni orologio
@@ -184,7 +184,7 @@ int main (int argc, char *argv[])
     // 0.0f quadrato / max dipende da dimensioni..fare delle prove!
     float cornerRadius = 14.0f; 
 
-    SetTargetFPS(10); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
+    SetTargetFPS(60); // disegna 5 fps al secondo.. dovrebbe baastare visto che cmq tutto mi si aggiorna ogni secondo
 
     // fai riapparire finestra dopo averla nascosta durante il carimento iniziale
     SetWindowSize(screenWidth,screenHeight);
@@ -271,7 +271,7 @@ while (!WindowShouldClose()) {
 		// format clock and centering horizontally
 		snprintf(tmpBuffer, sizeof(tmpBuffer),"%02i%02i", t->tm_hour, t->tm_min);
 		Vector2 timePos = MeasureTextEx(nothOS, tmpBuffer, nothOS.baseSize, 0);
-		DrawTextEx(nothOS, TextFormat("%s", tmpBuffer), (Vector2){(screenWidth - timePos.x)/2, 60}, nothOS.baseSize,0, accentColor);
+		DrawTextEx(nothOS, TextFormat("%s", tmpBuffer), (Vector2){(screenWidth - timePos.x)/2, 58}, nothOS.baseSize,0, accentColor);
 
 
 		// monthly calendar header and week number
@@ -307,13 +307,17 @@ while (!WindowShouldClose()) {
 		}
 
         //BDC clock
-        snprintf(tmpBuffer, sizeof(tmpBuffer),"%02i%02i%02i", t->tm_hour, t->tm_min,t->tm_sec); //ottieni stringa: 'HHMMSS'
-        float size = 18.0f;
-        int dist = 4;
-        startX=44;
+        startX=38;
         startY=360;
+        int size = 18;
+
         // disegna le 6 cifre in punti
-        for (int i = 0; tmpBuffer[i] != '\0';  i++) dec2bin(startX+(i*(size+dist)), startY, size, tmpBuffer[i], innerColor, outerColor);
+        snprintf(tmpBuffer, sizeof(tmpBuffer),"%02i%02i%02i", t->tm_hour, t->tm_min,t->tm_sec); //ottieni stringa: 'HHMMSS'
+        for (int i = 0; tmpBuffer[i] != '\0';  i++) {
+
+            if (i % 2 ==0 ) startX+=8;
+            dec2bin(startX+(i*size), startY, size, tmpBuffer[i], innerColor, outerColor);
+        }
 
 		// print uptime  horizontallly centered
 	    get_uptime();

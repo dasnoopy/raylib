@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.8.1"
+#define TOOL_VERSION            "2.8.3"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -34,11 +34,11 @@
 #define screenHeight  396
 
 // some custom colors
-Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
-Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
-Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
-Color borderColor = CLITERAL(Color){50, 70, 70, 255};
-// Color bgColor = CLITERAL(Color){10, 20, 30, 248};
+const Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
+const Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
+const Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
+const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
+const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
 
 // faded songs (time in seconds)
 #define FADE_TIME 5.0f // Durata della dissolvenza in secondi
@@ -81,7 +81,7 @@ bool isStop = true;
 bool isPause = false;  
 bool isMute = false;
 bool isVumeter = true; // true:default : show 36 band equalizer , if set false show file library
-float currVolume = 0.80f;            // Default audio currVolume [0.0f..1.0f]
+float currVolume = 0.50f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
 bool isVumColored = false; //false:default : start with monocrome vumeter / true: use colored vumeter
@@ -160,7 +160,7 @@ const float timeoutDuration = 2.0f;
 void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color)  {
 // raylib vuole il "roundness" espresso come frazione rispetto al lato più corto (300)
   Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  int segments = 24;
+  int segments = 36;
   DrawRectangleRounded ( rect, radius, segments, color );
 }
 
@@ -446,8 +446,8 @@ int main (int argc, char *argv[])
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
 	InitWindow(screenWidth, screenHeight, "simplayer");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+    SetTargetFPS(120);
 
-	// Set UI style
 	// Custom GUI font loading
 	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, NULL, 0);
 	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
@@ -475,7 +475,7 @@ int main (int argc, char *argv[])
 	getMusicFolder();
 	int totalFiles = loadFilesRecursive(currMusicDir, files, 0);
 
-    // 2. Ordina o mescola files nella lista
+    // sort and shuffle music files 
     if (!isShuffle && totalFiles > 0) {
         qsort(files, totalFiles, MAX_NAME, compareFiles); 
     }
@@ -543,7 +543,6 @@ int main (int argc, char *argv[])
     const float transitionDuration = 10.00f; // Durata della transizione: 1.0f = 1 sec
 
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
-    // SetTargetFPS(60);
 	SetWindowSize(screenWidth,screenHeight);
 	SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
 	//SetWindowPosition(8,40);  
@@ -933,7 +932,7 @@ while (!WindowShouldClose())
 	BeginDrawing();
 		ClearBackground (BLANK);
 
-		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.046f,bgColor);
+		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.072f,bgColor);
 		//load player background image
 		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
@@ -989,7 +988,7 @@ while (!WindowShouldClose())
 						else barColor = darkenColor(accentColor,0.56f);
 						
 						// dimmed bar color
-						dimColor = BLANK; //(Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
+						dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
@@ -1079,8 +1078,8 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 		//statusbar with some info
-		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
-		DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
+		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
+		//DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();
