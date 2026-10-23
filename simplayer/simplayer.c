@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.8.3"
+#define TOOL_VERSION            "2.8.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -34,7 +34,7 @@
 #define screenHeight  396
 
 // some custom colors
-const Color accentColor = SKYBLUE; // CLITERAL(Color){18, 211, 255, 255}; 
+const Color accentColor = CLITERAL(Color){136, 192, 208, 255}; 
 const Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
 const Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -450,7 +450,7 @@ int main (int argc, char *argv[])
 
 	// Custom GUI font loading
 	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, NULL, 0);
-	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
+	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, NULL, 0);
 	Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
 	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
 	Font filesFnt= LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); 
@@ -934,7 +934,7 @@ while (!WindowShouldClose())
 
 		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.072f,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
+		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, SKYBLUE); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -988,7 +988,7 @@ while (!WindowShouldClose())
 						else barColor = darkenColor(accentColor,0.56f);
 						
 						// dimmed bar color
-						dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
+                        dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
 						for (int j = 0; j < maxSegments; j++) {
 							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
@@ -999,14 +999,14 @@ while (!WindowShouldClose())
 							// Logica di disegno combinata barra + picco
 							bool drawActiveSegment = (j < segmentsToLight);
 							bool drawPeakSegment = (j == peakSegment);
-							
-                            //DrawLine(xPos, segYPos-1, xPos + (barWidth - barSpacing), segYPos-1, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+
 							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
-                            //DrawRectangle(xPos, segYPos-1,(barWidth - barSpacing), segmentHeight, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 						 }
 					}
+        //baseline of vumeter
+        //DrawRectangle(visArea.x, visArea.y+visArea.height-3,visArea.width-2,2,darkenColor(accentColor,0.32f));
 		EndScissorMode();
-		}
+        }
 		else {
 			// draw file selection
 			//DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
@@ -1028,10 +1028,13 @@ while (!WindowShouldClose())
 						Color selColor = accentColor.g > 180 || (accentColor.r + accentColor.g + accentColor.b) > 450 ? BLACK : WHITE;
 
 						DrawLine(filesArea.x, filesArea.y + (i*rowHeight), screenWidth-8, filesArea.y +(i*rowHeight),borderColor);
-						// even/odd row background
-						//if (i % 2) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, darkenColor(accentColor,0.12f));
+
 						int fileIndex = scrollOffset + i;
 						if (fileIndex > totalFiles) break;
+
+                        // even/odd row background
+                        if (i % 2 == 1) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, lightenColor(bgColor, 0.032f));
+
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
 							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
 							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
@@ -1041,8 +1044,10 @@ while (!WindowShouldClose())
 				DrawLine(filesArea.x+44,filesArea.y,filesArea.x+44,filesArea.y + filesArea.height,borderColor);
 			EndScissorMode();
 			}
+                            
 
-		//volume icon and its percentage value
+		
+        //volume icon and its percentage value
 		DrawTexture(volumeICO_texture,infoArea.x-4,infoArea.y +14,isMute?borderColor:secondaryColor);
 		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
 		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);

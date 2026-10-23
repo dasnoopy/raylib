@@ -12,7 +12,7 @@
 #define screenHeight 420
 
 // NORD colors
-#define bgColor CLITERAL(Color){10, 20, 30, 248}
+#define bgColor CLITERAL(Color){10, 20, 30, 255}
 #define accentColor CLITERAL(Color){ 136, 192, 208, 255 }
 #define bgClockColor CLITERAL(Color){ 20, 30, 40, 255 }
 
@@ -169,7 +169,7 @@ PathPoint GetRoundedRectPathPoint(Rectangle rect, float radius, float progress)
 
 int main (int argc, char *argv[]) 
 {
-    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
 	InitWindow(screenWidth, screenHeight, "rcalendar");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
 
@@ -206,8 +206,10 @@ while (!WindowShouldClose()) {
 // Draw
 // 
 		BeginDrawing();
-		ClearBackground (bgColor);
+		ClearBackground (BLANK);
 		
+        DrawRectangleRounded((Rectangle){0,0,screenWidth,screenHeight},0.112f, 36, bgColor);
+        
         time_t now = time (NULL);
 		struct tm *t = localtime(&now);
 
