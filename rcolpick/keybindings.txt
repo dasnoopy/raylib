@@ -1,6 +1,7 @@
-right mouse button pressed / mouse wheel )] : pan / zoom image
-middle mouse button : get info for a primary pixel;
-left mouse button : get info for a secondary pixel;
+key cursors: pan image
+mouse wheel: zoom image
+left mouse button : get info for a primary pixel;
+right mouse button : get info for a secondary pixel;
 
 drag and drop from file manager: load PNG image
 CTRL+V: paste copied image from clipboard

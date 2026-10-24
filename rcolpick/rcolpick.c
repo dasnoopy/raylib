@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.9.2"
+#define TOOL_VERSION            "1.9.6"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -29,9 +29,8 @@ Color leftCol;
 Color rightCol;
 Color *pixels;
 char fName[384] = { '\0' };
-bool showGrid = false;
-bool showMinimap = true;
-bool showHist = true;
+bool showMinimap = false;
+bool showHist = false;
 bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
@@ -60,8 +59,8 @@ const int txtOffset = 32;
 
 Vector2 barPos = {0,screenHeight - txtOffset };
 Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
-Rectangle rectPixel = { 8,8,272,280 };
-Rectangle rectHist = { 8,570,272,110 };
+Rectangle rectPixel = { 8,8,270,338 };
+Rectangle rectHist = { 8,570,270,110 };
 
 //mimimap variables
 const float maxMapSize = 196.0f; 
@@ -559,14 +558,12 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 		        DrawTexture(background, 0, 0, WHITE);
 		      
 		      if (cam.zoom >=10.0f) {
-		        showGrid=true;
+                // disegna griglia a zoom elevati
                           // linee verticali
                           for (int x = 0; x <= background.width; x++) DrawLine(x, 0, x, background.height, Fade(DARKGRAY, 0.5f));
                           // linee orizzontali
                          for (int y = 0; y <= background.height; y++) DrawLine(0, y, background.width, y, Fade(DARKGRAY, 0.5f));
-                      }
-                      else showGrid = false;
-          
+                }          
 		          EndMode2D();
 		      
 		      if (cam.zoom >= 10.0f) {
@@ -582,27 +579,23 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             EndScissorMode();	      
 
             
-            // pixel panel ("floating")
-            DrawRectangleRec (rectPixel, Fade(BLACK,0.5f));
+            // background of "floating" poanel
+            DrawRectangleRec (rectPixel, DARKGRAY);
 
             // MAIN cursor x,y
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
             Vector2 mainXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
             DrawTextEx(txtFont,TextFormat("%s",buffer),(Vector2){(rectPixel.x + (rectPixel.width -mainXY.x)/2), rectPixel.y + 2},fntSize,0,WHITE);
            
-           // distance in pixels from xr to xl and yr to yl
-           snprintf(buffer, sizeof(buffer), "x2-x1: %ipx, y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 );
-           Vector2 secXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
-           DrawTextEx(txtFont,TextFormat("x2-x1: %ipx, y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 ),(Vector2){(rectPixel.x + (rectPixel.width-secXY.x) /2), rectPixel.y + 258},fntSize,0,WHITE);  
 
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,270, 118}, Fade(leftCol,0.88f));
-            DrawTextEx(txtFont,TextFormat("x1: %i, y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,268, 178}, Fade(leftCol,0.88f));
+            DrawTextEx(txtFont,TextFormat("X1: %i , Y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
             // RGBA            
             DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 48},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 72},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 72},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
            DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 96},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
            // HSL
@@ -611,29 +604,39 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             // info per right pixel (right mouse click)
             //---------------------------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 142 ,270, 112}, Fade(rightCol,0.88f));
+            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 225 ,268, 112}, Fade(rightCol,0.88f));
             // cursor x,y right
-            DrawTextEx(txtFont,TextFormat("x2: %i, y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 144},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("X2: %i , Y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 228},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
             // RGBA 
-            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 166},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 250},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
             // HEXA
-           DrawTextEx(txtFont,TextFormat("hexa(#%02X%02X%02X%02X)", rightCol.r,rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 188},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", rightCol.r,rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 272},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv1.x,hsv1.y*100.0f,hsv1.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 210},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv1.x,hsv1.y*100.0f,hsv1.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 294},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
            // HSL
-           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 232},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 316},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);   
 
  
 
             // shaded and tinted colors (starting from hover color)
-            // for (int i = 1; i < 10; ++i) {
-            //     // shaded -10% / -90%
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 49, 26, 24, shadesColor(leftCol,( i*0.1f )));
-            //     //DrawText(TextFormat("-%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-41,10,WHITE);
-            //     // tinted +10% / +90%                
-            //     DrawRectangle(rectPixel.x - 21 + (i * 29) ,rectPixel.height - 22, 26, 24, tintedColor(leftCol,( i * 0.1f )));
-            //     //DrawText(TextFormat("+%i%%",i*10),rectPixel.x-20+(i*29),rectPixel.height-14,10,BLACK);
-            // }
+            for (int i = 1; i < 10; ++i) {
+                // shaded -10% / -90%
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height - 187 , 28, 26, GRAY);
+                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height - 186 , 26, 24, shadesColor(leftCol,( i*0.1f )));
+                DrawText(TextFormat("-%i",i*10),rectPixel.x-17+(i*29),rectPixel.height-177,10,WHITE);
+                // tinted +10% / +90%
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height-160, 28, 26, GRAY);                
+                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height-159, 26, 24, tintedColor(leftCol,( i * 0.1f )));
+                DrawText(TextFormat("+%i",i*10),rectPixel.x-18+(i*29),rectPixel.height-150,10,BLACK);
+            }
+
+
+           // distance in pixels from xr to xl and yr to yl
+           snprintf(buffer, sizeof(buffer), "x2-x1: %ipx , y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 );
+           Vector2 secXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
+           DrawTextEx(txtFont,TextFormat("%s",buffer),(Vector2){(rectPixel.x + (rectPixel.width-secXY.x) /2), rectPixel.y + 204},fntSize,0,WHITE);  
+
+
 
         	  // disegna istogramma RGBA 
               // sfondo 
@@ -679,7 +682,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 
                 //file info (bottom panel)
-                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,BLACK);
+                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,DARKGRAY);
                 //filename and size
                 DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
                 DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
