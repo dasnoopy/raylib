@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.8.2"
+#define TOOL_VERSION            "1.9.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -22,12 +22,6 @@
 const int screenWidth = 1280;
 const int screenHeight = 720;
 
-float minZoomX;
-float minZoomY;
-float minZoom;
-const float stepZoom = 0.20f;
-const float maxZoom = 32.0f;
-const int txtOffset = 32;
 const int fntSize = 18;
 char buffer[64];
 const char *clipboardText = NULL;
@@ -57,13 +51,17 @@ int yr = 0;
 int xl = 0;
 int yl = 0;
 
-Vector2 barPos = {0,screenHeight-txtOffset};
+float minZoomX;
+float minZoomY;
+float minZoom;
+const float stepZoom = 0.20f;
+const float maxZoom = 32.0f;
+const int txtOffset = 32;
+
+Vector2 barPos = {0,screenHeight - txtOffset };
 Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
 Rectangle rectPixel = { 8,8,272,280 };
-Rectangle rectHist = { 8,289,272,110 };
-
-
-
+Rectangle rectHist = { 8,570,272,110 };
 
 //mimimap variables
 const float maxMapSize = 196.0f; 
@@ -75,6 +73,14 @@ float mapPosY ;
 float scaleX;
 float scaleY;
 
+// Key repeat structure
+typedef struct {
+    int currentKey;      // Il tasto attualmente premuto
+    float timer;         // Timer per calcolare i delay
+    bool isRepeating;    // true se ha superato il delay iniziale
+    float firstDelay;    // Tempo di attesa iniziale 
+    float repeatRate;    // Intervallo di ripetizione 
+} KeyRepeater;
 
 // color conversion variables
 #define MIN(a,b) ((a)<(b)?(a):(b))
@@ -211,6 +217,50 @@ void calcMinimap (Texture2D background) {
     scaleY = mapHeight / background.height;
 }
 
+
+// Funzione che aggiorna lo stato delle pressione di un tasto
+// e restituisce true se l'azione deve essere eseguita
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
+    // Se il tasto passato non è premuto, non fare nulla
+    if (!IsKeyDown(key)) {
+        // Se era il tasto che stavamo tracciando, resettiamo lo stato
+        if (repeater->currentKey == key) {
+            repeater->currentKey = 0;
+            repeater->timer = 0.0f;
+            repeater->isRepeating = false;
+        }
+        return false;
+    }
+
+    // Se un nuovo tasto viene premuto (o cambiamo direzione), resettiamo il timer sul nuovo tasto
+    if (repeater->currentKey != key) {
+        repeater->currentKey = key;
+        repeater->timer = 0.0f;
+        repeater->isRepeating = false;
+        return true; // Ritorna true immediatamente per il primo click (reattività)
+    }
+
+    // Se stiamo continuando a tenere premuto lo stesso tasto
+    repeater->timer += deltaTime;
+
+    if (!repeater->isRepeating) {
+        // ritardo iniziale
+        if (repeater->timer >= repeater->firstDelay) {
+            repeater->timer = 0.0f;
+            repeater->isRepeating = true;
+            return true;
+        }
+    } else {
+        // ripetizione continua e rate
+        if (repeater->timer >= repeater->repeatRate) {
+            repeater->timer -= repeater->repeatRate;
+            return true;
+        }
+    }
+    return false;
+}
+
+
 int main (int argc, char *argv[])
 {
     if ( (IsPathFile(argv[1])) && FileExists(argv[1]))  strcpy(fName , argv[1]);
@@ -251,21 +301,40 @@ int main (int argc, char *argv[])
     //generate mini-map
     calcMinimap(background);
 
+    // set key repeater speed (400ms initial delay, 80ms repeat rate)
+    KeyRepeater repeater = {
+        .currentKey = 0,
+        .timer = 0.0f,
+        .isRepeating = false,
+        .firstDelay = 0.40f,
+        .repeatRate = 0.064f
+    };
+
+   bool isLeft = true;
+
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 // Main game loop
 while (!WindowShouldClose())    // Detect window close button or ESC key
 	{
+
+//----------------------------------------------------------------------------------
+// Update
+//----------------------------------------------------------------------------------
+
+		// get frame time
+		float deltaTime = GetFrameTime();
+        float speed = 150.0f /  cam.zoom;
+
         // Load a dropped file dynamically
         if (IsFileDropped()) {
             FilePathList droppedFiles = LoadDroppedFiles();
-            DrawRectangleRec((Rectangle){0,0,screenWidth,screenHeight},Fade(SKYBLUE, 0.50f));
-         if (droppedFiles.count == 1) // Only support one file dropped
+            // DrawRectangleRec((Rectangle){0,0,screenWidth,screenHeight},Fade(SKYBLUE, 0.50f));
+          if (droppedFiles.count == 1) // Only support one file dropped
             {
                 // NOTE: We only support file dropped
-                if (IsFileExtension(droppedFiles.paths[0], ".png"))
-                
+                if (IsFileExtension(droppedFiles.paths[0], ".png"))         
                 {
                     UnloadTexture(background);
                     UnloadTexture(checkerBoard);
@@ -291,8 +360,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.offset = (Vector2){ 0.0f, 0.0f };
                     cam.rotation = 0.0f;
                     // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
-                    minZoomX = (float)screenWidth / background.width;
-                    minZoomY = (float)screenHeight / background.height;
+                    minZoomX = (float)scissorArea.width / background.width;
+                    minZoomY = (float)scissorArea.height / background.height;
                     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
                     cam.zoom = minZoom;
                     // ricalcola minimap
@@ -303,10 +372,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
         }
 
-//----------------------------------------------------------------------------------
-// Update
-//----------------------------------------------------------------------------------
-      if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V)) {
+      	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V)) {
             if (IsImageValid(GetClipboardImage()))  {
 
                     UnloadTexture(background);
@@ -333,8 +399,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.offset = (Vector2){ 0.0f, 0.0f };
                     cam.rotation = 0.0f;
                     // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
-                    minZoomX = (float)screenWidth / background.width;
-                    minZoomY = (float)screenHeight / background.height;
+                    minZoomX = (float)scissorArea.width / background.width;
+                    minZoomY = (float)scissorArea.height / background.height;
                     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
                     cam.zoom = minZoom;
                     // ricalcola minimap
@@ -368,8 +434,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.offset = (Vector2){ 0.0f, 0.0f };
                     cam.rotation = 0.0f;
                     // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
-                    minZoomX = (float)screenWidth / background.width;
-                    minZoomY = (float)screenHeight / background.height;
+                    minZoomX = (float)scissorArea.width / background.width;
+                    minZoomY = (float)scissorArea.height / background.height;
                     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
                     cam.zoom = minZoom;
                 }
@@ -391,6 +457,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             int x = (int)world.x;
             int y = (int)world.y;
 
+
+	            if (CheckCollisionPointRec(mousePos,rectPixel)) isLeft = !isLeft;
+	            rectPixel.x =(isLeft)?8:1000;
+            
+
             
             if (wheel != 0.0f) {
                     Vector2 mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), cam);
@@ -402,8 +473,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     if (wheel < 0) cam.zoom -= cam.zoom * zoomIncrement;
 
                     // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
-                    minZoomX = (float)screenWidth / background.width;
-                    minZoomY = (float)screenHeight / background.height;
+                    minZoomX = (float)scissorArea.width / background.width;
+                    minZoomY = (float)scissorArea.height / background.height;
                     minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY; 
                     
                     if (cam.zoom < minZoom) cam.zoom = minZoom;
@@ -411,28 +482,34 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 }
 
                 // primary pixel
-                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (x >= 0 && x < background.width && y >= 0 && y < background.height) leftCol = pixels[y * background.width + x];
                             xl=x;
                             yl=y;
                     }
                 // secondary pixel
-                if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
-                    if (x >= 0 && x < background.width && y >= 0 && y < background.height) rightCol = pixels[y * background.width + x];
+                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                   if (x >= 0 && x < background.width && y >= 0 && y < background.height) rightCol = pixels[y * background.width + x];
                             xr=x;
                             yr=y;
                     }
 
                 // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
-                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                    Vector2 delta = GetMouseDelta();
-                    cam.target.x -= delta.x / cam.zoom;
-                    cam.target.y -= delta.y / cam.zoom;
-                    }
+
+                //-------------------------------------------------------------------
+                // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
+                //-------------------------------------------------------------------
+                if (cam.zoom >= minZoom)
+                {
+                    if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) cam.target.y -= speed;
+                    if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime))cam.target.y += speed;
+                    if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime))cam.target.x -= speed;
+                    if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime)) cam.target.x += speed;
+                }
 
                 // --- CONTROLLO DEI LIMITI DELL'IMMAGINE ---
                 Vector2 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
-                Vector2 bottomRight = GetScreenToWorld2D((Vector2){ (float)screenWidth, (float)screenHeight }, cam);
+                Vector2 bottomRight = GetScreenToWorld2D((Vector2){ (float)scissorArea.width, (float)scissorArea.height }, cam);
 
                 if (topLeft.x < 0.0f) cam.target.x += (0.0f - topLeft.x);
                 else if (bottomRight.x > (float)background.width) cam.target.x -= (bottomRight.x - (float)background.width);
@@ -442,7 +519,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
                 // Ricalcolo coordinate reali per sincronizzare il rettangolo rosso della mappa
                 topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
-                bottomRight = GetScreenToWorld2D((Vector2){ (float)screenWidth, (float)screenHeight }, cam);
+                bottomRight = GetScreenToWorld2D((Vector2){ (float)scissorArea.width, (float)scissorArea.height}, cam);
 
                 //cursor centered
                 Vector2 cursor = { x + 0.5f, y + 0.5f };
@@ -480,9 +557,6 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 	           	// draw the entire background image for the entire world. The camera will clip it to the screen
                 DrawTexture(checkerBoard, 0, 0, WHITE);
 		        DrawTexture(background, 0, 0, WHITE);
-		          //DrawRectangleLinesEx(screenInWorldRect, 4 / cam.zoom, Fade(BLACK,0.8f));
-		        
-                      //if (!showGrid) DrawRectangleLines(0,0,background.width, background.height,Fade(BLACK,0.5f)); 
 		      
 		      if (cam.zoom >=10.0f) {
 		        showGrid=true;
@@ -509,13 +583,21 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             
             // pixel panel ("floating")
-            DrawRectangleRec (rectPixel, Fade(BLACK,0.7f));
+            DrawRectangleRec (rectPixel, Fade(BLACK,0.5f));
+
             // MAIN cursor x,y
-            DrawTextEx(txtFont,TextFormat("x: %i, y: %i (zoom: %02.f%%)", x, y,cam.zoom*100),(Vector2){rectPixel.x + 10, rectPixel.y + 2},fntSize,0,ORANGE);
-            
+            snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
+            Vector2 mainXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
+            DrawTextEx(txtFont,TextFormat("%s",buffer),(Vector2){(rectPixel.x + (rectPixel.width -mainXY.x)/2), rectPixel.y + 2},fntSize,0,WHITE);
+           
+           // distance in pixels from xr to xl and yr to yl
+           snprintf(buffer, sizeof(buffer), "x2-x1: %ipx, y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 );
+           Vector2 secXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
+           DrawTextEx(txtFont,TextFormat("x2-x1: %ipx, y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 ),(Vector2){(rectPixel.x + (rectPixel.width-secXY.x) /2), rectPixel.y + 258},fntSize,0,WHITE);  
+
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,270, 118}, Fade(leftCol,0.7f));
+            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,270, 118}, Fade(leftCol,0.88f));
             DrawTextEx(txtFont,TextFormat("x1: %i, y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
             // RGBA            
             DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 48},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
@@ -529,7 +611,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             // info per right pixel (right mouse click)
             //---------------------------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 142 ,270, 112}, Fade(rightCol,0.7f));
+            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 142 ,270, 112}, Fade(rightCol,0.88f));
             // cursor x,y right
             DrawTextEx(txtFont,TextFormat("x2: %i, y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 144},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
             // RGBA 
@@ -541,8 +623,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
            // HSL
            DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 232},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);   
 
-            // distance in pixels from xr to xl and yr to yl
-           DrawTextEx(txtFont,TextFormat("x2-x1= %i, y2-y1= %i", (xr-xl) + 1, (yr-yl) +1 ),(Vector2){rectPixel.x + 10, rectPixel.y + 258},fntSize,0,ORANGE);   
+ 
 
             // shaded and tinted colors (starting from hover color)
             // for (int i = 1; i < 10; ++i) {
@@ -566,8 +647,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                           float hA = (float)histA[i] / maxA;
                           
                             DrawLine((rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hR*100), Fade(RED, 0.5f));
-                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hG*100), Fade(LIME, 0.5f));
-                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hB*100), Fade(SKYBLUE, 0.5f));  
+                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hG*100), Fade(GREEN, 0.5f));
+                            DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hB*100), Fade(BLUE, 0.5f));  
                             DrawLine( (rectHist.x + 8) + i, (rectHist.y + 107), (rectHist.x + 8) + i, (rectHist.y + 107) - (int)(hA*100), Fade(WHITE, 0.5f));
                       }
         }
@@ -598,7 +679,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 
                 //file info (bottom panel)
-                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,Fade(BLACK,0.7f));
+                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,BLACK);
                 //filename and size
                 DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
                 DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
