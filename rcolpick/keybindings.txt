@@ -1,6 +1,10 @@
-mouse cursors / mouse wheel )] : pan / zoom image
-drag and rop : load PNG image
+right mouse button pressed / mouse wheel )] : pan / zoom image
+middle mouse button : get info for a primary pixel;
+left mouse button : get info for a secondary pixel;
+
+drag and drop from file manager: load PNG image
 CTRL+V: paste copied image from clipboard
+
 X: reset wiew to fit  window width
 1: set zoom 1:1
 

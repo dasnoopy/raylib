@@ -34,7 +34,7 @@
 #define screenHeight  396
 
 // some custom colors
-const Color accentColor = CLITERAL(Color){136, 192, 208, 255}; 
+const Color accentColor = SKYBLUE;//CLITERAL(Color){136, 192, 208, 255}; 
 const Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
 const Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -448,9 +448,10 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     SetTargetFPS(120);
 
+	// Set UI style
 	// Custom GUI font loading
 	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, NULL, 0);
-	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, NULL, 0);
+	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
 	Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
 	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
 	Font filesFnt= LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); 
@@ -475,7 +476,7 @@ int main (int argc, char *argv[])
 	getMusicFolder();
 	int totalFiles = loadFilesRecursive(currMusicDir, files, 0);
 
-    // sort and shuffle music files 
+    // 2. Ordina o mescola files nella lista
     if (!isShuffle && totalFiles > 0) {
         qsort(files, totalFiles, MAX_NAME, compareFiles); 
     }
@@ -516,9 +517,6 @@ int main (int argc, char *argv[])
 
 	// flag area / currMusic file info
 	Vector2 xyFlags= {556,8};
-
-	// progress bar area to use with mouse seek audio
-	//Rectangle progressArea = { 272, 312, timeText.x, 58};
 
  	// vumeter
 	Complex fftBuffer[MAX_SAMPLES];
@@ -620,7 +618,6 @@ while (!WindowShouldClose())
 					LoadMusicByIndex(currPlay);
 					SetMusicVolume(currMusic, currVolume);
 					PlayMusicStream(currMusic);
-
 				}
 				break;
 
@@ -677,8 +674,8 @@ while (!WindowShouldClose())
 				else currVolume = prevVolume;
 		}
 
-// attiva i seguenti KEYPRESS/opzioni solo se si e' in normale riproduzione del brano
-// (durante il tempo di FADE tra le due canzoni non permette di fare nulla!)
+    // attiva i seguenti KEYPRESS/opzioni solo se si e' in normale riproduzione del brano
+    // (durante il tempo di FADE tra le due canzoni non permette di fare nulla!)
 	if (state == STATE_PLAYING_SINGLE)
 	{
 				if (IsKeyPressed(KEY_P) && isPlay && !isStop) { // pause
@@ -764,7 +761,7 @@ while (!WindowShouldClose())
 		            if (IsKeyPressed(KEY_C)) SetClipboardText(GetFileNameWithoutExt(files[selectedIndex]));
 		        }
 
-	}
+	   }
 
 		//------------------------------------------------------------------------------
 		// scrollFiles with mouse and keybinding in music library
@@ -908,7 +905,6 @@ while (!WindowShouldClose())
 			}
 		}
 
-
             transitionProgress += (deltaTime / transitionDuration);
             if (transitionProgress >= 1.0f) {
                 transitionProgress = 0.0f;
@@ -934,7 +930,7 @@ while (!WindowShouldClose())
 
 		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.072f,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, SKYBLUE); // WHITE
+		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -1033,7 +1029,7 @@ while (!WindowShouldClose())
 						if (fileIndex > totalFiles) break;
 
                         // even/odd row background
-                        if (i % 2 == 1) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, lightenColor(bgColor, 0.032f));
+                        // if (i % 2 == 1) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, lightenColor(bgColor, 0.032f));
 
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
 							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
@@ -1083,8 +1079,8 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 		//statusbar with some info
-		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
-		//DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
+		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
+		DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();

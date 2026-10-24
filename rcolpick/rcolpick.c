@@ -58,7 +58,7 @@ int xl = 0;
 int yl = 0;
 
 Vector2 barPos = {0,screenHeight-txtOffset};
-//Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
+Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
 Rectangle rectPixel = { 8,8,272,280 };
 Rectangle rectHist = { 8,289,272,110 };
 
@@ -410,22 +410,21 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     if (cam.zoom > maxZoom) cam.zoom = maxZoom;
                 }
 
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                // primary pixel
+                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                     if (x >= 0 && x < background.width && y >= 0 && y < background.height) leftCol = pixels[y * background.width + x];
-                        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                             xl=x;
                             yl=y;
-                            }
                     }
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                // secondary pixel
+                if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
                     if (x >= 0 && x < background.width && y >= 0 && y < background.height) rightCol = pixels[y * background.width + x];
-                    xr=x;
-                    yr=y;
+                            xr=x;
+                            yr=y;
                     }
 
                 // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
-                if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                     Vector2 delta = GetMouseDelta();
                     cam.target.x -= delta.x / cam.zoom;
                     cam.target.y -= delta.y / cam.zoom;
@@ -476,7 +475,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // sfondo fuori dall' immagine
             ClearBackground(LIGHTGRAY);
                   
-            //BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);   
+            BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);   
     		    BeginMode2D(cam);
 	           	// draw the entire background image for the entire world. The camera will clip it to the screen
                 DrawTexture(checkerBoard, 0, 0, WHITE);
@@ -506,7 +505,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                         DrawRectangle(mousePos.x-16, mousePos.y, 33 , 2, RED);
                         DrawRectangle(mousePos.x, mousePos.y-16 , 2,33, RED);
                       }                      
-            //EndScissorMode();	      
+            EndScissorMode();	      
 
             
             // pixel panel ("floating")
