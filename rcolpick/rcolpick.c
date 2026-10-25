@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "2.0.3"
+#define TOOL_VERSION            "2.0.4"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -590,7 +590,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             
             // background of "floating" poanel
-            DrawRectangleRounded(rectPixel,0.048f,36, bgColor);
+            DrawRectangleRounded(rectPixel,0.048f,36, Fade(bgColor,0.72f));
 
             // MAIN cursor x,y
             DrawCircle(rectPixel.x + 12,rectPixel.y+12 ,6, previewCol);
@@ -695,8 +695,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
                 // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
-                DrawRectangle(rectX, rectY, rectW, rectH, Fade(WHITE, 0.25f));
-                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, WHITE);
+                DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.25f));
+                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
                 }
                 //--------------------------------------------------------------------------------------------------------------
 
