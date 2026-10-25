@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "2.0.0"
+#define TOOL_VERSION            "2.0.2"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -35,7 +35,7 @@ bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
 
-const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
+const Color bgColor = CLITERAL(Color){40,66,87,255};
 
 int histR[256] = {0};
 int histG[256] = {0};
@@ -582,7 +582,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             
             // background of "floating" poanel
-            DrawRectangleRec (rectPixel, borderColor);
+            DrawRectangleRounded(rectPixel,0.048f,36, bgColor);
 
             // MAIN cursor x,y
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
@@ -632,11 +632,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 Color textShaded = backShadesCol.g > 180 || (backShadesCol.r + backShadesCol.g + backShadesCol.b) > 450 ? BLACK : WHITE;
                 Color textTinded = backTintedCol.g > 180 || (backTintedCol.r + backTintedCol.g + backTintedCol.b) > 450 ? BLACK : WHITE;
 
-                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height - 187 , 28, 26, borderColor);
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height - 187 , 28, 26, bgColor);
                 DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height - 186 , 26, 24, backShadesCol);
                 DrawText(TextFormat("-%i",i*10),rectPixel.x-17+(i*29),rectPixel.height-177,10,textShaded);
                 // tinted +10% / +90%
-                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height-160, 28, 26, borderColor);                
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height-160, 28, 26, bgColor);                
                 DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height-159, 26, 24, backTintedCol);
                 DrawText(TextFormat("+%i",i*10),rectPixel.x-18+(i*29),rectPixel.height-150,10,textTinded);
             }
@@ -693,7 +693,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 
                 //file info (bottom panel)
-                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,DARKGRAY);
+                DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,bgColor);
                 //filename and size
                 DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
                 DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
