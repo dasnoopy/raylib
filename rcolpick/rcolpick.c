@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "1.9.6"
+#define TOOL_VERSION            "2.0.0"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -34,6 +34,8 @@ bool showHist = false;
 bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
+
+const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
 
 int histR[256] = {0};
 int histG[256] = {0};
@@ -580,61 +582,70 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             
             // background of "floating" poanel
-            DrawRectangleRec (rectPixel, DARKGRAY);
+            DrawRectangleRec (rectPixel, borderColor);
 
             // MAIN cursor x,y
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
             Vector2 mainXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
-            DrawTextEx(txtFont,TextFormat("%s",buffer),(Vector2){(rectPixel.x + (rectPixel.width -mainXY.x)/2), rectPixel.y + 2},fntSize,0,WHITE);
-           
+            DrawTextEx(txtFont,buffer,(Vector2){(rectPixel.x + (rectPixel.width -mainXY.x)/2), rectPixel.y + 2},fntSize,0,WHITE);
+        
+            // colore FG text in baase al colore selezionato
+            Color LeftTextCol = leftCol.g > 180 || (leftCol.r + leftCol.g + leftCol.b) > 450 ? BLACK : WHITE;
+            Color RightTextCol = rightCol.g > 180 || (rightCol.r + rightCol.g + rightCol.b) > 450 ? BLACK : WHITE;
 
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
             DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,268, 178}, Fade(leftCol,0.88f));
-            DrawTextEx(txtFont,TextFormat("X1: %i , Y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("X1: %i , Y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 26},fntSize,0,LeftTextCol);
             // RGBA            
-            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 48},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 48},fntSize,0,LeftTextCol);
             // HEXA 
-            DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 72},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 72},fntSize,0,LeftTextCol);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 96},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv.x,hsv.y*100.0f,hsv.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 96},fntSize,0,LeftTextCol);
            // HSL
-           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 120},fntSize,0,(leftCol.r<=128 && leftCol.g<=128 && leftCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res.h*360, res.s*100, res.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 120},fntSize,0,LeftTextCol);   
             
 
             // info per right pixel (right mouse click)
             //---------------------------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 225 ,268, 112}, Fade(rightCol,0.88f));
+            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 202, 268, 112}, Fade(rightCol,0.88f));
             // cursor x,y right
-            DrawTextEx(txtFont,TextFormat("X2: %i , Y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 228},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("X2: %i , Y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 204},fntSize,0,RightTextCol);
             // RGBA 
-            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 250},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+            DrawTextEx(txtFont,TextFormat("rgba(%03i, %03i, %03i, %03i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 226},fntSize,0,RightTextCol);
             // HEXA
-           DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", rightCol.r,rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 272},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hexa #%02X%02X%02X%02X", rightCol.r,rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x + 10, rectPixel.y + 248},fntSize,0,RightTextCol);
            // HSVLighter variations created by adding white to your base color.
-           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv1.x,hsv1.y*100.0f,hsv1.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 294},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);
+           DrawTextEx(txtFont,TextFormat("hsv(%3.02f, %3.02f%%, %3.02f%%)", hsv1.x,hsv1.y*100.0f,hsv1.z*100.0f),(Vector2){rectPixel.x + 10, rectPixel.y + 270},fntSize,0,RightTextCol);
            // HSL
-           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 316},fntSize,0,(rightCol.r<=128 && rightCol.g<=128 && rightCol.b<=128)? WHITE : BLACK);   
+           DrawTextEx(txtFont,TextFormat("hsl(%3.02f, %3.02f%%, %3.02f%%)", res1.h*360, res1.s*100, res1.l*100),(Vector2){rectPixel.x + 10, rectPixel.y + 292},fntSize,0,RightTextCol);   
 
  
 
             // shaded and tinted colors (starting from hover color)
             for (int i = 1; i < 10; ++i) {
                 // shaded -10% / -90%
-                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height - 187 , 28, 26, GRAY);
-                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height - 186 , 26, 24, shadesColor(leftCol,( i*0.1f )));
-                DrawText(TextFormat("-%i",i*10),rectPixel.x-17+(i*29),rectPixel.height-177,10,WHITE);
+
+                Color backShadesCol =  shadesColor(leftCol,( i*0.1f ));
+                Color backTintedCol = tintedColor(leftCol,( i*0.1f ));
+                Color textShaded = backShadesCol.g > 180 || (backShadesCol.r + backShadesCol.g + backShadesCol.b) > 450 ? BLACK : WHITE;
+                Color textTinded = backTintedCol.g > 180 || (backTintedCol.r + backTintedCol.g + backTintedCol.b) > 450 ? BLACK : WHITE;
+
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height - 187 , 28, 26, borderColor);
+                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height - 186 , 26, 24, backShadesCol);
+                DrawText(TextFormat("-%i",i*10),rectPixel.x-17+(i*29),rectPixel.height-177,10,textShaded);
                 // tinted +10% / +90%
-                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height-160, 28, 26, GRAY);                
-                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height-159, 26, 24, tintedColor(leftCol,( i * 0.1f )));
-                DrawText(TextFormat("+%i",i*10),rectPixel.x-18+(i*29),rectPixel.height-150,10,BLACK);
+                DrawRectangle(rectPixel.x - 24 + (i * 29) ,rectPixel.height-160, 28, 26, borderColor);                
+                DrawRectangle(rectPixel.x - 23 + (i * 29) ,rectPixel.height-159, 26, 24, backTintedCol);
+                DrawText(TextFormat("+%i",i*10),rectPixel.x-18+(i*29),rectPixel.height-150,10,textTinded);
             }
 
 
            // distance in pixels from xr to xl and yr to yl
            snprintf(buffer, sizeof(buffer), "x2-x1: %ipx , y2-y1: %ipx", (xr-xl) + 1, (yr-yl) +1 );
            Vector2 secXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
-           DrawTextEx(txtFont,TextFormat("%s",buffer),(Vector2){(rectPixel.x + (rectPixel.width-secXY.x) /2), rectPixel.y + 204},fntSize,0,WHITE);  
+           DrawTextEx(txtFont,buffer,(Vector2){(rectPixel.x + (rectPixel.width-secXY.x) /2), rectPixel.y + 316},fntSize,0,WHITE);  
 
 
 
@@ -675,8 +686,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
                 // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
-                DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.25f));
-                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
+                DrawRectangle(rectX, rectY, rectW, rectH, Fade(WHITE, 0.25f));
+                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, WHITE);
                 }
                 //--------------------------------------------------------------------------------------------------------------
 
