@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "2.0.2"
+#define TOOL_VERSION            "2.0.3"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -25,17 +25,19 @@ const int screenHeight = 720;
 const int fntSize = 18;
 char buffer[64];
 const char *clipboardText = NULL;
-Color leftCol;
-Color rightCol;
+
+Color leftCol = BLACK;
+Color rightCol = BLACK;
 Color *pixels;
 char fName[384] = { '\0' };
-bool showMinimap = false;
+bool showMinimap = true;
 bool showHist = false;
 bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
 
 const Color bgColor = CLITERAL(Color){40,66,87,255};
+Color previewCol = bgColor;
 
 int histR[256] = {0};
 int histG[256] = {0};
@@ -343,6 +345,10 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     UnloadImage(img);
                     UnloadImage(img1);
 
+                    // reset colors
+                    leftCol = BLACK;
+                    rightCol = BLACK;
+
                     isPasted = false;
                     isDragged = true;
 
@@ -384,6 +390,9 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
                     isPasted = true;
                     isDragged = false;
+                    // reset colors
+                    leftCol = BLACK;
+                    rightCol = BLACK;
 
                     strcpy(fName, "(Image pasted from clipboard)");
                     img = GetClipboardImage();
@@ -458,10 +467,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             int x = (int)world.x;
             int y = (int)world.y;
 
-
+                // se mouse sopra floating panel, sposta floating panel
 	            if (CheckCollisionPointRec(mousePos,rectPixel)) isLeft = !isLeft;
 	            rectPixel.x =(isLeft)?8:1000;
-            
+                // anteprima colore sotto il mouse cursor
+                if (x >= 0 && x < background.width && y >= 0 && y < background.height) previewCol = pixels[y * background.width + x];
 
             
             if (wheel != 0.0f) {
@@ -494,8 +504,6 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                             xr=x;
                             yr=y;
                     }
-
-                // --- GESTIONE TRASCINAMENTO (Click sinistro) ---
 
                 //-------------------------------------------------------------------
                 // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
@@ -585,10 +593,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             DrawRectangleRounded(rectPixel,0.048f,36, bgColor);
 
             // MAIN cursor x,y
+            DrawCircle(rectPixel.x + 12,rectPixel.y+12 ,6, previewCol);
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
-            Vector2 mainXY = MeasureTextEx(txtFont, buffer, (float)txtFont.baseSize, 0);
-            DrawTextEx(txtFont,buffer,(Vector2){(rectPixel.x + (rectPixel.width -mainXY.x)/2), rectPixel.y + 2},fntSize,0,WHITE);
-        
+            DrawTextEx(txtFont,buffer,(Vector2){rectPixel.x + 24, rectPixel.y + 2},fntSize,0,WHITE);
+
+            
             // colore FG text in baase al colore selezionato
             Color LeftTextCol = leftCol.g > 180 || (leftCol.r + leftCol.g + leftCol.b) > 450 ? BLACK : WHITE;
             Color RightTextCol = rightCol.g > 180 || (rightCol.r + rightCol.g + rightCol.b) > 450 ? BLACK : WHITE;
