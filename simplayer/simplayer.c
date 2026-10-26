@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.8"
+#define TOOL_VERSION            "3.1.0"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -91,7 +91,7 @@ bool isVumColored = true; //false:default : start with monochrome vumeter / true
 #define FILTER_OGG      ".ogg"
 
 // file selection
-#define MAX_FILES 4096
+#define MAX_FILES 32768
 #define MAX_NAME 1024
 char files[MAX_FILES][MAX_NAME];
 bool isShuffle = true;
@@ -825,22 +825,33 @@ while (!WindowShouldClose())
 				    hasTyped = false;
 				}
 
-				// tasti numerici (0-9)
-				int keyPressed = GetKeyPressed();
-				if (keyPressed >= KEY_ZERO && keyPressed <= KEY_NINE) {
-				    int digit = keyPressed - KEY_ZERO;
-				    
-				    // dinamica  avvicinamento in base al numero digitato
-				    inputBuffer = (inputBuffer * 10) + digit;
-				    lastTypeTime = currentTime; 
-				    hasTyped = true;
+                // caratteri numerici ('0'-'9')
+                int charPressed = GetCharPressed();
+                while (charPressed > 0) {
+                    if (charPressed >= '0' && charPressed <= '9') {
+                        int digit = charPressed - '0';
+                        
+                        // Calcoliamo in anticipo quale sarebbe il potenziale nuovo valore
+                        int potentialNextValue = (inputBuffer * 10) + digit;
 
-				    // Controllo dei limiti sul numero digitato e numero brani
-				    if (inputBuffer >= totalFiles) selectedIndex = totalFiles - 1;
-				    else selectedIndex = inputBuffer - 1;
-				}
+                        // controllo per non superare il limite di MAX_FILES
+                        if (potentialNextValue <= MAX_FILES) {
+                            inputBuffer = potentialNextValue;
+                            lastTypeTime = currentTime; 
+                            hasTyped = true;
 
-				// 3. Tasti di controllo (Opzionali ma raccomandati)
+                            // Controllo dei limiti su base 0 (Clamping)
+                            if (inputBuffer >= totalFiles) {
+                                selectedIndex = totalFiles - 1;
+                            } else {
+                                selectedIndex = inputBuffer - 1 ;
+                            }
+                        }
+                    }
+                    charPressed = GetCharPressed();
+                }
+
+				// BS & DEL
 				if (IsKeyPressed(KEY_BACKSPACE) && hasTyped) {
 				    inputBuffer /= 10;
 				    selectedIndex = inputBuffer;
