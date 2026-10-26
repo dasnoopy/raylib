@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.5"
+#define TOOL_VERSION            "3.0.6"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -526,7 +526,7 @@ int main (int argc, char *argv[])
 	int scrollOffset = 0;     // primo file visualizzato
 
 	// visualizer  area / variables for effects 
-	Rectangle visArea = { 14, 94, screenWidth-28, 204};
+	Rectangle visArea = { 14, 92, screenWidth-28, 208};
 
 	//infoArea e calcolo lunghezza timeProgressbar
 	Rectangle infoArea = {18,312,screenWidth-30,110};
@@ -919,8 +919,9 @@ while (!WindowShouldClose())
                 }
             }
         }
+        //--------------------------------------------------------------------------------------------
 
-        // transizione cambia info tra artista e aalbum (year)
+        // transizione cambia info tra artista e album (year)
             transitionProgress += (deltaTime / transitionDuration);
             if (transitionProgress >= 1.0f) {
                 transitionProgress = 0.0f;
@@ -1028,8 +1029,8 @@ while (!WindowShouldClose())
 
                             DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 
-                            // riflesso speculare  
-                            int segYPosMirror = baseYPos + (j * (mirrorSegHeight + mirrorSegGap)) + mirrorSegGap;
+                            // riflesso speculare  con spazio alla base
+                            int segYPosMirror = 4 + baseYPos + (j * (mirrorSegHeight + mirrorSegGap)) + mirrorSegGap;
 
                             // float fadeFactor = 1.0f - ((float)j / (float)maxSegments);
                             // fadeFactor = fadeFactor * fadeFactor * 0.50f; 
@@ -1046,10 +1047,6 @@ while (!WindowShouldClose())
                             }
                          }
                     }
-    
-        //baseline of vumeter
-        DrawLine(visArea.x, visArea.y+136,visArea.x+visArea.width-3,visArea.y+136, bgColor);
-
 		EndScissorMode();
 
         }
@@ -1089,7 +1086,7 @@ while (!WindowShouldClose())
 							DrawTextEx(filesFnt,TextFormat("%s",fileNameTrunc), (Vector2){filesArea.x + 46, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
 						
 						}   
-				//vertical divider
+				//vertical divider between index and filename 
 				DrawLine(filesArea.x+40,filesArea.y,filesArea.x+40,filesArea.y + filesArea.height,borderColor);
 			EndScissorMode();
 			}
