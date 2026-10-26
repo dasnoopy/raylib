@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "2.8.5"
+#define TOOL_VERSION            "3.0.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -84,7 +84,7 @@ bool isVumeter = true; // true:default : show 36 band equalizer , if set false s
 float currVolume = 0.50f;            // Default audio currVolume [0.0f..1.0f]
 float prevVolume = 0.50f;
 char *currMusicDir;
-bool isVumColored = false; //false:default : start with monocrome vumeter / true: use colored vumeter
+bool isVumColored = true; //false:default : start with monochrome vumeter / true: use colored vumeter
 
 // files extension
 #define FILTER_MP3      ".mp3"
@@ -130,28 +130,29 @@ int currPlay = 0; //playing song
 #define MAX_COLORS_COUNT  18  // Number of colors available (BLACK & WHITE are excluded)
 const Color colors[MAX_COLORS_COUNT] = { color0,color1,color2,color3,color4, color5, color6,color7,color8,color9, color10,color11,color12,color13, color14, color15,color16,color17 };
 
+// variabile per la ricerca numerica
+int inputBuffer = 0;       // Accumula i numeri digitati
+bool hasTyped = false;     // Flag per lo stato del timer
+float lastTypeTime = 0.0f; // Timestamp dell'ultima cifra inserita
+const float timeoutDuration = 2.0f;
+
+
 // vumeter
-#define MAX_SAMPLES          512
+#define MAX_SAMPLES          1024
 #define NUM_BARS             36 // numero di barre verticali
 #define SMOOTHING_FACTOR     0.18f  
 #define PI                   3.14159265358979323846f
 // Parametri di comportamento del picco Hi-Fi
-#define PEAK_HOLD_FRAMES     60     // Quanti frame il picco resta fermo in alto (0.5 secondi a 60 FPS)
-#define PEAK_DECAY_SPEED     0.025f // Velocità di discesa del picco dopo l'attesa
+#define PEAK_HOLD_FRAMES     30     // Quanti frame il picco resta fermo in alto (0.3 secondi a 60 FPS)
+#define PEAK_DECAY_SPEED     0.015f // Velocità di discesa del picco dopo l'attesa
 
 typedef struct { float real; float imag; } Complex;
 
 float rawSamples[MAX_SAMPLES] = { 0 };
 float barValues[NUM_BARS] = { 0 };
-// Array per la gestione del picco massimo stile Hi-Fi
 float peakValues[NUM_BARS] = { 0 };
 int peakHoldTimers[NUM_BARS] = { 0 };
 
-// variabile per la ricerca
-int inputBuffer = 0;       // Accumula i numeri digitati
-bool hasTyped = false;     // Flag per lo stato del timer
-float lastTypeTime = 0.0f; // Timestamp dell'ultima cifra inserita
-const float timeoutDuration = 2.0f;
 
 // -----------------------------------------------------------------------------
 //						Functions
@@ -405,41 +406,56 @@ void shuffleFiles(char files[MAX_FILES][MAX_NAME], int count)
 }
 
 //------------------------------------------------------------------------------------
-// Audio processing function
+// Spectrum analyzer audio processing function
 //------------------------------------------------------------------------------------
 
-// Struttura FFT In-Place
-void FFT(Complex *X, int n) {
-    if (n <= 1) return;
-    Complex *even = malloc(n / 2 * sizeof(Complex));
-    Complex *odd  = malloc(n / 2 * sizeof(Complex));
-    for (int i = 0; i < n / 2; i++) {
-        even[i] = X[2 * i];
-        odd[i]  = X[2 * i + 1];
+static inline unsigned int ReverseBits(unsigned int x, int bits) {
+    unsigned int y = 0;
+    for (int i = 0; i < bits; i++) {
+        y = (y << 1) | (x & 1);
+        x >>= 1;
     }
-    FFT(even, n / 2);
-    FFT(odd, n / 2);
-    for (int k = 0; k < n / 2; k++) {
-        float angle = -2.0f * PI * k / n;
-        Complex t = {
-            .real = cosf(angle) * odd[k].real - sinf(angle) * odd[k].imag,
-            .imag = sinf(angle) * odd[k].real + cosf(angle) * odd[k].imag
-        };
-        X[k] = (Complex){ .real = even[k].real + t.real, .imag = even[k].imag + t.imag };
-        X[k + n / 2] = (Complex){ .real = even[k].real - t.real, .imag = even[k].imag - t.imag };
+    return y;
+}
+
+void FFT_Iterative(Complex *X, int n) {
+    int bits = (int)log2f((float)n);
+    for (int i = 0; i < n; i++) {
+        unsigned int rev = ReverseBits(i, bits);
+        if (i < (int)rev) {
+            Complex temp = X[i];
+            X[i] = X[rev];
+            X[rev] = temp;
+        }
     }
-    free(even);
-    free(odd);
+    for (int len = 2; len <= n; len <<= 1) {
+        float angle = -2.0f * PI / len;
+        Complex wlen = { .real = cosf(angle), .imag = sinf(angle) };
+        wlen.imag = sinf(angle); // Correzione typo inline
+        for (int i = 0; i < n; i += len) {
+            Complex w = { .real = 1.0f, .imag = 0.0f };
+            for (int j = 0; j < len / 2; j++) {
+                Complex u = X[i + j];
+                Complex v = {
+                    .real = X[i + j + len / 2].real * w.real - X[i + j + len / 2].imag * w.imag,
+                    .imag = X[i + j + len / 2].real * w.imag + X[i + j + len / 2].imag * w.real
+                };
+                X[i + j] = (Complex){ .real = u.real + v.real, .imag = u.imag + v.imag };
+                X[i + j + len / 2] = (Complex){ .real = u.real - v.real, .imag = u.imag - v.imag };
+                float nextReal = w.real * wlen.real - w.imag * wlen.imag;
+                w.imag = w.real * wlen.imag + w.imag * wlen.real;
+                w.real = nextReal;
+            }
+        }
+    }
 }
 
 void AudioProcessCallback(void *buffer, unsigned int frames) {
     float *samples = (float *)buffer;
     for (unsigned int i = 0; i < frames && i < MAX_SAMPLES; i++) {
-        // Attenuazione preventiva di sicurezza (0.1f) per evitare saturazione hardware
         rawSamples[i] = samples[i * 2] * 0.1f; 
     }
 }
-
 int main (int argc, char *argv[]) 
 {
 	// Set configuration flags for window creation
@@ -456,8 +472,9 @@ int main (int argc, char *argv[])
 	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
 	Font filesFnt= LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); 
 
-	SetTextureFilter(defaultFnt.texture, TEXTURE_FILTER_POINT);
-	RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);  
+    // Create framebuffer
+    RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 	
 	//load currVolume icon
 	Image volumeICO = LoadImage("assets/volumeICO.png");     // Loaded in CPU memory (RAM)
@@ -502,14 +519,14 @@ int main (int argc, char *argv[])
 	float speed = 60.0f;
 
 	// filelist variables
-	Rectangle filesArea = { 16,96,screenWidth-32,206 };
+	Rectangle filesArea = { 14,94,screenWidth-28,204 };
 	int rowHeight = 23;
 	int visibleRows = 9;
 	const int centerRow = 4;
 	int scrollOffset = 0;     // primo file visualizzato
 
-	// visualizer  area / variables for effects
-	Rectangle visArea = {14,102,screenWidth-28,192};
+	// visualizer  area / variables for effects 
+	Rectangle visArea = { 14, 94, screenWidth-28, 204};
 
 	//infoArea e calcolo lunghezza timeProgressbar
 	Rectangle infoArea = {18,312,screenWidth-30,110};
@@ -520,9 +537,8 @@ int main (int argc, char *argv[])
 
  	// vumeter
 	Complex fftBuffer[MAX_SAMPLES];
-	// Parametri dinamici di calibrazione
-	float minDb = -55.0f; 
-	float maxDb = -0.0f; // sensibilita Decibel
+	float minDb = -50.0f; 
+	float maxDb = 4.0f; // sensibilita Decibel
 	float maxSeenMagnitude = 0.01f; // Auto-gain tracker
 
 
@@ -844,67 +860,67 @@ while (!WindowShouldClose())
 		//-----------------------------------------------------------------------------------------
 		// vumeter update
 		//-----------------------------------------------------------------------------------------
-		// 1. Finestra di Hann ed esecuzione FFT
-		for (int i = 0; i < MAX_SAMPLES; i++) {
-			float window = 0.5f * (1.0f - cosf(2.0f * PI * i / (MAX_SAMPLES - 1)));
-			fftBuffer[i] = (Complex){ .real = rawSamples[i] * window, .imag = 0.0f };
-		}
+        for (int i = 0; i < MAX_SAMPLES; i++) {
+            float window = 0.5f * (1.0f - cosf(2.0f * PI * i / (MAX_SAMPLES - 1)));
+            fftBuffer[i] = (Complex){ .real = rawSamples[i] * window, .imag = 0.0f };
+        }
 
-		FFT(fftBuffer, MAX_SAMPLES);
+        FFT_Iterative(fftBuffer, MAX_SAMPLES);
 
-		// 2. Divisione logaritmica e calcolo spettro
-		for (int i = 0; i < NUM_BARS; i++) {
-			int indexStart = (int)powf(2.0f, (float)i * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
-			int indexEnd = (int)powf(2.0f, (float)(i + 1) * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
-			
-			if (indexEnd <= indexStart) indexEnd = indexStart + 1;
-			if (indexEnd > MAX_SAMPLES / 2) indexEnd = MAX_SAMPLES / 2;
+        for (int i = 0; i < NUM_BARS; i++) {
+            // Distribuzione logaritmica migliorata per spaziare meglio bassi e alti
+            int indexStart = (int)powf(2.0f, (float)i * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            int indexEnd = (int)powf(2.0f, (float)(i + 1) * (log2f(MAX_SAMPLES / 2) / NUM_BARS));
+            
+            if (indexEnd <= indexStart) indexEnd = indexStart + 1;
+            if (indexEnd > MAX_SAMPLES / 2) indexEnd = MAX_SAMPLES / 2;
 
-			float magnitudeSum = 0.0f;
-			int count = 0;
+            float magnitudeSum = 0.0f;
+            int count = 0;
 
-			for (int j = indexStart; j < indexEnd; j++) {
-				float mag = sqrtf(fftBuffer[j].real * fftBuffer[j].real + 
-								  fftBuffer[j].imag * fftBuffer[j].imag);
-				magnitudeSum += mag;
-				count++;
-			}
+            for (int j = indexStart; j < indexEnd; j++) {
+                float mag = sqrtf(fftBuffer[j].real * fftBuffer[j].real + 
+                                  fftBuffer[j].imag * fftBuffer[j].imag);
+                magnitudeSum += mag;
+                count++;
+            }
 
-			float averageMagnitude = (count > 0) ? (magnitudeSum / count) : 0.0f;
+            float averageMagnitude = (count > 0) ? (magnitudeSum / count) : 0.0f;
 
-			// Auto-Gain: Tracciamo il picco più alto mai registrato per scalare i dati di conseguenza
-			if (averageMagnitude > maxSeenMagnitude) maxSeenMagnitude = averageMagnitude;
-			// Lentamente facciamo decadere il picco massimo per adattarsi a parti più silenziose del brano
-			maxSeenMagnitude *= 0.9995f; 
+            // --- CURVA DI EQUALIZZAZIONE (Modifica Principale) ---
+            // Creiamo un moltiplicatore basato sull'indice della barra per dare un "boost" progressivo agli alti.
+            // Le frequenze alte tendono a disperdersi matematicamente nella FFT; questo compensa la perdita.
+            float eqBoost = 1.0f + (float)i * 0.25f; 
+            averageMagnitude *= eqBoost;
 
-			// Normalizziamo l'ampiezza in base al massimo picco reale registrato
-			float normalizedMag = averageMagnitude / maxSeenMagnitude;
+            if (averageMagnitude > maxSeenMagnitude) maxSeenMagnitude = averageMagnitude;
+            maxSeenMagnitude *= 0.9995f; 
 
-			// Calcolo Decibel convertito
-			float db = 20.0f * log10f(normalizedMag + 0.00001f);
-			
-			// Mappatura lineare sui limiti dB
-			float targetValue = (db - minDb) / (maxDb - minDb);
-			if (targetValue < 0.0f) targetValue = 0.0f;
-			if (targetValue > 1.0f) targetValue = 1.0f;
+            float normalizedMag = averageMagnitude / maxSeenMagnitude;
+            float db = 20.0f * log10f(normalizedMag + 0.00001f);
+            
+            float targetValue = (db - minDb) / (maxDb - minDb);
+            if (targetValue < 0.0f) targetValue = 0.0f;
+            if (targetValue > 1.0f) targetValue = 1.0f;
 
-			// Applichiamo lo smoothing per frenare la discesa
-			barValues[i] += (targetValue - barValues[i]) * SMOOTHING_FACTOR;
+            // Smoothing asimmetrico: reattività istantanea in salita, morbidezza in discesa
+            float currentSmoothing = (targetValue > barValues[i]) ? 0.35f : SMOOTHING_FACTOR;
+            barValues[i] += (targetValue - barValues[i]) * currentSmoothing;
 
-			// Logica del Picco Massimo Hi-Fi
-			if (barValues[i] >= peakValues[i]) {
-				peakValues[i] = barValues[i];
-				peakHoldTimers[i] = PEAK_HOLD_FRAMES; // Resetta il timer di attesa in cima
-			} else {
-				if (peakHoldTimers[i] > 0) {
-					peakHoldTimers[i]--; // Il picco resta fermo ad aspettare
-				} else {
-					peakValues[i] -= PEAK_DECAY_SPEED; // Il picco scende per gravità
-					if (peakValues[i] < barValues[i]) peakValues[i] = barValues[i];
-				}
-			}
-		}
+            if (barValues[i] >= peakValues[i]) {
+                peakValues[i] = barValues[i];
+                peakHoldTimers[i] = PEAK_HOLD_FRAMES; 
+            } else {
+                if (peakHoldTimers[i] > 0) {
+                    peakHoldTimers[i]--; 
+                } else {
+                    peakValues[i] -= PEAK_DECAY_SPEED; 
+                    if (peakValues[i] < barValues[i]) peakValues[i] = barValues[i];
+                }
+            }
+        }
 
+        // transizione cambia info tra artista e aalbum (year)
             transitionProgress += (deltaTime / transitionDuration);
             if (transitionProgress >= 1.0f) {
                 transitionProgress = 0.0f;
@@ -954,58 +970,92 @@ while (!WindowShouldClose())
 	if (isVumeter) { 
 		 // draw 40 band vumeter
 		 BeginScissorMode(visArea.x,visArea.y,visArea.width,visArea.height);
-
+                    //---------------------------------------------------------------------------------
 					// draw vumeter
-					float barWidth = (float) visArea.width / NUM_BARS; // larghezza totale grafico
-					float barSpacing = 3.0f;  // space between bars (direttamente proporzionale a larghezza barre)
-					
-					const int maxSegments = 48; //nr. segmenti singola barra
-					const float segmentHeight = 2.0f; //altezza segmento... anche se e' linea 
-					const float segmentGap = 2.0f;   // distanza tra i segmenty 
-					float baseYPos = visArea.y + visArea.height; //base del vumeter
-					int count = 0;
-					Color barColor;
-					Color dimColor;
+                    // -------------------------------------------------------------------------------
+                    //DrawRectangleRec(visArea,DARKGRAY); // DEBUG: visualizer area
+                    int baseYPos = visArea.y + 136; //base del vumeter
 
-					for (int i = 0; i < NUM_BARS; i++) {
-						float xPos = visArea.x + (i * barWidth); // posizione X iniziale vumeter
-						
-						int segmentsToLight = (int)(barValues[i] * maxSegments); 
-						int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
-						if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
+                    // Larghezza e spaziatura delle barre forzate a valori interi stabili
+                    int barWidth = (int) visArea.width / NUM_BARS; // larghezza totale grafico
+                    int barSpacing = 3;  // space between bars (direttamente proporzionale a larghezza barre)
 
-						// bar color
-						if (isVumColored) {
-							barColor = colors[count];
-							if (i < 17) count++;
-							else count = 17 - (i-17);
-							// if (i % 2) count++;
-						}
-						else barColor = darkenColor(accentColor,0.56f);
-						
-						// dimmed bar color
+                    const int maxSegments = 34; //nr. segmenti singola barra
+
+                    // Geometria VU Meter reale (valori interi assoluti)
+                    const int segmentHeight = 2; 
+                    const int segmentGap = 2;    
+            
+                    // Geometria riflesso compressa (forzata a interi assoluti fissi)
+                    // 4 pixel di altezza e esattamente 2 pixel di spazio vuoto costante tra i segmenti
+                    const int mirrorSegHeight = 2;
+                    const int mirrorSegGap = 0;
+
+                    int count = 0;
+                    Color barColor;
+                    Color dimColor;
+
+                     for (int i = 0; i < NUM_BARS; i++) {
+                        int xPos = visArea.x + (i * barWidth); // posizione X iniziale vumeter
+                        int segmentsToLight = (int)(barValues[i] * maxSegments); 
+                        int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
+                        if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
+
+                        // bar color
+                        if (isVumColored) {
+                            barColor = colors[count];
+                            if (i < 17) count++;
+                            else count = 17 - (i-17);
+                            // if (i % 2) count++;
+                        }
+                        else barColor = darkenColor(accentColor,0.72f);
+                        
+                        // dimmed bar color
                         dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
-						for (int j = 0; j < maxSegments; j++) {
-							float segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
-							
-							// peak color
-							if (j >= segmentsToLight && !isVumColored) barColor = accentColor; 
-							
-							// Logica di disegno combinata barra + picco
-							bool drawActiveSegment = (j < segmentsToLight);
-							bool drawPeakSegment = (j == peakSegment);
 
-							DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
-						 }
-					}
+                        for (int j = 0; j < maxSegments; j++) {
+
+                            //vumeter
+                            int segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+                            
+                            // peak color
+                            if (j >= segmentsToLight && !isVumColored) barColor = accentColor; 
+
+                            // disegno barra + picco
+                            bool drawActiveSegment = (j < segmentsToLight);
+                            bool drawPeakSegment = (j == peakSegment);
+
+                            DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
+
+                            // riflesso speculare  
+                            int segYPosMirror = baseYPos + (j * (mirrorSegHeight + mirrorSegGap)) + mirrorSegGap;
+
+                            // float fadeFactor = 1.0f - ((float)j / (float)maxSegments);
+                            // fadeFactor = fadeFactor * fadeFactor * 0.50f; 
+
+                            if (drawActiveSegment) {
+                                Color mirrorColor = darkenColor(barColor, 0.44f);
+                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, mirrorColor);
+                            } else if (drawPeakSegment) {
+                                Color mirrorPeakColor = darkenColor(barColor, 0.52f);
+                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, mirrorPeakColor);
+                            } else {
+                                Color dimMirrorColor = darkenColor(dimColor, 0.56f);
+                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, dimMirrorColor);
+                            }
+                         }
+                    }
+    
         //baseline of vumeter
-        //DrawRectangle(visArea.x, visArea.y+visArea.height-3,visArea.width-2,2,darkenColor(accentColor,0.32f));
+        DrawLine(visArea.x, visArea.y+136,visArea.x+visArea.width-3,visArea.y+136, bgColor);
+
 		EndScissorMode();
+
         }
 		else {
 			// draw file selection
-			//DrawRectangle(0,filesArea.y-4,screenWidth,filesArea.height+8,darkenColor(accentColor,0.088f));
+			//DrawRectangleRec(filesArea,accentColor); // DEBUG
 			BeginScissorMode( (int)filesArea.x, (int)filesArea.y, (int)filesArea.width, (int)filesArea.height);
 				if (totalFiles < visibleRows) visibleRows = totalFiles;
 
@@ -1032,12 +1082,15 @@ while (!WindowShouldClose())
                         // if (i % 2 == 1) DrawRectangleRec((Rectangle){filesArea.x+1,filesArea.y +(i*rowHeight),filesArea.width-2,rowHeight-1}, lightenColor(bgColor, 0.032f));
 
 						if (fileIndex == selectedIndex) DrawRectangle(filesArea.x,filesArea.y +(i*rowHeight),filesArea.width,rowHeight-1, accentColor);
-							DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
-							DrawTextEx(filesFnt,TextFormat("%s",GetFileName(files[fileIndex])),(Vector2){filesArea.x + 52, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
+							// print INDEX
+                            DrawTextEx(filesFnt,TextFormat("%04i",fileIndex + 1),(Vector2){filesArea.x + 6, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor );
+                            // print truncate too long filenames (max. 88 chars)
+                            const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,88); 
+							DrawTextEx(filesFnt,TextFormat("%s",fileNameTrunc), (Vector2){filesArea.x + 46, filesArea.y +(i*rowHeight)+2},(float)filesFnt.baseSize,0,(fileIndex == selectedIndex)? selColor : fadeColor);
 						
 						}   
 				//vertical divider
-				DrawLine(filesArea.x+44,filesArea.y,filesArea.x+44,filesArea.y + filesArea.height,borderColor);
+				DrawLine(filesArea.x+40,filesArea.y,filesArea.x+40,filesArea.y + filesArea.height,borderColor);
 			EndScissorMode();
 			}
                             
