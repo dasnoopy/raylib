@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.0.6"
+#define TOOL_VERSION            "3.0.8"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -928,6 +928,24 @@ while (!WindowShouldClose())
                 isTransitioning = !isTransitioning;
             }
 
+        // impostazioni visive del vumeter --------------------------------------------------
+        int baseYPos = visArea.y + 136; //base del vumeter
+
+        // Larghezza e spaziatura delle barre forzate a valori interi stabili
+        int barWidth = (int) visArea.width / NUM_BARS; // larghezza totale grafico
+        int barSpacing = 3;  // space between bars (direttamente proporzionale a larghezza barre)
+
+        const int maxSegments = 34; //nr. segmenti singola barra
+
+        // Geometria VU Meter reale (valori interi assoluti)
+        const int segmentHeight = 2; 
+        const int segmentGap = 2;    
+
+        // Geometria riflesso compressa (forzata a interi assoluti fissi)
+        // 4 pixel di altezza e esattamente 2 pixel di spazio vuoto costante tra i segmenti
+        const int mirrorSegHeight = 2;
+        const int mirrorSegGap = 0;
+        //-------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 		//
 		// do something when  window loses focus
@@ -965,7 +983,7 @@ while (!WindowShouldClose())
 		// file type / KHz / stereo - mono  of current song
 		DrawTextEx(defaultFnt,TextFormat("%s",TextToUpper(GetFileExtension(files[selectedIndex]))),(Vector2){xyFlags.x+24,xyFlags.y+3}, (float)defaultFnt.baseSize,1, primaryColor);
 		DrawTextEx(defaultFnt,TextFormat("%i kHz",currMusic.stream.sampleRate/1000),(Vector2){xyFlags.x+24,xyFlags.y+23}, (float)defaultFnt.baseSize,0, secondaryColor);
-		DrawTextEx(defaultFnt,TextFormat("%i bits",currMusic.stream.sampleSize),(Vector2){xyFlags.x+24,xyFlags.y+43}, (float)defaultFnt.baseSize,0, secondaryColor);
+		DrawTextEx(defaultFnt,TextFormat("%i bit",currMusic.stream.sampleSize),(Vector2){xyFlags.x+24,xyFlags.y+43}, (float)defaultFnt.baseSize,0, secondaryColor);
 		DrawTextEx(defaultFnt,TextFormat("%s", (currMusic.stream.channels == 1)? "mono" : (currMusic.stream.channels == 2)? "stereo" : "multi"),(Vector2){xyFlags.x+24,xyFlags.y+63}, (float)defaultFnt.baseSize,0, secondaryColor);
 
 	if (isVumeter) { 
@@ -975,23 +993,6 @@ while (!WindowShouldClose())
 					// draw vumeter
                     // -------------------------------------------------------------------------------
                     //DrawRectangleRec(visArea,DARKGRAY); // DEBUG: visualizer area
-                    int baseYPos = visArea.y + 136; //base del vumeter
-
-                    // Larghezza e spaziatura delle barre forzate a valori interi stabili
-                    int barWidth = (int) visArea.width / NUM_BARS; // larghezza totale grafico
-                    int barSpacing = 3;  // space between bars (direttamente proporzionale a larghezza barre)
-
-                    const int maxSegments = 34; //nr. segmenti singola barra
-
-                    // Geometria VU Meter reale (valori interi assoluti)
-                    const int segmentHeight = 2; 
-                    const int segmentGap = 2;    
-            
-                    // Geometria riflesso compressa (forzata a interi assoluti fissi)
-                    // 4 pixel di altezza e esattamente 2 pixel di spazio vuoto costante tra i segmenti
-                    const int mirrorSegHeight = 2;
-                    const int mirrorSegGap = 0;
-
                     int count = 0;
                     Color barColor;
                     Color dimColor;
@@ -1002,49 +1003,39 @@ while (!WindowShouldClose())
                         int peakSegment = (int)(peakValues[i] * maxSegments) - 1;
                         if (peakSegment < 0 && peakValues[i] > 0.01f) peakSegment = 0;
 
-                        // bar color
+                        // bar colors (da 1 a 18 poi torna indietro)
                         if (isVumColored) {
                             barColor = colors[count];
                             if (i < 17) count++;
                             else count = 17 - (i-17);
-                            // if (i % 2) count++;
-                        }
-                        else barColor = darkenColor(accentColor,0.72f);
+                        } 
+                        // colore barre fisso
+                        else barColor = darkenColor(accentColor,0.56f);
                         
                         // dimmed bar color
                         dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
 
 
-                        for (int j = 0; j < maxSegments; j++) {
+                        for (int x = 0; x < maxSegments; x++) {
 
                             //vumeter
-                            int segYPos = baseYPos - (j * (segmentHeight + segmentGap)) - segmentHeight;
+                            int segYPos = baseYPos - (x * (segmentHeight + segmentGap)) - segmentHeight;
                             
                             // peak color
-                            if (j >= segmentsToLight && !isVumColored) barColor = accentColor; 
+                            if (x >= segmentsToLight && !isVumColored) barColor = accentColor; 
 
                             // disegno barra + picco
-                            bool drawActiveSegment = (j < segmentsToLight);
-                            bool drawPeakSegment = (j == peakSegment);
+                            bool drawActiveSegment = (x < segmentsToLight);
+                            bool drawPeakSegment = (x == peakSegment);
 
                             DrawLine(xPos, segYPos, xPos + (barWidth - barSpacing), segYPos, (drawActiveSegment || drawPeakSegment) ? barColor:dimColor);
 
                             // riflesso speculare  con spazio alla base
-                            int segYPosMirror = 4 + baseYPos + (j * (mirrorSegHeight + mirrorSegGap)) + mirrorSegGap;
+                            int segYPosMirror = 4 + baseYPos + (x * (mirrorSegHeight + mirrorSegGap)) + mirrorSegGap;
 
-                            // float fadeFactor = 1.0f - ((float)j / (float)maxSegments);
-                            // fadeFactor = fadeFactor * fadeFactor * 0.50f; 
-
-                            if (drawActiveSegment) {
-                                Color mirrorColor = darkenColor(barColor, 0.44f);
-                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, mirrorColor);
-                            } else if (drawPeakSegment) {
-                                Color mirrorPeakColor = darkenColor(barColor, 0.52f);
-                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, mirrorPeakColor);
-                            } else {
-                                Color dimMirrorColor = darkenColor(dimColor, 0.56f);
-                                DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, dimMirrorColor);
-                            }
+                            if (drawActiveSegment) DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, darkenColor(barColor, 0.44f));
+                            else if (drawPeakSegment) DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, darkenColor(barColor, 0.52f));
+                            else DrawLine(xPos, segYPosMirror, xPos + (barWidth - barSpacing), segYPosMirror, darkenColor(dimColor, 0.56f));
                          }
                     }
 		EndScissorMode();
@@ -1094,10 +1085,13 @@ while (!WindowShouldClose())
 
 		
         //volume icon and its percentage value
-		DrawTexture(volumeICO_texture,infoArea.x-4,infoArea.y +14,isMute?borderColor:secondaryColor);
-		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0,primaryColor);
-		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+32,infoArea.y+21}, (float)defaultFnt.baseSize,0, borderColor);
-		 
+
+        for (int i = 0; i < 100; i+=4) DrawLine(12+i,360,12+i,360-(i/4),(i<currVolume*100)?accentColor:borderColor);
+
+		DrawTexture(volumeICO_texture,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
+		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0,primaryColor);
+		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0, borderColor);
+		
 		// tempo avanzamento brano centrato orizzontalmente
 		DrawTextEx(digitFnt,curTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y},(float)digitFnt.baseSize,0, primaryColor);
 		
@@ -1129,8 +1123,8 @@ while (!WindowShouldClose())
 		DrawTextEx(defaultFnt,"SHUFFLE",(Vector2){xyFlags.x,xyFlags.y+355},(float)defaultFnt.baseSize,1, isShuffle ? WHITE : borderColor);
 
 		//statusbar with some info
-		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
-		DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
+		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
+		//DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();
