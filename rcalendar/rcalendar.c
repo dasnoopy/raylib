@@ -231,7 +231,7 @@ while (!WindowShouldClose()) {
                 PathPoint pt = GetRoundedRectPathPoint(clockRect, cornerRadius, progress);
                 
                 // defaul marker
-                float thickness = 2.0f; // diametro punti secondi
+                float thickness = 2.0f; // diametro punti secondi normale
 				Color markerColor = bgColor; 
                 
                 Vector2 drawNormal;
