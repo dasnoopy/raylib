@@ -22,7 +22,7 @@
 const int screenWidth = 1280;
 const int screenHeight = 720;
 
-const int fntSize = 14;
+const int fntSize = 16;
 char buffer[64];
 const char *clipboardText = NULL;
 
@@ -67,7 +67,7 @@ Rectangle rectPixel = { 8,8,230,338 };
 Rectangle rectHist = { 8,570,270,110 };
 
 //mimimap variables
-const float maxMapSize = 230.0f; 
+const float maxMapSize = 196.0f; 
 float mapWidth;
 float mapHeight;
 float aspectRatio;
@@ -276,7 +276,7 @@ int main (int argc, char *argv[])
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
-    Font txtFont = LoadFontEx("fonts/computer-says-no.otf", fntSize,NULL, 0); // all other text
+    Font txtFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,NULL, 0); // all other text
 
     Image img = LoadImage(fName);
     ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);    
@@ -704,8 +704,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 //file info (bottom panel)
                 DrawRectangle(barPos.x,barPos.y,screenWidth,txtOffset,bgColor);
                 //filename and size
-                DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 6}, fntSize,0,WHITE);
-                DrawTextEx(txtFont,TextFormat("| %ix%i (%i pixels) | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 6}, fntSize,0,LIGHTGRAY);
+                DrawTextEx(txtFont,TextFormat("File: %s",GetFileName(fName)),(Vector2){8,barPos.y + 8}, fntSize,0,WHITE);
+                DrawTextEx(txtFont,TextFormat("| w:%ipx h:%ipx | %ipx | %d Bytes | %s",img.width,img.height,img.width * img.height, isDragged?GetFileLength(fName):(img.width*img.height)*4,timeMod),(Vector2){64+fnameSize.x,barPos.y + 8}, fntSize,0,LIGHTGRAY);
 
             //statusbar with some info
             DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-124, screenHeight-22, 10, WHITE); 

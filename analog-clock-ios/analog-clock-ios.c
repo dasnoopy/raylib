@@ -20,11 +20,11 @@ const ClockTheme DarkTheme = {
     .screenBg = (Color){ 29, 31, 42, 255},
     .widgetBg = (Color){ 29, 31, 42, 255 },
     .widgetBorder = (Color){ 48, 52, 70, 255 },
-    .hourMarkers = WHITE,
-    .minuteMarkers = (Color){ 100, 100, 100, 255 },
+    .hourMarkers = GRAY,
+    .minuteMarkers = (Color){ 100, 110, 110, 255 },
     .hourHand = WHITE,
     .minHand = LIGHTGRAY,
-    .secHand = (Color){ 255, 59, 48, 255 }, // Arancione/Rosso Apple vivido
+    .secHand = SKYBLUE,//(Color){ 255, 59, 48, 255 }, // Arancione/Rosso Apple vivido
     .textColor = (Color){ 70, 70, 70, 255 }
 };
 
@@ -36,7 +36,7 @@ const ClockTheme LightTheme = {
     .minuteMarkers = (Color){ 160, 160, 165, 255 },
     .hourHand = BLACK,
     .minHand = DARKGRAY,
-    .secHand = (Color){ 255, 59, 48, 255 }, // Arancione/Rosso Apple vivido
+    .secHand = SKYBLUE,//(Color){ 255, 59, 48, 255 }, // Arancione/Rosso Apple vivido
     .textColor = (Color){ 140, 140, 145, 255 }
 };
 
@@ -240,8 +240,8 @@ while (!WindowShouldClose())
                 float progress = (float)i / 60.0f;
                 PathPoint pt = GetRoundedRectPathPoint(clockRect, cornerRadius, progress);
                 
-                float markerLen = 40.0f;
-                float thickness = 2.0f;
+                float markerLen = 10.0f;
+                float thickness = 1.0f;
                 Color markerColor = currentTheme.minuteMarkers;
                 
                 Vector2 drawNormal;
@@ -258,8 +258,8 @@ while (!WindowShouldClose())
 
                 if (i % 5 == 0) // marker dell ore : ogni 5 marker minuti fallo piu ciccio
                 {
-                    markerLen = 40.00f;
-                    thickness = 4.0f;
+                    markerLen = 20.00f;
+                    thickness = 2.0f;
                     markerColor = currentTheme.hourMarkers; 
                 }
                 // distanza dal bordo dei marker
@@ -276,19 +276,21 @@ while (!WindowShouldClose())
                 DrawLineEx(startPoint, endPoint, thickness, markerColor);
                 }
                 // fake rectagle to align al hour markers
-                DrawRectangleRounded(clockRectInner, roundness, 24, currentTheme.widgetBg);
+                DrawRectangleRounded(clockRectInner, roundness, 24, BLANK);
                 //DrawRectangleRoundedLines(clockRectInner, roundness, 24, currentTheme.widgetBorder);
 
                 // 3. Lancette dell'orologio
                 // Ore
-                Vector2 hourEnd = { center.x + cosf(angleHour) * 54.0f, center.y + sinf(angleHour) * 54.0f };
+                Vector2 hourEnd = { center.x + cosf(angleHour) * 54.0f, center.y + sinf(angleHour) * 48.0f };
                 DrawLineEx(center, hourEnd, 6.5f, currentTheme.hourHand);
                 // Minuti
-                Vector2 minEnd = { center.x + cosf(angleMin) * 72.0f, center.y + sinf(angleMin) * 72.0f };
+                Vector2 minEnd = { center.x + cosf(angleMin) * 72.0f, center.y + sinf(angleMin) * 64.0f };
                 DrawLineEx(center, minEnd, 4.5f, currentTheme.minHand);
                 // Secondi
-                Vector2 secEnd = { center.x + cosf(angleSec) * 82.0f, center.y + sinf(angleSec) * 82.0f };
-                Vector2 secBack = { center.x - cosf(angleSec) * 20.0f, center.y - sinf(angleSec) * 20.0f };
+                Vector2 secEnd = { center.x + cosf(angleSec) * 82.0f, center.y + sinf(angleSec) * 64.0f };
+                // Vector2 secBack = { center.x - cosf(angleSec) * 20.0f, center.y - sinf(angleSec) * 20.0f };
+                Vector2 secBack = { center.x - cosf(angleSec), center.y - sinf(angleSec)};
+
                 DrawLineEx(secBack, secEnd, 1.5f, currentTheme.secHand);
                 // Perno centrale
                 DrawCircleV(center, 7.0f, currentTheme.secHand);

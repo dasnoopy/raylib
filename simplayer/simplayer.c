@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.0"
+#define TOOL_VERSION            "3.1.1"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -800,7 +800,7 @@ while (!WindowShouldClose())
 					if (selectedIndex >= 0 && selectedIndex < totalFiles) {
 						currPlay = selectedIndex;
                         StopMusicStream(currMusic);
-						//UnloadMusicStream(currMusic);
+						UnloadMusicStream(currMusic);
 						LoadMusicByIndex(currPlay);
 						PlayMusicStream(currMusic);
 						//UpdateMusicStream(currMusic);
@@ -840,12 +840,9 @@ while (!WindowShouldClose())
                             lastTypeTime = currentTime; 
                             hasTyped = true;
 
-                            // Controllo dei limiti su base 0 (Clamping)
-                            if (inputBuffer >= totalFiles) {
-                                selectedIndex = totalFiles - 1;
-                            } else {
-                                selectedIndex = inputBuffer - 1 ;
-                            }
+                            // Controllo dei limiti min-max
+                            if (inputBuffer >= totalFiles) selectedIndex = totalFiles - 1;
+                            else selectedIndex = inputBuffer - 1 ;
                         }
                     }
                     charPressed = GetCharPressed();
@@ -1021,7 +1018,7 @@ while (!WindowShouldClose())
                             else count = 17 - (i-17);
                         } 
                         // colore barre fisso
-                        else barColor = darkenColor(accentColor,0.56f);
+                        else barColor = darkenColor(accentColor,0.72);
                         
                         // dimmed bar color
                         dimColor = (Color){ barColor.r / 2.4f, barColor.g / 2.4f, barColor.b / 2.4f, 255 };
