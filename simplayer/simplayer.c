@@ -477,9 +477,9 @@ int main (int argc, char *argv[])
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 	
 	//load currVolume icon
-	Image volumeICO = LoadImage("assets/volumeICO.png");     // Loaded in CPU memory (RAM)
-	Texture2D volumeICO_texture = LoadTextureFromImage(volumeICO);          // Image converted to texture, GPU memory (VRAM)
-	UnloadImage(volumeICO);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+	Image volumeIcon = LoadImage("assets/volumeIcon.png");     // Loaded in CPU memory (RAM)
+	Texture2D volumeIcon_texture = LoadTextureFromImage(volumeIcon);          // Image converted to texture, GPU memory (VRAM)
+	UnloadImage(volumeIcon);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
 	//background image
 	Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
 	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
@@ -973,7 +973,7 @@ while (!WindowShouldClose())
 
 		//drawRectangleRounded(0,0,screenWidth,screenHeight,0.072f,bgColor);
 		//load player background image
-		DrawTexture(background, screenWidth/2 - background.width/2, screenHeight/2 - background.height/2, accentColor); // WHITE
+		DrawTexture(background, 0, 0, accentColor); // WHITE
 
 		// song Title
 		BeginScissorMode( (int)displayArea.x, (int)displayArea.y, (int)displayArea.width, (int)displayArea.height);
@@ -1096,7 +1096,7 @@ while (!WindowShouldClose())
 
         for (int i = 0; i < 100; i+=4) DrawLine(12+i,360,12+i,360-(i/4),(i<currVolume*100)?accentColor:borderColor);
 
-		DrawTexture(volumeICO_texture,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
+		DrawTexture(volumeIcon_texture,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
 		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0,primaryColor);
 		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0, borderColor);
 		

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Mapr"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "1.0.5"
+#define TOOL_VERSION            "1.0.7"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-#include <ctype.h>
+#include <raymath.h>
 #include <unistd.h>
 
 // gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
@@ -32,7 +32,7 @@ const int screenHeight = 572;
 #define PI 3.14159265358979323846f
 #define RAD(deg) ((deg) * PI / 180.0f)
 #define SECONDS_PER_DAY 86400 // Secondi in un giorno (24 ore)
-#define PATH_RESOLUTION 220 
+#define PATH_RESOLUTION 200 
 
 typedef struct {
     float lon; // in radianti
@@ -142,7 +142,6 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
             return true;
         }
     }
-
     return false;
 }
 
@@ -158,16 +157,19 @@ int main (int argc, char *argv[])
 	// Custom GUI font loading
 	Font defaultFnt= LoadFontEx("fonts/PixelOperator.ttf", 24, NULL, 0); 
 
-
 		// Create framebuffer
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
 		SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
-
 
 		//world background image
 		Image image = LoadImage("assets/map.png");     // Loaded in CPU memory (RAM)
 		Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 		UnloadImage(image); 
+
+        //load sun icon
+        Image sunIcon = LoadImage("assets/sunIcon.png");     // Loaded in CPU memory (RAM)
+        Texture2D sunIcon_texture = LoadTextureFromImage(sunIcon);          // Image converted to texture, GPU memory (VRAM)
+        UnloadImage(sunIcon);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
 
 	    Shader dayNightShader = LoadShader(0, "daynight.fs");
 	    int sunPosLoc = GetShaderLocation(dayNightShader, "sunPosGeo");
@@ -379,7 +381,8 @@ while (!WindowShouldClose()) {
             	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
 
             	// "disegno" del sole
-            	DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
+            	//DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
+                DrawTextureV(sunIcon_texture,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
 
 					// cursore mouse personalizzato
 				DrawRectangleRec((Rectangle) { mousePos.x - 20, mousePos.y, 40, 1 }, RED);
