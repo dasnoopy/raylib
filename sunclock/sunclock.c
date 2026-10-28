@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Mapr"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "1.2.2"
+#define TOOL_VERSION            "1.2.5"
 #include <stdio.h>
 #include <raylib.h>
 #include <stdbool.h>
@@ -303,6 +303,16 @@ while (!WindowShouldClose()) {
                 if (mese == 12 && giorno == 21) testoStagione = "Cambio stagione: solstizio d'inverno!";
                 else testoStagione = "Siamo in inverno...";
             }
+
+        //
+        // do something when  window loses focus
+        //
+        if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.92f);
+        else {
+            simulatedTime = time(NULL);
+            timeChanged = true;
+            SetWindowOpacity(1.0f);
+        }
 
 //------------------------------------------------------------------------------
 // Draw
