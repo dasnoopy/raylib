@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Mapr"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "1.2.0"
+#define TOOL_VERSION            "1.2.2"
 #include <stdio.h>
 #include <raylib.h>
 #include <stdbool.h>
@@ -217,6 +217,8 @@ while (!WindowShouldClose()) {
 
         // gestione cambio data in real time
         bool timeChanged = false;
+        simulatedTime += (time_t)(GetFrameTime());
+
 
         // Gestione Input della tastiera (Frecce Destra / Sinistra)
         // implementa funzione  keyrepeater
@@ -233,7 +235,6 @@ while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_R)) {
             simulatedTime = time(NULL);
             timeChanged = true;
-            updatePath = true;
         }
 
         // Calcola la nuova posizione del sole solo se l'utente ha modificato il tempo
@@ -268,8 +269,6 @@ while (!WindowShouldClose()) {
         SetShaderValue(dayNightShader, sunPosLoc, &sunPosShaderValue, SHADER_UNIFORM_VEC2);
 
         struct tm *localSimTime = localtime(&simulatedTime);
-        if (localSimTime != NULL) strftime(dateBuffer, sizeof(dateBuffer), "%d-%m-%Y %H:%M:%S", localSimTime);
-        else TextCopy (dateBuffer, "Data Sconosciuta");
 
         Vector2 sunPixelPos = MapGeoToPixel(currentSun.lon, currentSun.lat, worldmap.width, worldmap.height);
 
@@ -324,9 +323,6 @@ while (!WindowShouldClose()) {
                 DrawTexture(worldMap, 0, 0, WHITE);
         EndShaderMode();
 
-            // simulatedTime = time(NULL);
-            // timeChanged = true;
-            // updatePath = true;
             
         // disegna reticolo geograafico
     BeginScissorMode(worldmap.x, worldmap.y, worldmap.width, worldmap.height);
@@ -364,12 +360,12 @@ while (!WindowShouldClose()) {
 				}
 
 				// Draw GreenWich meridian
-				DrawLine(worldmap.width/2,worldmap.y,worldmap.width/2,worldmap.height ,WHITE);
+				DrawLine(worldmap.width/2,worldmap.y,worldmap.width/2,worldmap.height ,LIGHTGRAY);
 
                 // tropici ed equatore
-	            DrawLine(0, yCancro, worldmap.width, yCancro, GRAY);
-	            DrawLine(0, yEquatore, worldmap.width, yEquatore, WHITE);
-	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, GRAY);
+	            DrawLine(0, yCancro, worldmap.width, yCancro, BLACK);
+	            DrawLine(0, yEquatore, worldmap.width, yEquatore, LIGHTGRAY);
+	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, BLACK);
                 // Testo etichette linee (posizionate sul lato destro dello schermo)
                 DrawText("Tropico del Cancro (+23.44°)", screenWidth - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
                 DrawText("Equatore (0.00°)", screenWidth - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
@@ -424,7 +420,14 @@ while (!WindowShouldClose()) {
 					if (x==(worldmap.width/2)) latCardinal = "";
 					if (y==(worldmap.height/2)) lonCardinal = "";
 					// currentDate
-					DrawText(TextFormat("Data: %s (Local time)", dateBuffer), infoBar.x + 10, infoBar.y+10, 10, WHITE);
+                    if (localSimTime != NULL) {
+                          DrawText(TextFormat("Data Corrente: %02d/%02d/%04d %02d:%02d:%02d", 
+                                localSimTime->tm_mday, localSimTime->tm_mon + 1, localSimTime->tm_year + 1900,
+                                localSimTime->tm_hour, localSimTime->tm_min, localSimTime->tm_sec), infoBar.x+8,infoBar.y+10, 10, RAYWHITE);
+            } else {
+                DrawText("Data Corrente: Data Sconosciuta", 10, 60, 10, RAYWHITE);
+            }
+            
 					// cursor position
 					snprintf(tempBuffer, sizeof(tempBuffer), "Pos. cursore -> Lon: %i° %s | Lat: %i° %s", longitude, lonCardinal, latitude, latCardinal);
 					DrawText(TextFormat("%s", tempBuffer), infoBar.x + 210, infoBar.y+10,10,GRAY);
