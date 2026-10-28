@@ -10,8 +10,7 @@
 #define TOOL_NAME               "Sunlight World Mapr"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "1.0.7"
-
+#define TOOL_VERSION            "1.2.0"
 #include <stdio.h>
 #include <raylib.h>
 #include <stdbool.h>
@@ -91,12 +90,12 @@ SunPosition CalculateSunPositionFromTime(time_t customTime) {
         return pos;
     }
 
-    // 1. CALCOLO DELLA LONGITUDINE SOLARE
+    // calcolo della longitudine solare
     float utcHours = utcTime->tm_hour + (utcTime->tm_min / 60.0f) + (utcTime->tm_sec / 3600.0f);
     float lonDeg = (12.0f - utcHours) * 15.0f;
     pos.lon = RAD(lonDeg);
 
-    // 2. CALCOLO DELLA LATITUDINE SOLARE (Declinazione)
+    // calcolo della latitudine solare (declinazione)
     int dayOfYear = utcTime->tm_yday + 1;
     float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (dayOfYear - 80)));
     pos.lat = RAD(latDeg);
@@ -150,7 +149,7 @@ int main (int argc, char *argv[])
 	// Set configuration flags for window creation
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
 	InitWindow(screenWidth, screenHeight, "sunclock");
-	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window
     SetTargetFPS(60);
 
 	// Set UI style
@@ -161,18 +160,16 @@ int main (int argc, char *argv[])
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
 		SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
-		//world background image
-		Image image = LoadImage("assets/map.png");     // Loaded in CPU memory (RAM)
-		Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-		UnloadImage(image); 
+        // Caricamento delle due texture aggiornate alla nuova risoluzione
+        Texture2D worldMap = LoadTexture("assets/map.png"); 
+        Texture2D nightLights = LoadTexture("assets/nightmap.png"); 
 
         //load sun icon
-        Image sunIcon = LoadImage("assets/sunIcon.png");     // Loaded in CPU memory (RAM)
-        Texture2D sunIcon_texture = LoadTextureFromImage(sunIcon);          // Image converted to texture, GPU memory (VRAM)
-        UnloadImage(sunIcon);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+        Texture2D sunIcon= LoadTexture("assets/sunIcon.png");          // Image converted to texture, GPU memory (VRAM)
 
 	    Shader dayNightShader = LoadShader(0, "daynight.fs");
 	    int sunPosLoc = GetShaderLocation(dayNightShader, "sunPosGeo");
+        int nightLightsLoc = GetShaderLocation(dayNightShader, "nightLightsTex");
 
 	    // Inizializziamo il tempo simulato con l'orario reale del sistema
 	    time_t simulatedTime = time(NULL);
@@ -322,7 +319,9 @@ while (!WindowShouldClose()) {
 	
     	//load player background image
     	BeginShaderMode(dayNightShader);
-           DrawTexture(background, 0, 0, WHITE);
+                // Assegna la texture delle luci allo slot impostato nello shader ed esegui il draw
+                SetShaderValueTexture(dayNightShader, nightLightsLoc, nightLights);
+                DrawTexture(worldMap, 0, 0, WHITE);
         EndShaderMode();
 
             // simulatedTime = time(NULL);
@@ -368,13 +367,13 @@ while (!WindowShouldClose()) {
 				DrawLine(worldmap.width/2,worldmap.y,worldmap.width/2,worldmap.height ,WHITE);
 
                 // tropici ed equatore
-	            DrawLine(0, yCancro, worldmap.width, yCancro, SKYBLUE);
+	            DrawLine(0, yCancro, worldmap.width, yCancro, GRAY);
 	            DrawLine(0, yEquatore, worldmap.width, yEquatore, WHITE);
-	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, SKYBLUE);
+	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, GRAY);
                 // Testo etichette linee (posizionate sul lato destro dello schermo)
-                DrawText("Tropico del Cancro (+23.44°)", screenWidth - 200, yCancro - 12, 10, Fade(LIGHTGRAY, 0.6f));
-                DrawText("Equatore (0.00°)", screenWidth - 140, yEquatore - 12, 10, Fade(LIGHTGRAY, 0.5f));
-                DrawText("Tropico del Capricorno (-23.44°)", screenWidth - 220, yCapricorno + 4, 10, Fade(LIGHTGRAY, 0.6f));
+                DrawText("Tropico del Cancro (+23.44°)", screenWidth - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
+                DrawText("Equatore (0.00°)", screenWidth - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
+                DrawText("Tropico del Capricorno (-23.44°)", screenWidth - 220, yCapricorno + 4, 10, Fade(RAYWHITE, 0.6f));
 
 
         		//  traiettoria annuale del sole
@@ -382,7 +381,7 @@ while (!WindowShouldClose()) {
 
             	// "disegno" del sole
             	//DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
-                DrawTextureV(sunIcon_texture,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
+                DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
 
 					// cursore mouse personalizzato
 				DrawRectangleRec((Rectangle) { mousePos.x - 20, mousePos.y, 40, 1 }, RED);
@@ -447,7 +446,12 @@ while (!WindowShouldClose()) {
 
 	// unload fonts
 	UnloadFont(defaultFnt);
-  UnloadRenderTexture(target);
+    UnloadRenderTexture(target);
+    UnloadTexture(worldMap);
+    UnloadTexture(sunIcon);
+
+    UnloadTexture(nightLights);
+    UnloadShader(dayNightShader);
 	CloseWindow();
 	return 0;
 }

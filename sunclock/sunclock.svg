@@ -1,62 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Icon: sun-with-face
-  Set: Streamline Emojis
-  Author: Streamline (https://github.com/webalys-hq/streamline-vectors)
-  License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-  Source: https://iconify.design
--->
-<svg xmlns="http://www.w3.org/2000/svg"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0 0 48 48"
-     width="48"
-     height="48">
-  <title>Smiling Sun Cartoon Icon</title>
-  <metadata>
-    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-             xmlns:dc="http://purl.org/dc/elements/1.1/"
-             xmlns:cc="http://creativecommons.org/ns#">
-      <cc:Work rdf:about="">
-        <dc:title>Smiling Sun Cartoon Icon</dc:title>
-        <dc:description>A cheerful cartoon-style sun icon with a smiling face and glowing rays, perfect for weather apps, children&apos;s designs, summer themes, and educational materials.</dc:description>
-        <dc:creator>
-          <cc:Agent>
-            <dc:title>Streamline</dc:title>
-          </cc:Agent>
-        </dc:creator>
-        <dc:source>https://github.com/webalys-hq/streamline-vectors</dc:source>
-        <dc:rights>
-          <cc:Agent>
-            <dc:title>Streamline</dc:title>
-          </cc:Agent>
-        </dc:rights>
-        <cc:license rdf:resource="https://creativecommons.org/licenses/by/4.0/"/>
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-        <dc:subject>
-          <rdf:Bag>
-            <rdf:li>sun-icon</rdf:li>
-            <rdf:li>smiling-sun</rdf:li>
-            <rdf:li>cartoon-sun</rdf:li>
-            <rdf:li>happy-sun</rdf:li>
-            <rdf:li>sunny-weather</rdf:li>
-            <rdf:li>summer-icon</rdf:li>
-            <rdf:li>cheerful-sun</rdf:li>
-            <rdf:li>cute-sun</rdf:li>
-            <rdf:li>weather-symbol</rdf:li>
-            <rdf:li>sunshine-icon</rdf:li>
-            <rdf:li>bright-sun</rdf:li>
-            <rdf:li>kids-design</rdf:li>
-            <rdf:li>playful-sun</rdf:li>
-            <rdf:li>sunny-day</rdf:li>
-            <rdf:li>summer-theme</rdf:li>
-          </rdf:Bag>
-        </dc:subject>
-      </cc:Work>
-      <cc:License rdf:about="https://creativecommons.org/licenses/by/4.0/">
-        <dc:title>CC BY 4.0 (CC-BY-4.0)</dc:title>
-      </cc:License>
-    </rdf:RDF>
-  </metadata>
-  <path fill="#45413c" d="M12.5 46.5a11.5 1.5 0 1 0 23 0a11.5 1.5 0 1 0-23 0" opacity=".15"/><path fill="#ffe500" d="M10.5 24a13.5 13.5 0 1 0 27 0a13.5 13.5 0 1 0-27 0"/><path fill="#ebcb00" d="M25.28 10.56a12.5 12.5 0 1 1-2.56 0a13.5 13.5 0 1 0 2.56 0"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M10.5 24a13.5 13.5 0 1 0 27 0a13.5 13.5 0 1 0-27 0"/><path fill="#ffe500" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M25.5 3a1.5 1.5 0 0 0-3 0v3a1.5 1.5 0 0 0 3 0ZM10.21 8.09a1.5 1.5 0 0 0-2.12 2.12l2.12 2.12a1.5 1.5 0 0 0 2.12-2.12ZM3 22.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 0 0-3Zm5.09 15.29a1.5 1.5 0 0 0 2.12 2.12l2.12-2.12a1.5 1.5 0 0 0-2.12-2.12ZM22.5 45a1.5 1.5 0 0 0 3 0v-3a1.5 1.5 0 0 0-3 0Zm15.29-5.09a1.5 1.5 0 0 0 2.12-2.12l-2.12-2.12a1.5 1.5 0 0 0-2.12 2.12ZM45 25.5a1.5 1.5 0 0 0 0-3h-3a1.5 1.5 0 0 0 0 3Zm-5.09-15.29a1.5 1.5 0 0 0-2.12-2.12l-2.12 2.12a1.5 1.5 0 0 0 2.12 2.12Z"/><path fill="#ffaa54" d="M14 27c0 .55.67 1 1.5 1s1.5-.45 1.5-1s-.67-1-1.5-1s-1.5.45-1.5 1"/><path fill="#ffb0ca" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M27.87 29.5a1 1 0 0 1 1 1.25a5 5 0 0 1-9.68 0a1 1 0 0 1 1-1.25Z"/><path fill="#ff87af" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M24 34.5a5 5 0 0 0 3.94-1.94A7.34 7.34 0 0 0 24 31.5a7.34 7.34 0 0 0-3.94 1.06A5 5 0 0 0 24 34.5"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M15 25a1.5 1.5 0 0 1 3 0"/><path fill="#ffaa54" d="M34 27c0 .55-.67 1-1.5 1s-1.5-.45-1.5-1s.67-1 1.5-1s1.5.45 1.5 1"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M33 25a1.5 1.5 0 0 0-3 0"/><path fill="#fff48c" d="M20 13.5a4 1 0 1 0 8 0a4 1 0 1 0-8 0"/>
-</svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg width="800px" height="800px" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<style>.cls-1{fill:#ff927d;}.cls-2{fill:#fff35f;stroke:#54596e;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}.cls-3,.cls-4{fill:#54596e;}.cls-3{opacity:0.15;}</style>
+</defs>
+<title>sun</title>
+<g id="sun">
+<path class="cls-1" d="M37.69,5.1h0a6.33,6.33,0,0,1,11,4.56h0a6.33,6.33,0,0,0,6.64,6.64h0a6.33,6.33,0,0,1,4.56,11h0a6.32,6.32,0,0,0,0,9.38h0a6.33,6.33,0,0,1-4.56,11h0a6.33,6.33,0,0,0-6.64,6.64h0a6.33,6.33,0,0,1-11,4.56h0a6.32,6.32,0,0,0-9.38,0h0a6.33,6.33,0,0,1-11-4.56h0a6.33,6.33,0,0,0-6.64-6.64h0a6.33,6.33,0,0,1-4.56-11h0a6.32,6.32,0,0,0,0-9.38h0a6.33,6.33,0,0,1,4.56-11h0A6.33,6.33,0,0,0,17.3,9.66h0a6.33,6.33,0,0,1,11-4.56h0A6.32,6.32,0,0,0,37.69,5.1Z"/>
+<circle class="cls-2" cx="33" cy="32" r="22"/>
+<path class="cls-3" d="M33,48A22,22,0,0,1,11.21,29,22.78,22.78,0,0,0,11,32a22,22,0,0,0,44,0,22.78,22.78,0,0,0-.21-3A22,22,0,0,1,33,48Z"/>
+<circle class="cls-4" cx="22" cy="23" r="2"/>
+<circle class="cls-4" cx="44" cy="23" r="2"/>
+<path class="cls-4" d="M40,31.18c0-1.57-14-1.57-14,0v0C26,33.86,29.13,36,33,36s7-2.14,7-4.79Z"/>
+<ellipse class="cls-1" cx="33" cy="33" rx="3" ry="1"/>
+</g>
+</svg>

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.2"
+#define TOOL_VERSION            "3.1.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -477,13 +477,9 @@ int main (int argc, char *argv[])
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 	
 	//load currVolume icon
-	Image volumeIcon = LoadImage("assets/volumeIcon.png");     // Loaded in CPU memory (RAM)
-	Texture2D volumeIcon_texture = LoadTextureFromImage(volumeIcon);          // Image converted to texture, GPU memory (VRAM)
-	UnloadImage(volumeIcon);   // Once image has been converted to texture and uploaded to VRAM, it can be unloaded from RAM
+	Texture2D volumeIcon = LoadTexture("assets/volumeIcon.png");          // Image converted to texture, GPU memory (VRAM)
 	//background image
-	Image image = LoadImage("assets/background.png");     // Loaded in CPU memory (RAM)
-	Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
-	UnloadImage(image); 
+	Texture2D background = LoadTexture("assets/background.png");          // Image converted to texture, GPU memory (VRAM)
 
 	// init Audio
 	InitAudioDevice();
@@ -1096,7 +1092,7 @@ while (!WindowShouldClose())
 
         for (int i = 0; i < 100; i+=4) DrawLine(12+i,360,12+i,360-(i/4),(i<currVolume*100)?accentColor:borderColor);
 
-		DrawTexture(volumeIcon_texture,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
+		DrawTexture(volumeIcon,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
 		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0,primaryColor);
 		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0, borderColor);
 		
@@ -1144,6 +1140,8 @@ while (!WindowShouldClose())
 	if (state == STATE_CROSSFADING) UnloadMusicStream(nextMusic);
 	
     UnloadRenderTexture(target);
+    UnloadTexture(background);
+    UnloadTexture(volumeIcon);
 	// unload fonts
     UnloadFont(defaultFnt);
 	UnloadFont(titleFnt);
