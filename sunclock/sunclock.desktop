@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=sunclock
+GenericName=Fancy sunlight world map
+Type=Application
+Version=1.0
+Comment=A simple sunclock world map for Linux written in C99 using Raylib 
+Path=/home/andrea/Projects/raylib/sunclock
+Exec=/home/andrea/Projects/raylib/sunclock/sunclock
+Icon=/home/andrea/Projects/raylib/sunclock/sunclock.svg
+Terminal=false
+StartupNotify=false
+X-Desktop-File-Install-Version=0.28
+

@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.1"
+#define TOOL_VERSION            "3.1.2"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -1132,7 +1132,7 @@ while (!WindowShouldClose())
 
 		//statusbar with some info
 		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
-		//DrawText(TextFormat("version %s", TOOL_VERSION), 70,screenHeight-18, 10, borderColor); 
+		DrawText(TextFormat("v%s", TOOL_VERSION), 18,screenHeight-18, 10, borderColor); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 	EndDrawing();
@@ -1143,8 +1143,9 @@ while (!WindowShouldClose())
 	UnloadMusicStream(currMusic);
 	if (state == STATE_CROSSFADING) UnloadMusicStream(nextMusic);
 	
+    UnloadRenderTexture(target);
 	// unload fonts
-	UnloadFont(defaultFnt);
+    UnloadFont(defaultFnt);
 	UnloadFont(titleFnt);
 	UnloadFont(artistFnt);
 	UnloadFont(digitFnt);
