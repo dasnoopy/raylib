@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Mapr"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "0.9.5"
+#define TOOL_VERSION            "1.0.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -32,29 +32,23 @@ const int screenHeight = 572;
 #define PI 3.14159265358979323846f
 #define RAD(deg) ((deg) * PI / 180.0f)
 #define SECONDS_PER_DAY 86400 // Secondi in un giorno (24 ore)
-#define PATH_RESOLUTION 200 
+#define PATH_RESOLUTION 220 
 
 typedef struct {
     float lon; // in radianti
     float lat; // in radianti
 } SunPosition;
 
-// some custom colors
-const Color accentColor = SKYBLUE;//CLITERAL(Color){136, 192, 208, 255}; 
-const Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
-const Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
-const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
+// some custom colorsq
 const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
 
 
 const int bottomOffset = 32;
-Rectangle mapCoord = {0,0,1080,540};
-Rectangle infoCoord = {0,540,1080,32};
+Rectangle worldmap = {0,0,1080,540};
+Rectangle infoBar = {0,540,1080,32};
 
 int latitude;
 int longitude;
-char latCardinal[6] = "";
-char lonCardinal[6] = "";
 
 char tempBuffer[64] = { 0 };
 char dateBuffer[64] = { 0 };
@@ -79,10 +73,10 @@ void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color
   DrawRectangleRounded ( rect, radius, segments, color );
 }
 
-Vector2 MapGeoToPixel(float lon, float lat, int screenWidth, int screenHeight) {
+Vector2 MapGeoToPixel(float lon, float lat, int mapWidth, int mapHeight) {
     Vector2 pixel;
-    pixel.x = ((lon + PI) / (2.0f * PI)) * screenWidth;
-    pixel.y = ((PI / 2.0f - lat) / PI) * screenHeight;
+    pixel.x = ((lon + PI) / (2.0f * PI)) * mapWidth;
+    pixel.y = ((PI / 2.0f - lat) / PI) * mapHeight;
     return pixel;
 }
 
@@ -172,7 +166,7 @@ int main (int argc, char *argv[])
 
 		//world background image
 		Image image = LoadImage("assets/map.png");     // Loaded in CPU memory (RAM)
-		Texture2D worldMap = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
+		Texture2D background = LoadTextureFromImage(image);          // Image converted to texture, GPU memory (VRAM)
 		UnloadImage(image); 
 
 	    Shader dayNightShader = LoadShader(0, "daynight.fs");
@@ -186,9 +180,9 @@ int main (int argc, char *argv[])
 	    bool updatePath = true;
 
 	    // Calcoliamo una volta sola le coordinate Y fisse per i Tropici e l'Equatore
-    	float yCancro = MapGeoToPixel(0.0f, RAD(23.44f), mapCoord.width, mapCoord.height).y;
-    	float yEquatore = MapGeoToPixel(0.0f, RAD(0.0f), mapCoord.width, mapCoord.height).y;
-    	float yCapricorno = MapGeoToPixel(0.0f, RAD(-23.44f), mapCoord.width, mapCoord.height).y;
+    	float yCancro = MapGeoToPixel(0.0f, RAD(23.44f), worldmap.width, worldmap.height).y;
+    	float yEquatore = MapGeoToPixel(0.0f, RAD(0.0f), worldmap.width, worldmap.height).y;
+    	float yCapricorno = MapGeoToPixel(0.0f, RAD(-23.44f), worldmap.width, worldmap.height).y;
 
 
     // Inizializzazione del ripetitore (400ms delay iniziale, 80ms tra le ripetizioni)
@@ -219,7 +213,7 @@ while (!WindowShouldClose()) {
         int stepMeridian = 3; //3 = 1 grado
 
         // nascondi cursore quando sopra worldmap
-        if (CheckCollisionPointRec(mousePos,mapCoord)) HideCursor(); 
+        if (CheckCollisionPointRec(mousePos,worldmap)) HideCursor(); 
         else ShowCursor();
 
         // gestione cambio data in real time
@@ -240,6 +234,7 @@ while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_R)) {
             simulatedTime = time(NULL);
             timeChanged = true;
+            updatePath = true;
         }
 
         // Calcola la nuova posizione del sole solo se l'utente ha modificato il tempo
@@ -263,7 +258,7 @@ while (!WindowShouldClose()) {
                     float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (targetDay - 80)));
                     float pathLat = RAD(latDeg);
 
-                    eclipticPath[i] = MapGeoToPixel(pathLon, pathLat, screenWidth, screenHeight);
+                    eclipticPath[i] = MapGeoToPixel(pathLon, pathLat, worldmap.width, worldmap.height);
                 }
             }
             updatePath = false;
@@ -274,62 +269,42 @@ while (!WindowShouldClose()) {
         SetShaderValue(dayNightShader, sunPosLoc, &sunPosShaderValue, SHADER_UNIFORM_VEC2);
 
         struct tm *localSimTime = localtime(&simulatedTime);
-        if (localSimTime != NULL) {
-            strftime(dateBuffer, sizeof(dateBuffer), "%d-%m-%Y %H:%M:%S", localSimTime);
-        } else TextCopy (dateBuffer, "Data Sconosciuta");
+        if (localSimTime != NULL) strftime(dateBuffer, sizeof(dateBuffer), "%d-%m-%Y %H:%M:%S", localSimTime);
+        else TextCopy (dateBuffer, "Data Sconosciuta");
 
-        Vector2 sunPixelPos = MapGeoToPixel(currentSun.lon, currentSun.lat, screenWidth, screenHeight);
+        Vector2 sunPixelPos = MapGeoToPixel(currentSun.lon, currentSun.lat, worldmap.width, worldmap.height);
 
-
-            // --- LOGICA DELLE STAGIONI INTERATTIVE ---
+            // momenti dell'anno
             int mese = localSimTime->tm_mon + 1; // tm_mon va da 0 a 11
             int giorno = localSimTime->tm_mday;
             
             const char* testoStagione = "";
-            Color coloreStagione = LIGHTGRAY;
+
 
             // Primavera (Dal 21 Marzo al 20 Giugno)
             if ((mese == 3 && giorno >= 21) || mese == 4 || mese == 5 || (mese == 6 && giorno <= 20)) {
-                if (mese == 3 && giorno == 21) {
-                    testoStagione = "Cambio stagione: equinozio di primavera!";
-                    coloreStagione = GREEN;
-                } else {
-                    testoStagione = "Siamo in primavera...";
-                    coloreStagione = LIME;
-                }
+                if (mese == 3 && giorno == 21) testoStagione = "Cambio stagione: equinozio di primavera!";
+                else testoStagione = "Siamo in primavera...";
             }
+
             // Estate (Dal 21 Giugno al 20 Settembre)
             else if ((mese == 6 && giorno >= 21) || mese == 7 || mese == 8 || (mese == 9 && giorno <= 20)) {
-                if (mese == 6 && giorno == 21) {
-                    testoStagione = "Cambio stagione: solstizio d'estate!";
-                    coloreStagione = GOLD;
-                } else {
-                    testoStagione = "Siamo in estate...";
-                    coloreStagione = ORANGE;
-                }
+                if (mese == 6 && giorno == 21) testoStagione = "Cambio stagione: solstizio d'estate!";
+                else testoStagione = "Siamo in estate...";
             }
+
             // Autunno (Dal 21 Settembre al 20 Dicembre)
             else if ((mese == 9 && giorno >= 21) || mese == 10 || mese == 11 || (mese == 12 && giorno <= 20)) {
                 // Nota: fix per chiarezza di lettura nel blocco: mese == 12 && giorno <= 20
-                if (mese == 9 && giorno == 21) {
-                    testoStagione = "Cambio stagione: equinozio d'autunno!";
-                    coloreStagione = ORANGE;
-                } else {
-                    testoStagione = "Siamo in autunno...";
-                    coloreStagione = GOLD;
-                }
-            }
-            // Inverno (Dal 21 Dicembre al 20 Marzo)
-            else {
-                if (mese == 12 && giorno == 21) {
-                    testoStagione = "Cambio stagione: solstizio d'inverno!";
-                    coloreStagione = SKYBLUE;
-                } else {
-                    testoStagione = "Siamo in inverno...";
-                    coloreStagione = BLUE;
-                }
+                if (mese == 9 && giorno == 21) testoStagione = "Cambio stagione: equinozio d'autunno!";
+                else testoStagione = "Siamo in autunno...";
             }
 
+            // Inverno (Dal 21 Dicembre al 20 Marzo)
+            else {
+                if (mese == 12 && giorno == 21) testoStagione = "Cambio stagione: solstizio d'inverno!";
+                else testoStagione = "Siamo in inverno...";
+            }
 
 //------------------------------------------------------------------------------
 // Draw
@@ -341,73 +316,80 @@ while (!WindowShouldClose()) {
 	BeginDrawing();
 		ClearBackground (BLANK);
 
-		drawRectangleRounded(0,0,screenWidth,screenHeight,0.072f,bgColor);
+	   //drawRectangleRounded(0,0,screenWidth,screenHeight,0.056f,bgColor);
 	
-	//load player background image
-	BeginShaderMode(dayNightShader);
-       DrawTexture(worldMap, 0, 0, WHITE);
-    EndShaderMode();
+    	//load player background image
+    	BeginShaderMode(dayNightShader);
+           DrawTexture(background, 0, 0, WHITE);
+        EndShaderMode();
 
+            // simulatedTime = time(NULL);
+            // timeChanged = true;
+            // updatePath = true;
+            
         // disegna reticolo geograafico
-    BeginScissorMode(mapCoord.x, mapCoord.y, mapCoord.width, mapCoord.height);
+    BeginScissorMode(worldmap.x, worldmap.y, worldmap.width, worldmap.height);
 
 				//Disegna paralleli emisfero nord con indicasti gradi 0° /90°
 				for (int i = 90; i > 0; i-=15) {
-					DrawLineDashed((Vector2){mapCoord.x,i*stepParallel},(Vector2){mapCoord.width,i*stepParallel},2,2,GRAY);
-					DrawText(TextFormat("%d°",90-i),mapCoord.x+4 ,(i*stepParallel)-15,10,RED);
-					DrawText(TextFormat("%d°",90-i),mapCoord.width-15,(i*stepParallel)-15,10,RED);
+					DrawLineDashed((Vector2){worldmap.x,i*stepParallel},(Vector2){worldmap.width,i*stepParallel},2,2,DARKGRAY);
+					DrawText(TextFormat("%d°",90-i),worldmap.x+4 ,(i*stepParallel)-15,10,GRAY);
+					DrawText(TextFormat("%d°",90-i),worldmap.width-20,(i*stepParallel)-15,10,GRAY);
 				}
 
 				//Disegna paralleli emisfero sud con indicasti gradi 0° / -90°
 				for (int i = 90; i < 180; i+=15) {
-					DrawLineDashed((Vector2){mapCoord.x,i*stepParallel},(Vector2){mapCoord.width,i*stepParallel},2,2,GRAY);
+					DrawLineDashed((Vector2){worldmap.x,i*stepParallel},(Vector2){worldmap.width,i*stepParallel},2,2,DARKGRAY);
 					if (i != 90) {
-					DrawText(TextFormat("%d°",90-i),mapCoord.x+5 ,(i*stepParallel)-15,10,RED);
-					DrawText(TextFormat("%d°",90-i),mapCoord.width-25,(i*stepParallel)-15,10,RED);
+					DrawText(TextFormat("%d°",90-i),worldmap.x+5 ,(i*stepParallel)-15,10,GRAY);
+					DrawText(TextFormat("%d°",90-i),worldmap.width-25,(i*stepParallel)-15,10,GRAY);
 					}
 				}
 
 				// disegna meridiani Ovest 0 / -180°
 				for (int i = 180; i > 0; i-=15) {
-					DrawLineDashed((Vector2){i*stepMeridian, mapCoord.y},(Vector2){i*stepMeridian ,mapCoord.height},2,2,GRAY);
+					DrawLineDashed((Vector2){i*stepMeridian, worldmap.y},(Vector2){i*stepMeridian ,worldmap.height},2,2,DARKGRAY);
 					if (i != 180) {
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,mapCoord.y+5,10,BLACK);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,mapCoord.height-15,10,BLACK);
+					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.y+5,10,BLACK);
+					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.height-15,10,BLACK);
 					}
 				}
 
 				// disegna meridiani Est 0° / 180°
 				for (int i = 180; i < 360; i+=15) {
-					DrawLineDashed((Vector2){i*stepMeridian, mapCoord.y},(Vector2){i*stepMeridian ,mapCoord.height},2,2,GRAY);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,mapCoord.y+5,10,BLACK);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,mapCoord.height-15,10,BLACK);
+					DrawLineDashed((Vector2){i*stepMeridian, worldmap.y},(Vector2){i*stepMeridian ,worldmap.height},2,2,DARKGRAY);
+					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.y+5,10,BLACK);
+					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.height-15,10,BLACK);
 				}
 
 				// Draw GreenWich meridian
-				DrawLine(mapCoord.width/2,mapCoord.y,mapCoord.width/2,mapCoord.height ,WHITE);
+				DrawLine(worldmap.width/2,worldmap.y,worldmap.width/2,worldmap.height ,WHITE);
 
-	            DrawLine(0, yCancro, mapCoord.width, yCancro, Fade(DARKGRAY, 0.5f));
-	            DrawLine(0, yEquatore, mapCoord.width, yEquatore, Fade(GRAY, 0.4f));
-	            DrawLine(0, yCapricorno, mapCoord.width, yCapricorno, Fade(DARKGRAY, 0.5f));
+                // tropici ed equatore
+	            DrawLine(0, yCancro, worldmap.width, yCancro, SKYBLUE);
+	            DrawLine(0, yEquatore, worldmap.width, yEquatore, WHITE);
+	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, SKYBLUE);
+                // Testo etichette linee (posizionate sul lato destro dello schermo)
+                DrawText("Tropico del Cancro (+23.44°)", screenWidth - 200, yCancro - 12, 10, Fade(LIGHTGRAY, 0.6f));
+                DrawText("Equatore (0.00°)", screenWidth - 140, yEquatore - 12, 10, Fade(LIGHTGRAY, 0.5f));
+                DrawText("Tropico del Capricorno (-23.44°)", screenWidth - 220, yCapricorno + 4, 10, Fade(LIGHTGRAY, 0.6f));
 
-        		// 3. Disegno dell'Eclittica (Percorso annuale del sole)
-            	DrawLineStrip(eclipticPath, PATH_RESOLUTION, Fade(RED, 0.6f));
 
-            	// 4. Indicatore del Sole Corrente
-            	DrawCircleV(sunPixelPos, 10.0f, Fade(GOLD, 0.5f)); 
-            	DrawCircleV(sunPixelPos, 4.0f, YELLOW);
+        		//  traiettoria annuale del sole
+            	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
+
+            	// "disegno" del sole
+            	DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
 
 					// cursore mouse personalizzato
 				DrawRectangleRec((Rectangle) { mousePos.x - 20, mousePos.y, 40, 1 }, RED);
 				DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y - 20, 1, 40 }, RED);
     EndScissorMode();
 
-    		// real time sun movement //TODO: impact with interactive keys
-            // simulatedTime = time(NULL);
-            // timeChanged = true;
+
 
     //info bar
-    BeginScissorMode(infoCoord.x, infoCoord.y, infoCoord.width, infoCoord.height);
+    BeginScissorMode(infoBar.x, infoBar.y, infoBar.width, infoBar.height);
 
 		            // posizione sole giorno/notte
         			float currentLonDeg = currentSun.lon * (180.0f / PI);
@@ -416,43 +398,43 @@ while (!WindowShouldClose()) {
 					// Draw mouse position
 					int x = GetMouseX()+1;
 					int y = GetMouseY()+1;
+                    const char* latCardinal = "";
+                    const char* lonCardinal = "";
 
-					if (y > mapCoord.height) y=mapCoord.height;
+					if (y > worldmap.height) y=worldmap.height;
 
-					//DrawText(TextFormat("[x%i,y%i]", x, y), infoCoord.x + 6, infoCoord.y+6,20,GRAY);
-
-					if (y < (mapCoord.height/2) ) {
+					if (y < (worldmap.height/2) ) {
 						latitude = (int) 90-(y/3);
-						TextCopy(latCardinal,"Nord");
+						latCardinal = "Nord";
 					} else {
 						latitude = (int) (y/3) -90;
-						TextCopy(latCardinal,"Sud");
+						latCardinal = "Sud";
 					}
 
-					if (x > (mapCoord.width/2)) {
+					if (x > (worldmap.width/2)) {
 						longitude = (int) (x/3)-180;
-						TextCopy(lonCardinal,"Est");
+						lonCardinal = "Est";
 						} else {
 						longitude  = (int) 180-(x/3);
-						TextCopy(lonCardinal,"Ovest");
+						lonCardinal = "Ovest";
 					}
 
-					if (x==(mapCoord.width/2)) TextCopy(lonCardinal,"");
-					if (y==(mapCoord.height/2)) TextCopy(latCardinal,"");
+					if (x==(worldmap.width/2)) latCardinal = "";
+					if (y==(worldmap.height/2)) lonCardinal = "";
 					// currentDate
-					DrawText(TextFormat("Data: %s (Local time)", dateBuffer), infoCoord.x + 10, infoCoord.y+10, 10, WHITE);
+					DrawText(TextFormat("Data: %s (Local time)", dateBuffer), infoBar.x + 10, infoBar.y+10, 10, WHITE);
 					// cursor position
 					snprintf(tempBuffer, sizeof(tempBuffer), "Pos. cursore -> Lon: %i° %s | Lat: %i° %s", longitude, lonCardinal, latitude, latCardinal);
-					DrawText(TextFormat("%s", tempBuffer), infoCoord.x + 250, infoCoord.y+10,10,GRAY);
+					DrawText(TextFormat("%s", tempBuffer), infoBar.x + 210, infoBar.y+10,10,GRAY);
 					// sun position
-					DrawText(TextFormat("Pos. sole -> Lon: %.2f° | Lat: %.2f°", currentLonDeg, currentLatDeg), infoCoord.x+550,infoCoord.y+10,10, WHITE);
+					DrawText(TextFormat("Pos. sole -> Lon: %.2f° | Lat: %.2f°", currentLonDeg, currentLatDeg), infoBar.x+460,infoBar.y+10,10, WHITE);
                     // Disegna il testo della stagione sulla UI di raylib
-            		DrawText(testoStagione, infoCoord.x +800, infoCoord.y+10, 10, coloreStagione);
+            		DrawText(testoStagione, infoBar.x +660, infoBar.y+10, 10, GRAY);
     EndScissorMode();
 
 		//statusbar with some info
-		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 18, screenHeight-18, 10, secondaryColor); 
-		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoCoord.y +10, 10, borderColor); 
+		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
+		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoBar.y +10, 10, GRAY); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
 
 

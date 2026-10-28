@@ -1,1 +1,62 @@
-<?xml version="1.0" ?><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><style>.cls-1{fill:none;}.cls-2{fill:#ff5919;}.cls-3{fill:#ffd500;}.cls-4{fill:#ff9600;}.cls-5{fill:#fff;}</style></defs><title/><g data-name="Layer 2" id="Layer_2"><g data-name="Layer 3" id="Layer_3"><rect class="cls-1" height="24" width="24"/><path class="cls-2" d="M1,12C1,4,4,1,12,1S23,4,23,12,20,23,12,23,1,20,1,12"/><circle class="cls-3" cx="12" cy="12" r="7.68"/><circle class="cls-4" cx="12" cy="12" r="4.8"/><path class="cls-5" d="M12,9.36v3a1.22,1.22,0,0,0-.6-.16,1.2,1.2,0,1,0,1.2,1.2V10.56h1.2V9.36Z"/></g></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Icon: sun-with-face
+  Set: Streamline Emojis
+  Author: Streamline (https://github.com/webalys-hq/streamline-vectors)
+  License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Source: https://iconify.design
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 48 48"
+     width="48"
+     height="48">
+  <title>Smiling Sun Cartoon Icon</title>
+  <metadata>
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+             xmlns:dc="http://purl.org/dc/elements/1.1/"
+             xmlns:cc="http://creativecommons.org/ns#">
+      <cc:Work rdf:about="">
+        <dc:title>Smiling Sun Cartoon Icon</dc:title>
+        <dc:description>A cheerful cartoon-style sun icon with a smiling face and glowing rays, perfect for weather apps, children&apos;s designs, summer themes, and educational materials.</dc:description>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Streamline</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:source>https://github.com/webalys-hq/streamline-vectors</dc:source>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>Streamline</dc:title>
+          </cc:Agent>
+        </dc:rights>
+        <cc:license rdf:resource="https://creativecommons.org/licenses/by/4.0/"/>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>sun-icon</rdf:li>
+            <rdf:li>smiling-sun</rdf:li>
+            <rdf:li>cartoon-sun</rdf:li>
+            <rdf:li>happy-sun</rdf:li>
+            <rdf:li>sunny-weather</rdf:li>
+            <rdf:li>summer-icon</rdf:li>
+            <rdf:li>cheerful-sun</rdf:li>
+            <rdf:li>cute-sun</rdf:li>
+            <rdf:li>weather-symbol</rdf:li>
+            <rdf:li>sunshine-icon</rdf:li>
+            <rdf:li>bright-sun</rdf:li>
+            <rdf:li>kids-design</rdf:li>
+            <rdf:li>playful-sun</rdf:li>
+            <rdf:li>sunny-day</rdf:li>
+            <rdf:li>summer-theme</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="https://creativecommons.org/licenses/by/4.0/">
+        <dc:title>CC BY 4.0 (CC-BY-4.0)</dc:title>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <path fill="#45413c" d="M12.5 46.5a11.5 1.5 0 1 0 23 0a11.5 1.5 0 1 0-23 0" opacity=".15"/><path fill="#ffe500" d="M10.5 24a13.5 13.5 0 1 0 27 0a13.5 13.5 0 1 0-27 0"/><path fill="#ebcb00" d="M25.28 10.56a12.5 12.5 0 1 1-2.56 0a13.5 13.5 0 1 0 2.56 0"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M10.5 24a13.5 13.5 0 1 0 27 0a13.5 13.5 0 1 0-27 0"/><path fill="#ffe500" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M25.5 3a1.5 1.5 0 0 0-3 0v3a1.5 1.5 0 0 0 3 0ZM10.21 8.09a1.5 1.5 0 0 0-2.12 2.12l2.12 2.12a1.5 1.5 0 0 0 2.12-2.12ZM3 22.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 0 0-3Zm5.09 15.29a1.5 1.5 0 0 0 2.12 2.12l2.12-2.12a1.5 1.5 0 0 0-2.12-2.12ZM22.5 45a1.5 1.5 0 0 0 3 0v-3a1.5 1.5 0 0 0-3 0Zm15.29-5.09a1.5 1.5 0 0 0 2.12-2.12l-2.12-2.12a1.5 1.5 0 0 0-2.12 2.12ZM45 25.5a1.5 1.5 0 0 0 0-3h-3a1.5 1.5 0 0 0 0 3Zm-5.09-15.29a1.5 1.5 0 0 0-2.12-2.12l-2.12 2.12a1.5 1.5 0 0 0 2.12 2.12Z"/><path fill="#ffaa54" d="M14 27c0 .55.67 1 1.5 1s1.5-.45 1.5-1s-.67-1-1.5-1s-1.5.45-1.5 1"/><path fill="#ffb0ca" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M27.87 29.5a1 1 0 0 1 1 1.25a5 5 0 0 1-9.68 0a1 1 0 0 1 1-1.25Z"/><path fill="#ff87af" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M24 34.5a5 5 0 0 0 3.94-1.94A7.34 7.34 0 0 0 24 31.5a7.34 7.34 0 0 0-3.94 1.06A5 5 0 0 0 24 34.5"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M15 25a1.5 1.5 0 0 1 3 0"/><path fill="#ffaa54" d="M34 27c0 .55-.67 1-1.5 1s-1.5-.45-1.5-1s.67-1 1.5-1s1.5.45 1.5 1"/><path fill="none" stroke="#45413c" stroke-linecap="round" stroke-linejoin="round" d="M33 25a1.5 1.5 0 0 0-3 0"/><path fill="#fff48c" d="M20 13.5a4 1 0 1 0 8 0a4 1 0 1 0-8 0"/>
+</svg>
