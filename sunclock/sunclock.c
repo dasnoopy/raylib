@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.3.5"
+#define TOOL_VERSION            "1.4.0"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -34,6 +34,95 @@ const int screenHeight = 572;
 #define SECONDS_PER_DAY 86400 // Secondi in un giorno (24 ore)
 #define SECONDS_PER_HOUR 3600 // Secondi in un giorno (24 ore)
 #define PATH_RESOLUTION 360
+
+// list of interesting places
+
+// Definizione della struttura per una città
+typedef struct {
+    const char *name;
+    float lat;
+    float lon;
+    Color color;
+} Cities;
+
+const Cities bigCities[] = {
+    // --- CITTÀ DELLA TUA LISTA ORIGINALE (Extra-europee ed Europee iniziali) ---
+    {"Verona",          45.4383,   10.9916, RED},
+    {"Roma",            41.9028,   12.4964, ORANGE},
+    {"Londra",          51.5074,   -0.1278, BLUE},
+    {"New York",        40.7128,  -74.0060, PINK},
+    {"Tokyo",           35.6762,  139.6503, YELLOW},
+    {"Sydney",         -33.8688,  151.2093, GREEN},
+    {"Il Cairo",        30.0444,   31.2357, LIME},
+    {"San Paolo",      -23.5505,  -46.6333, MAROON},
+    {"Città del Capo", -33.9249,   18.4241, WHITE},
+    {"Nuova Delhi",     28.6139,   77.2090, RAYWHITE},
+    {"Reykjavik",       64.1466,  -21.9426, VIOLET},
+    {"Parigi",          48.8566,    2.3522, SKYBLUE},
+    {"Berlino",         52.5200,   13.4050, GOLD},
+    {"Madrid",          40.4168,   -3.7038, ORANGE},
+    {"Mosca",           55.7558,   37.6173, RED},
+    {"Pechino",         39.9042,  116.4074, DARKBROWN},
+    {"Mumbai",          19.0760,   72.8777, LIME},
+    {"Buenos Aires",   -34.6037,  -58.3816, SKYBLUE},
+    {"Lagos",            6.5244,    3.3792, DARKGREEN},
+    {"Toronto",         43.6532,  -79.3832, PINK},
+    {"Città del Messico", 19.4326, -99.1332, PURPLE},
+    {"Istanbul",        41.0082,   28.9784, BROWN},
+    {"Seoul",           37.5665,  126.9780, VIOLET},
+    {"Rio de Janeiro", -22.9068,  -43.1729, GREEN},
+    {"Singapore",        1.3521,  103.8198, DARKBLUE},
+    {"Bangkok",         13.7563,  100.5018, ORANGE},
+    {"Dubai",           25.2048,   55.2708, GOLD},
+    {"Los Angeles",     34.0522, -118.2437, YELLOW},
+    {"Chicago",         41.8781,  -87.6298, DARKGRAY},
+    {"Lima",           -12.0464,  -77.0428, BEIGE},
+
+    // --- NUOVE INTEGRAZIONI ESCLUSIVAMENTE EXTRA-EUROPEE ---
+    // Nord America
+    {"San Francisco",   37.7749, -122.4194, SKYBLUE},
+    {"Miami",           25.7617,  -80.1918, MAGENTA},
+    {"Vancouver",       49.2827, -123.1207, SKYBLUE},
+    {"Montreal",        45.5017,  -73.5673, LIGHTGRAY},
+    {"Havana",          23.1136,  -82.3666, ORANGE},
+    
+    // Sud America
+    {"Santiago",       -33.4489,  -70.6693, GREEN},
+    {"Bogotà",           4.7110,  -74.0721, DARKBLUE},
+    {"Lima",           -12.0464,  -77.0428, BEIGE},
+    {"Caracas",         10.4806,  -66.9036, RED},
+    
+    // Africa
+    {"Nairobi",         -1.2921,   36.8219, DARKGREEN},
+    {"Johannesburg",   -26.2041,   28.0473, GOLD},
+    {"Casablanca",      33.5731,   -7.5898, BEIGE},
+    {"Addis Abeba",      9.0192,   38.7468, YELLOW},
+    {"Dakar",           14.7167,  -17.4677, PURPLE},
+    
+    // Asia & Medio Oriente
+    {"Shanghai",        31.2304,  121.4737, RED},
+    {"Hong Kong",       22.3193,  114.1694, MAROON},
+    {"Giacarta",        -6.2088,  106.8456, LIME},
+    {"Manila",          14.5995,  120.9842, DARKGRAY},
+    {"Osaka",           34.6937,  135.5023, PINK},
+    {"Taipei",          25.0330,  121.5654, VIOLET},
+    {"Teheran",         35.6892,   51.3890, BROWN},
+    {"Gerusalemme",     31.7683,   35.2137, RAYWHITE},
+    {"Riad",            24.7136,   46.6753, DARKGREEN},
+    {"Baghdad",         33.3152,   44.3661, DARKBROWN},
+    
+    // Oceania
+    {"Melbourne",      -37.8136,  144.9631, BLUE},
+    {"Auckland",       -36.8485,  174.7633, DARKBLUE},
+    {"Brisbane",       -27.4705,  153.0260, SKYBLUE},
+    {"Perth",          -31.9505,  115.8605, GOLD},
+    {"Wellington",     -41.2865,  174.7762, WHITE}
+};
+
+
+// Calcolo automatico del numero di città nell'array (C99)
+const int numCities = sizeof(bigCities) / sizeof(bigCities[0]);
+bool showCities = false; // non mostrare i punti delle citta : premi C per visualizzare/naascondere
 
 // Struttura comoda per i dati geografici
 typedef struct {
@@ -80,17 +169,10 @@ typedef struct {
 // Functions
 // -----------------------------------------------------------------------------
 
-void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color)  {
-// raylib vuole il "roundness" espresso come frazione rispetto al lato più corto (300)
-  Rectangle  rect = { X, Y, W, H};   // toplx, toply, width, height
-  int segments = 36;
-  DrawRectangleRounded ( rect, radius, segments, color );
-}
-
-Vector2 MapGeoToPixel(float sunLon, float sunLat, int mapWidth, int mapHeight) {
+Vector2 MapGeoToPixel(float Lon, float Lat, int mapWidth, int mapHeight) {
     Vector2 pixel;
-    pixel.x = ((sunLon + PI) / (2.0f * PI)) * mapWidth;
-    pixel.y = ((PI / 2.0f - sunLat) / PI) * mapHeight;
+    pixel.x = ((Lon + PI) / (2.0f * PI)) * mapWidth;
+    pixel.y = ((PI / 2.0f - Lat) / PI) * mapHeight;
     return pixel;
 }
 
@@ -173,10 +255,9 @@ int main (int argc, char *argv[])
         return 1;
     }
 
-
-	// Set UI style
-	// Custom GUI font loading
-	Font defaultFnt= LoadFontEx("fonts/PixelOperator.ttf", 24, NULL, 0); 
+    	// // Set UI style
+    	// // Custom GUI font loading
+    	// Font defaultFnt= LoadFontEx("fonts/PixelOperator.ttf", 24, NULL, 0); 
 
 		// Create framebuffer
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
@@ -199,7 +280,6 @@ int main (int argc, char *argv[])
 	    SunPosition currentSun = CalculateSunPositionFromTime(simulatedTime);
 
 	    Vector2 eclipticPath[PATH_RESOLUTION];
-	   // bool updatePath = true;
 
 	    // Calcoliamo una volta sola le coordinate Y fisse per i Tropici e l'Equatore
     	float yCancro = MapGeoToPixel(0.0f, RAD(23.44f), worldMap.width, worldMap.height).y;
@@ -275,6 +355,9 @@ while (!WindowShouldClose()) {
         // Tasto R per resettare al tempo reale corrente
         if (IsKeyPressed(KEY_R)) simulatedTime = time(NULL);
         
+        // mostra nascondi citta
+        if (IsKeyPressed(KEY_C)) showCities = !showCities;
+
             currentSun = CalculateSunPositionFromTime(simulatedTime);
 
             // traiettoria del sole
@@ -354,8 +437,6 @@ while (!WindowShouldClose()) {
 	BeginDrawing();
 		ClearBackground (BLANK);
 
-	   //drawRectangleRounded(0,0,screenWidth,screenHeight,0.056f,bgColor);
-	
     	//load player background image
     	BeginShaderMode(dayNightShader);
                 // Assegna la texture delle luci allo slot impostato nello shader ed esegui il draw
@@ -367,61 +448,52 @@ while (!WindowShouldClose()) {
     // disegna reticolo geograafico
     BeginScissorMode(worldMap.x, worldMap.y, worldMap.width, worldMap.height);
 
-		//Disegna paralleli emisfero nord con indicasti gradi 0° /90°
-		for (int i = 90; i > 0; i-=15) {
+		//Disegna paralleli 
+		for (int i = 0.0f; i < 180.0f; i+=15.0f) {
 			DrawLineDashed((Vector2){worldMap.x,i*stepParallel},(Vector2){worldMap.width,i*stepParallel},2,2,DARKGRAY);
-			DrawText(TextFormat("%d°",90-i),worldMap.x+4 ,(i*stepParallel)-15,10,GRAY);
-			DrawText(TextFormat("%d°",90-i),worldMap.width-20,(i*stepParallel)-15,10,GRAY);
+			DrawText(TextFormat("%.f°",90.0f-i),worldMap.x+4.0f ,(i*stepParallel)-12.0f,10,GRAY);
+			DrawText(TextFormat("%.f°",90.0f-i),worldMap.width-21.0f,(i*stepParallel)-12.0f,10,GRAY);
 		}
 
-		//Disegna paralleli emisfero sud con indicasti gradi 0° / -90°
-		for (int i = 90; i < 180; i+=15) {
-			DrawLineDashed((Vector2){worldMap.x,i*stepParallel},(Vector2){worldMap.width,i*stepParallel},2,2,DARKGRAY);
-			if (i != 90) {
-			DrawText(TextFormat("%d°",90-i),worldMap.x+5 ,(i*stepParallel)-15,10,GRAY);
-			DrawText(TextFormat("%d°",90-i),worldMap.width-25,(i*stepParallel)-15,10,GRAY);
-			}
-		}
-
-		// disegna meridiani Ovest 0 / -180°
-		for (int i = 180; i > 0; i-=15) {
+		// disegna meridiani 
+		for (int i = 0; i < 360; i+=15) {
 			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
-			if (i != 180) {
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.y+5,10,BLACK);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.height-15,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.y+5,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.height-15,10,BLACK);
 			}
-		}
-
-		// disegna meridiani Est 0° / 180°
-		for (int i = 180; i < 360; i+=15) {
-			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.y+5,10,BLACK);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.height-15,10,BLACK);
-		}
 
 		// Disegna il meridiano 0° di Greenwich
 		DrawLine((worldMap.width/2),worldMap.y,(worldMap.width/2),worldMap.height ,bgColor);
 
         // tropici ed equatore
-        DrawLine(0, yCancro, worldMap.width, yCancro, ColorLerp(BLACK,ORANGE,0.64f));
+        DrawLine(0, yCancro, worldMap.width, yCancro, BROWN);
         DrawLine(0, yEquatore, worldMap.width, yEquatore, bgColor);
-        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, ColorLerp(BLACK,ORANGE,0.64f));
-        // Testo etichette linee (posizionate sul lato destro dello schermo)
-        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
-        DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
-        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 220, yCapricorno + 4, 10, Fade(RAYWHITE, 0.6f));
+        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
+        // etichett
+        DrawText("Tropico del Cancro (+23.44°)", worldMap.x + 18, yCancro-12, 10, Fade(RAYWHITE, 0.6f));
+        DrawText("Equatore (0.00°)", worldMap.x + 18, yEquatore-12, 10, Fade(RAYWHITE, 0.5f));
+        DrawText("Tropico del Capricorno (-23.44°)", worldMap.x + 18, yCapricorno - 12, 10, Fade(RAYWHITE, 0.6f));
 
 
 		//  traiettoria annuale del sole
     	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
 
     	// "disegno" del sole con una icona personalizzata
-        DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
+        DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-17), ORANGE);
+
+        // Draw Cities point
+        if (showCities) {
+            for (int i = 0; i < numCities; i++) {
+                    Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
+                    DrawCircleV(cityPos,4.0f,bigCities[i].color);
+                    if ( CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f) ) DrawText(bigCities[i].name,cityPos.x,cityPos.y,20,RED);
+            }
+        }
 
 		// cursore mouse personalizzato
-        DrawPixel(mousePos.x,mousePos.y, RED);
         DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, WHITE);
         DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, WHITE);
+        DrawPixel(mousePos.x,mousePos.y, BLACK);
     EndScissorMode();
 
 
@@ -434,7 +506,7 @@ while (!WindowShouldClose()) {
     			float currentLonDeg = currentSun.sunLon * (180.0f / PI);
     			float currentLatDeg = currentSun.sunLat * (180.0f / PI);
 
-    			// Draw mouse position
+    			// Se l'utente ha cliccato, mostra un punto e le coordinate
                 DrawText(TextFormat("Cur -> x: %.f | y:%.f | Lon: %.2f° | Lat: %.2f°", mousePos.x, mousePos.y, currentClick.lon, currentClick.lat), infoBar.x + 190, infoBar.y+10,10,GRAY);
 
     			// currentDate
@@ -461,7 +533,7 @@ while (!WindowShouldClose()) {
 	
 
 	// unload fonts
-	UnloadFont(defaultFnt);
+	// UnloadFont(defaultFnt);
     UnloadRenderTexture(target);
     UnloadTexture(dayMap);
     UnloadTexture(sunIcon);
