@@ -10,9 +10,11 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.2.8"
+#define TOOL_VERSION            "1.3.0"
+
 #include <stdio.h>
 #include <raylib.h>
+#include <raymath.h>
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
@@ -221,8 +223,13 @@ while (!WindowShouldClose()) {
 		float dt = GetFrameTime();
 
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
-        int stepParallel = 3; //3 = 1 grado x disegno paaral4leli
-        int stepMeridian = 3; //3 = 1 grado x disegno meridiani
+        float stepParallel = 3.0f; //3 = 1 grado x disegno griglia paralleli
+        float stepMeridian = 3.0f; //3 = 1 grado x disegno griglia meridiani
+
+        if (mousePos.x < 0) mousePos.x = 0;
+        if (mousePos.x > 1079) mousePos.x = 1079;
+        if (mousePos.y < 0) mousePos.y = 0;
+        if (mousePos.y > 539) mousePos.y = 539;
 
         // gestione cambio data in real time
         simulatedTime += (time_t)(GetFrameTime());
@@ -230,9 +237,9 @@ while (!WindowShouldClose()) {
         // Controllo se il mouse si trova dentro la mappa 
         if (CheckCollisionPointRec(mousePos, worldMap)) {
             HideCursor();
-                // 1. Calcoliamo la posizione del mouse RELATIVA alla mappa (0..1080, 0..540)
-                float relativeX = mousePos.x - worldMap.x;
-                float relativeY = mousePos.y - worldMap.y;
+                // 1. Calcoliamo la posizione del mouse RELATIVA alla mappa (0..1079, 0..539)
+                float relativeX = (mousePos.x - worldMap.x) + 1.0f; // aggiunto 1.0f per scarto 1px centro
+                float relativeY = (mousePos.y - worldMap.y) + 1.0f; // aggiunto 1.0f per scarto 1px centro
                 // 2. Trasformazione lineare in gradi geografici
                 currentClick.lon = (relativeX / worldMap.width) * 360.0f - 180.0f;
                 currentClick.lat = 90.0f - (relativeY / worldMap.height) * 180.0f;
@@ -254,8 +261,6 @@ while (!WindowShouldClose()) {
         // Tasto R per resettare al tempo reale corrente
         if (IsKeyPressed(KEY_R)) simulatedTime = time(NULL);
         
-        if (IsKeyPressed(KEY_ONE)) SetMousePosition (worldMap.width/2, worldMap.height/2);
-
             currentSun = CalculateSunPositionFromTime(simulatedTime);
 
             // traiettoria del sole
@@ -380,13 +385,13 @@ while (!WindowShouldClose()) {
 			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.height-15,10,BLACK);
 		}
 
-		// Draw GreenWich meridian
-		DrawLine(worldMap.width/2,worldMap.y,worldMap.width/2,worldMap.height ,LIGHTGRAY);
+		// Disegna il meridiano 0° di Greenwich
+		DrawLine((worldMap.width/2),worldMap.y,(worldMap.width/2),worldMap.height ,LIGHTGRAY);
 
         // tropici ed equatore
-        DrawLine(0, yCancro, worldMap.width, yCancro, BLACK);
+        DrawLine(0, yCancro, worldMap.width, yCancro, GOLD);
         DrawLine(0, yEquatore, worldMap.width, yEquatore, LIGHTGRAY);
-        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BLACK);
+        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, GOLD);
         // Testo etichette linee (posizionate sul lato destro dello schermo)
         DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
         DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
@@ -394,18 +399,15 @@ while (!WindowShouldClose()) {
 
 
 		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
 
-    	// "disegno" del sole
-    	//DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
+    	// "disegno" del sole con una icona personalizzata
         DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
 
 		// cursore mouse personalizzato
-        //DrawCircleV(mousePos, 3, RED);
-        if(mousePos.x >= worldMap.width) mousePos.x=worldMap.x;
-        if(mousePos.y >= worldMap.height) mousePos.y=worldMap.height;
-        DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, RED);
-        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, RED);
+        DrawPixel(mousePos.x,mousePos.y, RED);
+        DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, WHITE);
+        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, WHITE);
     EndScissorMode();
 
 
@@ -419,11 +421,11 @@ while (!WindowShouldClose()) {
     			float currentLatDeg = currentSun.sunLat * (180.0f / PI);
 
     			// Draw mouse position
-                DrawText(TextFormat("Cur -> x: %.f | y:%.f | Lon: %.2f° | Lat: %.2f°", mousePos.x, mousePos.y, currentClick.lon, currentClick.lat), infoBar.x + 210, infoBar.y+10,10,GRAY);
+                DrawText(TextFormat("Cur -> x: %.f | y:%.f | Lon: %.2f° | Lat: %.2f°", mousePos.x, mousePos.y, currentClick.lon, currentClick.lat), infoBar.x + 190, infoBar.y+10,10,GRAY);
 
     			// currentDate
                 if (localSimTime != NULL) {
-                      DrawText(TextFormat("Data Corrente: %02d/%02d/%04d %02d:%02d:%02d", 
+                      DrawText(TextFormat("Data %02d/%02d/%04d %02d:%02d:%02d (LOC)", 
                             localSimTime->tm_mday, localSimTime->tm_mon + 1, localSimTime->tm_year + 1900,
                             localSimTime->tm_hour, localSimTime->tm_min, localSimTime->tm_sec), infoBar.x+8,infoBar.y+10, 10, RAYWHITE);
                 } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
