@@ -10,19 +10,18 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.3.0"
+#define TOOL_VERSION            "1.3.5"
 
 #include <stdio.h>
 #include <raylib.h>
-#include <raymath.h>
 #include <stdbool.h>
-#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <time.h>
 #include <math.h>
 #include <raymath.h>
-#include <unistd.h>
 
 // gcc -Wall -Werror simplayer.c  -o simplayer -lraylib -lm -lid3tag
 // archlinux : pacman -S raylib libid3tag
@@ -167,6 +166,14 @@ int main (int argc, char *argv[])
 	InitWindow(screenWidth, screenHeight, "sunclock");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window
 
+    // Controllo esistenza file shader per evitare crash su macchine Linux
+    if (!FileExists("daynight.fs")) {
+        TraceLog(LOG_ERROR, "ERRORE: File 'daynight.fs' non trovato nella directory corrente!");
+        CloseWindow();
+        return 1;
+    }
+
+
 	// Set UI style
 	// Custom GUI font loading
 	Font defaultFnt= LoadFontEx("fonts/PixelOperator.ttf", 24, NULL, 0); 
@@ -188,6 +195,7 @@ int main (int argc, char *argv[])
 
 	    // Inizializziamo il tempo simulato con l'orario reale del sistema
 	    time_t simulatedTime = time(NULL);
+        float timeAccumulator = 0.0f; // per agg. in tempo reale
 	    SunPosition currentSun = CalculateSunPositionFromTime(simulatedTime);
 
 	    Vector2 eclipticPath[PATH_RESOLUTION];
@@ -222,17 +230,23 @@ while (!WindowShouldClose()) {
 
 		float dt = GetFrameTime();
 
+        // Correzione scorrimento tempo reale fluido (C99 compatibile)
+        timeAccumulator += GetFrameTime();
+        if (timeAccumulator >= 1.0f) {
+            time_t sec = (time_t)timeAccumulator;
+            simulatedTime += sec;
+            timeAccumulator -= (float)sec;
+        }
+
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
         float stepParallel = 3.0f; //3 = 1 grado x disegno griglia paralleli
         float stepMeridian = 3.0f; //3 = 1 grado x disegno griglia meridiani
 
+        //
         if (mousePos.x < 0) mousePos.x = 0;
         if (mousePos.x > 1079) mousePos.x = 1079;
         if (mousePos.y < 0) mousePos.y = 0;
         if (mousePos.y > 539) mousePos.y = 539;
-
-        // gestione cambio data in real time
-        simulatedTime += (time_t)(GetFrameTime());
 
         // Controllo se il mouse si trova dentro la mappa 
         if (CheckCollisionPointRec(mousePos, worldMap)) {
@@ -248,11 +262,11 @@ while (!WindowShouldClose()) {
         struct tm *tSteps = localtime(&simulatedTime);
 
         // Gestione Input della tastiera ( destra / sinistra : avanzamento x giorno, su / giu avanzamaneto per ora)
-        if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)) tSteps->tm_mday += 1; 
-        if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) tSteps->tm_mday -= 1;
+        if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) tSteps->tm_mday += 1; 
+        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) tSteps->tm_mday -= 1;
 
-        if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) tSteps->tm_hour += 1;
-        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) tSteps->tm_hour -= 1;
+        if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) tSteps->tm_hour += 1;
+        if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)) tSteps->tm_hour -= 1;
 
         tSteps->tm_isdst = -1; // Gestisce automaticamente i cambi d'ora legali/solari locali durante il salto
         simulatedTime = mktime(tSteps);
@@ -386,12 +400,12 @@ while (!WindowShouldClose()) {
 		}
 
 		// Disegna il meridiano 0° di Greenwich
-		DrawLine((worldMap.width/2),worldMap.y,(worldMap.width/2),worldMap.height ,LIGHTGRAY);
+		DrawLine((worldMap.width/2),worldMap.y,(worldMap.width/2),worldMap.height ,bgColor);
 
         // tropici ed equatore
-        DrawLine(0, yCancro, worldMap.width, yCancro, GOLD);
-        DrawLine(0, yEquatore, worldMap.width, yEquatore, LIGHTGRAY);
-        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, GOLD);
+        DrawLine(0, yCancro, worldMap.width, yCancro, ColorLerp(BLACK,ORANGE,0.64f));
+        DrawLine(0, yEquatore, worldMap.width, yEquatore, bgColor);
+        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, ColorLerp(BLACK,ORANGE,0.64f));
         // Testo etichette linee (posizionate sul lato destro dello schermo)
         DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
         DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
