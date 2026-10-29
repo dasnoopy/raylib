@@ -18,6 +18,10 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 4) Support notes & info in the readMe.txt located in each project folder..(if needed)
 4) run executable and enjoy!
 
+#### SunClock  
+
+![sunclock](https://raw.github.com/dasnoopy/raylib/main/screenshot/sunclock.png)
+
 #### Simple Audio Player (modern style)
 
 ![simplayer#1](https://raw.github.com/dasnoopy/raylib/main/screenshot/simplayer_vumeter.png)
