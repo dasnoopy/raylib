@@ -1,16 +1,16 @@
 /*******************************************************************************
 *
-*   SUNCLOCK reborn : a raylib simple sunlight worldmap aand gmt/locale time info
+*   SUNCLOCK reborn : a raylib simple sunlight worldMap aand gmt/locale time info
 *   Small utility to play mp3 files based on raylib version 6.0
 *   
 *   Copyright (c) 2026 Andrea Antolini (@dasnoopy)
 *
 ********************************************************************************/
 		
-#define TOOL_NAME               "Sunlight World Mapr"
+#define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
-#define TOOL_COMMENT            "Simple but modern sunlight world map"
-#define TOOL_VERSION            "1.2.5"
+#define TOOL_COMMENT            "Simple but modern sun day/night world map"
+#define TOOL_VERSION            "1.2.8"
 #include <stdio.h>
 #include <raylib.h>
 #include <stdbool.h>
@@ -31,11 +31,18 @@ const int screenHeight = 572;
 #define PI 3.14159265358979323846f
 #define RAD(deg) ((deg) * PI / 180.0f)
 #define SECONDS_PER_DAY 86400 // Secondi in un giorno (24 ore)
-#define PATH_RESOLUTION 200 
+#define SECONDS_PER_HOUR 3600 // Secondi in un giorno (24 ore)
+#define PATH_RESOLUTION 360
+
+// Struttura comoda per i dati geografici
+typedef struct {
+    float lon; // Longitudine (-180 a 180)
+    float lat; // Latitudine (-90 a 90)
+} GeoCoords;
 
 typedef struct {
-    float lon; // in radianti
-    float lat; // in radianti
+    float sunLon; // in radianti
+    float sunLat; // in radianti
 } SunPosition;
 
 // some custom colorsq
@@ -43,11 +50,18 @@ const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
 
 
 const int bottomOffset = 32;
-Rectangle worldmap = {0,0,1080,540};
-Rectangle infoBar = {0,540,1080,32};
+    // Definiamo i confini e la dimensione della mappa sullo schermo
 
-int latitude;
-int longitude;
+Rectangle worldMap = { 
+        .x = 0,
+        .y = 0,
+        .width = 1080,
+        .height = 540
+    };
+
+Rectangle infoBar = {0,540,1080,bottomOffset};
+
+GeoCoords currentClick = { 0.0f, 0.0f };
 
 char tempBuffer[64] = { 0 };
 char dateBuffer[64] = { 0 };
@@ -72,10 +86,10 @@ void drawRectangleRounded (int X, int Y, int W, int H, float radius, Color color
   DrawRectangleRounded ( rect, radius, segments, color );
 }
 
-Vector2 MapGeoToPixel(float lon, float lat, int mapWidth, int mapHeight) {
+Vector2 MapGeoToPixel(float sunLon, float sunLat, int mapWidth, int mapHeight) {
     Vector2 pixel;
-    pixel.x = ((lon + PI) / (2.0f * PI)) * mapWidth;
-    pixel.y = ((PI / 2.0f - lat) / PI) * mapHeight;
+    pixel.x = ((sunLon + PI) / (2.0f * PI)) * mapWidth;
+    pixel.y = ((PI / 2.0f - sunLat) / PI) * mapHeight;
     return pixel;
 }
 
@@ -85,20 +99,20 @@ SunPosition CalculateSunPositionFromTime(time_t customTime) {
     struct tm *utcTime = gmtime(&customTime);
 
     if (utcTime == NULL) {
-        pos.lon = 0.0f;
-        pos.lat = 0.0f;
+        pos.sunLon = 0.0f;
+        pos.sunLat = 0.0f;
         return pos;
     }
 
     // calcolo della longitudine solare
     float utcHours = utcTime->tm_hour + (utcTime->tm_min / 60.0f) + (utcTime->tm_sec / 3600.0f);
     float lonDeg = (12.0f - utcHours) * 15.0f;
-    pos.lon = RAD(lonDeg);
+    pos.sunLon = RAD(lonDeg);
 
     // calcolo della latitudine solare (declinazione)
     int dayOfYear = utcTime->tm_yday + 1;
     float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (dayOfYear - 80)));
-    pos.lat = RAD(latDeg);
+    pos.sunLat = RAD(latDeg);
 
     return pos;
 }
@@ -150,7 +164,6 @@ int main (int argc, char *argv[])
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
 	InitWindow(screenWidth, screenHeight, "sunclock");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window
-    SetTargetFPS(60);
 
 	// Set UI style
 	// Custom GUI font loading
@@ -161,8 +174,8 @@ int main (int argc, char *argv[])
 		SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
         // Caricamento delle due texture aggiornate alla nuova risoluzione
-        Texture2D worldMap = LoadTexture("assets/map.png"); 
-        Texture2D nightLights = LoadTexture("assets/nightmap.png"); 
+        Texture2D dayMap = LoadTexture("assets/daymap.png"); 
+        Texture2D nightMap = LoadTexture("assets/nightmap.png"); 
 
         //load sun icon
         Texture2D sunIcon= LoadTexture("assets/sunIcon.png");          // Image converted to texture, GPU memory (VRAM)
@@ -176,12 +189,12 @@ int main (int argc, char *argv[])
 	    SunPosition currentSun = CalculateSunPositionFromTime(simulatedTime);
 
 	    Vector2 eclipticPath[PATH_RESOLUTION];
-	    bool updatePath = true;
+	   // bool updatePath = true;
 
 	    // Calcoliamo una volta sola le coordinate Y fisse per i Tropici e l'Equatore
-    	float yCancro = MapGeoToPixel(0.0f, RAD(23.44f), worldmap.width, worldmap.height).y;
-    	float yEquatore = MapGeoToPixel(0.0f, RAD(0.0f), worldmap.width, worldmap.height).y;
-    	float yCapricorno = MapGeoToPixel(0.0f, RAD(-23.44f), worldmap.width, worldmap.height).y;
+    	float yCancro = MapGeoToPixel(0.0f, RAD(23.44f), worldMap.width, worldMap.height).y;
+    	float yEquatore = MapGeoToPixel(0.0f, RAD(0.0f), worldMap.width, worldMap.height).y;
+    	float yCapricorno = MapGeoToPixel(0.0f, RAD(-23.44f), worldMap.width, worldMap.height).y;
 
 
     // Inizializzazione del ripetitore (400ms delay iniziale, 80ms tra le ripetizioni)
@@ -193,10 +206,10 @@ int main (int argc, char *argv[])
         .repeatRate = 0.08f
     };
 
+    SetTargetFPS(60);
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
 	SetWindowSize(screenWidth,screenHeight);
 	SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2);  
-	//SetWindowPosition(8,40);  
 	ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 while (!WindowShouldClose()) {
@@ -208,37 +221,41 @@ while (!WindowShouldClose()) {
 		float dt = GetFrameTime();
 
         Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
-        int stepParallel = 3; //3 = 1 grado
-        int stepMeridian = 3; //3 = 1 grado
-
-        // nascondi cursore quando sopra worldmap
-        if (CheckCollisionPointRec(mousePos,worldmap)) HideCursor(); 
-        else ShowCursor();
+        int stepParallel = 3; //3 = 1 grado x disegno paaral4leli
+        int stepMeridian = 3; //3 = 1 grado x disegno meridiani
 
         // gestione cambio data in real time
-        bool timeChanged = false;
         simulatedTime += (time_t)(GetFrameTime());
 
+        // Controllo se il mouse si trova dentro la mappa 
+        if (CheckCollisionPointRec(mousePos, worldMap)) {
+            HideCursor();
+                // 1. Calcoliamo la posizione del mouse RELATIVA alla mappa (0..1080, 0..540)
+                float relativeX = mousePos.x - worldMap.x;
+                float relativeY = mousePos.y - worldMap.y;
+                // 2. Trasformazione lineare in gradi geografici
+                currentClick.lon = (relativeX / worldMap.width) * 360.0f - 180.0f;
+                currentClick.lat = 90.0f - (relativeY / worldMap.height) * 180.0f;
+        } else ShowCursor();
 
-        // Gestione Input della tastiera (Frecce Destra / Sinistra)
-        // implementa funzione  keyrepeater
-        if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)) {
-            simulatedTime += SECONDS_PER_DAY;
-            timeChanged = true;
-        }
-        if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) {
-            simulatedTime -= SECONDS_PER_DAY;
-            timeChanged = true;
-        }
-        
+        struct tm *tSteps = localtime(&simulatedTime);
+
+        // Gestione Input della tastiera ( destra / sinistra : avanzamento x giorno, su / giu avanzamaneto per ora)
+        if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)) tSteps->tm_mday += 1; 
+        if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) tSteps->tm_mday -= 1;
+
+        if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) tSteps->tm_hour += 1;
+        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) tSteps->tm_hour -= 1;
+
+        tSteps->tm_isdst = -1; // Gestisce automaticamente i cambi d'ora legali/solari locali durante il salto
+        simulatedTime = mktime(tSteps);
+
+
         // Tasto R per resettare al tempo reale corrente
-        if (IsKeyPressed(KEY_R)) {
-            simulatedTime = time(NULL);
-            timeChanged = true;
-        }
+        if (IsKeyPressed(KEY_R)) simulatedTime = time(NULL);
+        
+        if (IsKeyPressed(KEY_ONE)) SetMousePosition (worldMap.width/2, worldMap.height/2);
 
-        // Calcola la nuova posizione del sole solo se l'utente ha modificato il tempo
-        if (timeChanged || IsWindowResized() || updatePath) {
             currentSun = CalculateSunPositionFromTime(simulatedTime);
 
             // traiettoria del sole
@@ -258,19 +275,17 @@ while (!WindowShouldClose()) {
                     float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (targetDay - 80)));
                     float pathLat = RAD(latDeg);
 
-                    eclipticPath[i] = MapGeoToPixel(pathLon, pathLat, worldmap.width, worldmap.height);
+                    eclipticPath[i] = MapGeoToPixel(pathLon, pathLat, worldMap.width, worldMap.height);
                 }
             }
-            updatePath = false;
-        }
 
         // Passa i dati aggiornati alla GPU
-        Vector2 sunPosShaderValue = { currentSun.lon, currentSun.lat };
+        Vector2 sunPosShaderValue = { currentSun.sunLon, currentSun.sunLat };
         SetShaderValue(dayNightShader, sunPosLoc, &sunPosShaderValue, SHADER_UNIFORM_VEC2);
 
         struct tm *localSimTime = localtime(&simulatedTime);
 
-        Vector2 sunPixelPos = MapGeoToPixel(currentSun.lon, currentSun.lat, worldmap.width, worldmap.height);
+        Vector2 sunPixelPos = MapGeoToPixel(currentSun.sunLon, currentSun.sunLat, worldMap.width, worldMap.height);
 
             // momenti dell'anno
             int mese = localSimTime->tm_mon + 1; // tm_mon va da 0 a 11
@@ -308,11 +323,7 @@ while (!WindowShouldClose()) {
         // do something when  window loses focus
         //
         if (IsWindowState(FLAG_WINDOW_UNFOCUSED)) SetWindowOpacity(0.92f);
-        else {
-            simulatedTime = time(NULL);
-            timeChanged = true;
-            SetWindowOpacity(1.0f);
-        }
+        else SetWindowOpacity(1.0f);
 
 //------------------------------------------------------------------------------
 // Draw
@@ -329,129 +340,105 @@ while (!WindowShouldClose()) {
     	//load player background image
     	BeginShaderMode(dayNightShader);
                 // Assegna la texture delle luci allo slot impostato nello shader ed esegui il draw
-                SetShaderValueTexture(dayNightShader, nightLightsLoc, nightLights);
-                DrawTexture(worldMap, 0, 0, WHITE);
+                SetShaderValueTexture(dayNightShader, nightLightsLoc, nightMap);
+                DrawTexture(dayMap, worldMap.x,worldMap.y, WHITE);
         EndShaderMode();
 
             
-        // disegna reticolo geograafico
-    BeginScissorMode(worldmap.x, worldmap.y, worldmap.width, worldmap.height);
+    // disegna reticolo geograafico
+    BeginScissorMode(worldMap.x, worldMap.y, worldMap.width, worldMap.height);
 
-				//Disegna paralleli emisfero nord con indicasti gradi 0° /90°
-				for (int i = 90; i > 0; i-=15) {
-					DrawLineDashed((Vector2){worldmap.x,i*stepParallel},(Vector2){worldmap.width,i*stepParallel},2,2,DARKGRAY);
-					DrawText(TextFormat("%d°",90-i),worldmap.x+4 ,(i*stepParallel)-15,10,GRAY);
-					DrawText(TextFormat("%d°",90-i),worldmap.width-20,(i*stepParallel)-15,10,GRAY);
-				}
+		//Disegna paralleli emisfero nord con indicasti gradi 0° /90°
+		for (int i = 90; i > 0; i-=15) {
+			DrawLineDashed((Vector2){worldMap.x,i*stepParallel},(Vector2){worldMap.width,i*stepParallel},2,2,DARKGRAY);
+			DrawText(TextFormat("%d°",90-i),worldMap.x+4 ,(i*stepParallel)-15,10,GRAY);
+			DrawText(TextFormat("%d°",90-i),worldMap.width-20,(i*stepParallel)-15,10,GRAY);
+		}
 
-				//Disegna paralleli emisfero sud con indicasti gradi 0° / -90°
-				for (int i = 90; i < 180; i+=15) {
-					DrawLineDashed((Vector2){worldmap.x,i*stepParallel},(Vector2){worldmap.width,i*stepParallel},2,2,DARKGRAY);
-					if (i != 90) {
-					DrawText(TextFormat("%d°",90-i),worldmap.x+5 ,(i*stepParallel)-15,10,GRAY);
-					DrawText(TextFormat("%d°",90-i),worldmap.width-25,(i*stepParallel)-15,10,GRAY);
-					}
-				}
+		//Disegna paralleli emisfero sud con indicasti gradi 0° / -90°
+		for (int i = 90; i < 180; i+=15) {
+			DrawLineDashed((Vector2){worldMap.x,i*stepParallel},(Vector2){worldMap.width,i*stepParallel},2,2,DARKGRAY);
+			if (i != 90) {
+			DrawText(TextFormat("%d°",90-i),worldMap.x+5 ,(i*stepParallel)-15,10,GRAY);
+			DrawText(TextFormat("%d°",90-i),worldMap.width-25,(i*stepParallel)-15,10,GRAY);
+			}
+		}
 
-				// disegna meridiani Ovest 0 / -180°
-				for (int i = 180; i > 0; i-=15) {
-					DrawLineDashed((Vector2){i*stepMeridian, worldmap.y},(Vector2){i*stepMeridian ,worldmap.height},2,2,DARKGRAY);
-					if (i != 180) {
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.y+5,10,BLACK);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.height-15,10,BLACK);
-					}
-				}
+		// disegna meridiani Ovest 0 / -180°
+		for (int i = 180; i > 0; i-=15) {
+			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
+			if (i != 180) {
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.y+5,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.height-15,10,BLACK);
+			}
+		}
 
-				// disegna meridiani Est 0° / 180°
-				for (int i = 180; i < 360; i+=15) {
-					DrawLineDashed((Vector2){i*stepMeridian, worldmap.y},(Vector2){i*stepMeridian ,worldmap.height},2,2,DARKGRAY);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.y+5,10,BLACK);
-					DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldmap.height-15,10,BLACK);
-				}
+		// disegna meridiani Est 0° / 180°
+		for (int i = 180; i < 360; i+=15) {
+			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.y+5,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+5,worldMap.height-15,10,BLACK);
+		}
 
-				// Draw GreenWich meridian
-				DrawLine(worldmap.width/2,worldmap.y,worldmap.width/2,worldmap.height ,LIGHTGRAY);
+		// Draw GreenWich meridian
+		DrawLine(worldMap.width/2,worldMap.y,worldMap.width/2,worldMap.height ,LIGHTGRAY);
 
-                // tropici ed equatore
-	            DrawLine(0, yCancro, worldmap.width, yCancro, BLACK);
-	            DrawLine(0, yEquatore, worldmap.width, yEquatore, LIGHTGRAY);
-	            DrawLine(0, yCapricorno, worldmap.width, yCapricorno, BLACK);
-                // Testo etichette linee (posizionate sul lato destro dello schermo)
-                DrawText("Tropico del Cancro (+23.44°)", screenWidth - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
-                DrawText("Equatore (0.00°)", screenWidth - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
-                DrawText("Tropico del Capricorno (-23.44°)", screenWidth - 220, yCapricorno + 4, 10, Fade(RAYWHITE, 0.6f));
+        // tropici ed equatore
+        DrawLine(0, yCancro, worldMap.width, yCancro, BLACK);
+        DrawLine(0, yEquatore, worldMap.width, yEquatore, LIGHTGRAY);
+        DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BLACK);
+        // Testo etichette linee (posizionate sul lato destro dello schermo)
+        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, Fade(RAYWHITE, 0.6f));
+        DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, Fade(RAYWHITE, 0.5f));
+        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 220, yCapricorno + 4, 10, Fade(RAYWHITE, 0.6f));
 
 
-        		//  traiettoria annuale del sole
-            	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
+		//  traiettoria annuale del sole
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
 
-            	// "disegno" del sole
-            	//DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
-                DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
+    	// "disegno" del sole
+    	//DrawCircleGradient(sunPixelPos, 10.0f, ORANGE, YELLOW); 
+        DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-16.0f), WHITE);
 
-					// cursore mouse personalizzato
-				DrawRectangleRec((Rectangle) { mousePos.x - 20, mousePos.y, 40, 1 }, RED);
-				DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y - 20, 1, 40 }, RED);
+		// cursore mouse personalizzato
+        //DrawCircleV(mousePos, 3, RED);
+        if(mousePos.x >= worldMap.width) mousePos.x=worldMap.x;
+        if(mousePos.y >= worldMap.height) mousePos.y=worldMap.height;
+        DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, RED);
+        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, RED);
     EndScissorMode();
 
 
 
-    //info bar
+
+     //info bar
     BeginScissorMode(infoBar.x, infoBar.y, infoBar.width, infoBar.height);
 
-		            // posizione sole giorno/notte
-        			float currentLonDeg = currentSun.lon * (180.0f / PI);
-        			float currentLatDeg = currentSun.lat * (180.0f / PI);
+                // posizione sole giorno/notte
+    			float currentLonDeg = currentSun.sunLon * (180.0f / PI);
+    			float currentLatDeg = currentSun.sunLat * (180.0f / PI);
 
-					// Draw mouse position
-					int x = GetMouseX()+1;
-					int y = GetMouseY()+1;
-                    const char* latCardinal = "";
-                    const char* lonCardinal = "";
+    			// Draw mouse position
+                DrawText(TextFormat("Cur -> x: %.f | y:%.f | Lon: %.2f° | Lat: %.2f°", mousePos.x, mousePos.y, currentClick.lon, currentClick.lat), infoBar.x + 210, infoBar.y+10,10,GRAY);
 
-					if (y > worldmap.height) y=worldmap.height;
+    			// currentDate
+                if (localSimTime != NULL) {
+                      DrawText(TextFormat("Data Corrente: %02d/%02d/%04d %02d:%02d:%02d", 
+                            localSimTime->tm_mday, localSimTime->tm_mon + 1, localSimTime->tm_year + 1900,
+                            localSimTime->tm_hour, localSimTime->tm_min, localSimTime->tm_sec), infoBar.x+8,infoBar.y+10, 10, RAYWHITE);
+                } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
 
-					if (y < (worldmap.height/2) ) {
-						latitude = (int) 90-(y/3);
-						latCardinal = "Nord";
-					} else {
-						latitude = (int) (y/3) -90;
-						latCardinal = "Sud";
-					}
-
-					if (x > (worldmap.width/2)) {
-						longitude = (int) (x/3)-180;
-						lonCardinal = "Est";
-						} else {
-						longitude  = (int) 180-(x/3);
-						lonCardinal = "Ovest";
-					}
-
-					if (x==(worldmap.width/2)) latCardinal = "";
-					if (y==(worldmap.height/2)) lonCardinal = "";
-					// currentDate
-                    if (localSimTime != NULL) {
-                          DrawText(TextFormat("Data Corrente: %02d/%02d/%04d %02d:%02d:%02d", 
-                                localSimTime->tm_mday, localSimTime->tm_mon + 1, localSimTime->tm_year + 1900,
-                                localSimTime->tm_hour, localSimTime->tm_min, localSimTime->tm_sec), infoBar.x+8,infoBar.y+10, 10, RAYWHITE);
-            } else {
-                DrawText("Data Corrente: Data Sconosciuta", 10, 60, 10, RAYWHITE);
-            }
-            
-					// cursor position
-					snprintf(tempBuffer, sizeof(tempBuffer), "Pos. cursore -> Lon: %i° %s | Lat: %i° %s", longitude, lonCardinal, latitude, latCardinal);
-					DrawText(TextFormat("%s", tempBuffer), infoBar.x + 210, infoBar.y+10,10,GRAY);
-					// sun position
-					DrawText(TextFormat("Pos. sole -> Lon: %.2f° | Lat: %.2f°", currentLonDeg, currentLatDeg), infoBar.x+460,infoBar.y+10,10, WHITE);
-                    // Disegna il testo della stagione sulla UI di raylib
-            		DrawText(testoStagione, infoBar.x +660, infoBar.y+10, 10, GRAY);
-    EndScissorMode();
+    			// sun position
+    			DrawText(TextFormat("Pos. sole -> Lon: %.2f° | Lat: %.2f°", currentLonDeg, currentLatDeg), infoBar.x+460,infoBar.y+10,10, WHITE);
+                
+                // Disegna il testo della stagione sulla UI di raylib
+                DrawText(testoStagione, infoBar.x +660, infoBar.y+10, 10, GRAY);
 
 		//statusbar with some info
 		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
 		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoBar.y +10, 10, GRAY); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-
+    EndScissorMode();
 
 	EndDrawing();
 }
@@ -460,10 +447,9 @@ while (!WindowShouldClose()) {
 	// unload fonts
 	UnloadFont(defaultFnt);
     UnloadRenderTexture(target);
-    UnloadTexture(worldMap);
+    UnloadTexture(dayMap);
     UnloadTexture(sunIcon);
-
-    UnloadTexture(nightLights);
+    UnloadTexture(nightMap);
     UnloadShader(dayNightShader);
 	CloseWindow();
 	return 0;

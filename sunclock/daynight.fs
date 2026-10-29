@@ -19,8 +19,16 @@ void main() {
     float lon = (fragTexCoord.x * 2.0 - 1.0) * PI;
     float lat = (1.0 - fragTexCoord.y * 2.0) * (PI / 2.0);
     
-    float cosZenith = sin(lat) * sin(sunPosGeo.y) + cos(lat) * cos(sunPosGeo.y) * cos(lon - sunPosGeo.x);
+    // 3. Coordinate del sole passate dalla CPU
+    float sunLon = sunPosGeo.x;
+    float sunLat = sunPosGeo.y;
     
+    // 4. Calcola l'angolo zenitale del sole (Legge dei coseni sferica)
+    // NOTA: Se noti che il sole sorge a Ovest o che l'ombra si muove al contrario, 
+    // cambia (lon - sunLon) in (lon + sunLon) o inverti il segno di sunPosGeo.x nel codice C.
+    float cosZenith = sin(lat) * sin(sunLat) + cos(lat) * cos(sunLat) * cos(lon - sunLon);
+
+
     // 3. Fattore d'ombra (1.0 = Giorno pieno, 0.0 = Notte fonda)
     float shadowFactor = smoothstep(-0.1, 0.1, cosZenith);
 
