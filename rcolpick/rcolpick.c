@@ -605,7 +605,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
             DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,rectPixel.width-2, 118}, Fade(leftCol,0.88f));
-            DrawTextEx(txtFont,TextFormat("X1: %i , Y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LeftTextCol);
+            DrawTextEx(txtFont,TextFormat("x1: %i , y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LeftTextCol);
             // RGBA            
             DrawTextEx(txtFont,TextFormat("rgba(%i, %i, %i, %i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 50},fntSize,0,LeftTextCol);
             // HEXA 
@@ -620,7 +620,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             //---------------------------------------------------------------------------------------
             DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 202, rectPixel.width-2, 112}, Fade(rightCol,0.88f));
             // cursor x,y right
-            DrawTextEx(txtFont,TextFormat("X2: %i , Y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 206},fntSize,0,RightTextCol);
+            DrawTextEx(txtFont,TextFormat("x2: %i , y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 206},fntSize,0,RightTextCol);
             // RGBA 
             DrawTextEx(txtFont,TextFormat("rgba(%i, %i, %i, %i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 228},fntSize,0,RightTextCol);
             // HEXA

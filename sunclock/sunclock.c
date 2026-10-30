@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.4.0"
+#define TOOL_VERSION            "1.4.2"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -468,16 +468,22 @@ while (!WindowShouldClose()) {
         DrawLine(0, yEquatore, worldMap.width, yEquatore, bgColor);
         DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
         // etichett
-        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, RAYWHITE);
-        DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, RAYWHITE);
-        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 220, yCapricorno + 4, 10, RAYWHITE);
+        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 192, yCancro - 12, 10, RAYWHITE);
+        DrawText("Equatore (0.00°)", worldMap.width - 132, yEquatore - 12, 10, RAYWHITE);
+        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 212, yCapricorno -12 , 10, RAYWHITE);
 
 
 		//  traiettoria annuale del sole
     	DrawLineStrip(eclipticPath, PATH_RESOLUTION, GOLD);
 
-    	// "disegno" del sole con una icona personalizzata
-        DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-17), ORANGE);
+    	// "disegno" centrato del sole con una icona personalizzata
+        Vector2 origin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
+        DrawTexturePro(
+            sunIcon, 
+            (Rectangle){ 0, 0, sunIcon.width, sunIcon.height },
+            (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, // Dimensione icona
+            origin, 0.0f, GOLD );
+
 
         // Draw Cities point
         if (showCities) {
