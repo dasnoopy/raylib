@@ -46,7 +46,6 @@ typedef struct {
 } Cities;
 
 const Cities bigCities[] = {
-    // --- CITTÀ DELLA TUA LISTA ORIGINALE (Extra-europee ed Europee iniziali) ---
     {"Verona",          45.4383,   10.9916, RED},
     {"Roma",            41.9028,   12.4964, ORANGE},
     {"Londra",          51.5074,   -0.1278, BLUE},
@@ -78,7 +77,6 @@ const Cities bigCities[] = {
     {"Chicago",         41.8781,  -87.6298, DARKGRAY},
     {"Lima",           -12.0464,  -77.0428, BEIGE},
 
-    // --- NUOVE INTEGRAZIONI ESCLUSIVAMENTE EXTRA-EUROPEE ---
     // Nord America
     {"San Francisco",   37.7749, -122.4194, SKYBLUE},
     {"Miami",           25.7617,  -80.1918, MAGENTA},
@@ -470,13 +468,13 @@ while (!WindowShouldClose()) {
         DrawLine(0, yEquatore, worldMap.width, yEquatore, bgColor);
         DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
         // etichett
-        DrawText("Tropico del Cancro (+23.44°)", worldMap.x + 18, yCancro-12, 10, Fade(RAYWHITE, 0.6f));
-        DrawText("Equatore (0.00°)", worldMap.x + 18, yEquatore-12, 10, Fade(RAYWHITE, 0.5f));
-        DrawText("Tropico del Capricorno (-23.44°)", worldMap.x + 18, yCapricorno - 12, 10, Fade(RAYWHITE, 0.6f));
+        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 200, yCancro - 12, 10, RAYWHITE);
+        DrawText("Equatore (0.00°)", worldMap.width - 140, yEquatore - 12, 10, RAYWHITE);
+        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 220, yCapricorno + 4, 10, RAYWHITE);
 
 
 		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, GOLD);
 
     	// "disegno" del sole con una icona personalizzata
         DrawTextureV(sunIcon,Vector2AddValue(sunPixelPos,-17), ORANGE);
@@ -485,8 +483,8 @@ while (!WindowShouldClose()) {
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawCircleV(cityPos,4.0f,bigCities[i].color);
-                    if ( CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f) ) DrawText(bigCities[i].name,cityPos.x,cityPos.y,20,RED);
+                    DrawCircleV(cityPos,4.0f,RED);//bigCities[i].color);
+                    if ( CheckCollisionPointCircle(GetMousePosition(), cityPos, 8.0f) ) DrawText(bigCities[i].name,cityPos.x,cityPos.y,20,ORANGE);
             }
         }
 
