@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.4.2"
+#define TOOL_VERSION            "1.5.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -29,14 +29,18 @@
 // window initial size
 const int screenWidth = 1080;
 const int screenHeight = 572;
-#define PI 3.14159265358979323846f
-#define RAD(deg) ((deg) * PI / 180.0f)
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#define RAD(deg) ((deg) * M_PI / 180.0f)
 #define SECONDS_PER_DAY 86400 // Secondi in un giorno (24 ore)
 #define SECONDS_PER_HOUR 3600 // Secondi in un giorno (24 ore)
 #define PATH_RESOLUTION 360
 
-// list of interesting places
 
+// list of interesting places
 // Definizione della struttura per una città
 typedef struct {
     const char *name;
@@ -54,7 +58,7 @@ const Cities bigCities[] = {
     {"Sydney",         -33.8688,  151.2093, GREEN},
     {"Il Cairo",        30.0444,   31.2357, LIME},
     {"San Paolo",      -23.5505,  -46.6333, MAROON},
-    {"Città del Capo", -33.9249,   18.4241, WHITE},
+    {"Citta' del Capo", -33.9249,   18.4241, WHITE},
     {"Nuova Delhi",     28.6139,   77.2090, RAYWHITE},
     {"Reykjavik",       64.1466,  -21.9426, VIOLET},
     {"Parigi",          48.8566,    2.3522, SKYBLUE},
@@ -66,7 +70,7 @@ const Cities bigCities[] = {
     {"Buenos Aires",   -34.6037,  -58.3816, SKYBLUE},
     {"Lagos",            6.5244,    3.3792, DARKGREEN},
     {"Toronto",         43.6532,  -79.3832, PINK},
-    {"Città del Messico", 19.4326, -99.1332, PURPLE},
+    {"Citta' del Messico", 19.4326, -99.1332, PURPLE},
     {"Istanbul",        41.0082,   28.9784, BROWN},
     {"Seoul",           37.5665,  126.9780, VIOLET},
     {"Rio de Janeiro", -22.9068,  -43.1729, GREEN},
@@ -136,10 +140,10 @@ typedef struct {
 // some custom colorsq
 const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
 
-
+// offset status bar
 const int bottomOffset = 32;
-    // Definiamo i confini e la dimensione della mappa sullo schermo
 
+// Definiamo i confini e la dimensione della mappa sullo schermo
 Rectangle worldMap = { 
         .x = 0,
         .y = 0,
@@ -148,11 +152,8 @@ Rectangle worldMap = {
     };
 
 Rectangle infoBar = {0,540,1080,bottomOffset};
-
 GeoCoords currentClick = { 0.0f, 0.0f };
-
 char tempBuffer[64] = { 0 };
-char dateBuffer[64] = { 0 };
 
 // Struttura per gestire lo stato della ripetizione dei tasti
 typedef struct {
@@ -163,14 +164,178 @@ typedef struct {
     float repeatRate;    // Intervallo di ripetizione (es. 0.05 secondi)
 } KeyRepeater;
 
+typedef struct {
+    float latitude;         // Da -90 a +90
+    float longitude;        // Da -180 a +180
+    int phaseFrameIndex;    // Indice da 0 a 7 per lo spritesheet
+    const char* phaseName;  // Nome testuale della fase
+} MoonData;
+
 // -----------------------------------------------------------------------------
 // Functions
 // -----------------------------------------------------------------------------
 
+
+// fmod calcola il resto della divisione tra double (equivalente a % per gli interi)
+double NormalizeDegrees(double angle) {
+    angle = fmod(angle, 360.0);
+    if (angle < 0) angle += 360.0;
+    return angle;
+}
+
+// Funzione che calcola il Giorno Giuliano a partire da una data/ora UTC
+double getJulianDate(int year, int month, int day, int hour, int min, int sec) {
+    if (month <= 2) {
+        year -= 1;
+        month += 12;
+    }
+    
+    int A = year / 100;
+    int B = 2 - A + (A / 4);
+    
+    long E = (long)(365.25 * (year + 4716));
+    long F = (long)(30.6001 * (month + 1));
+    
+    // Calcola la frazione del giorno espressa in ore, minuti e secondi
+    double day_fraction = day + (hour + min / 60.0 + sec / 3600.0) / 24.0;
+    
+    double jd = B + day_fraction + E + F - 1524.5;
+    return jd;
+}
+
+// Funzione helper per ottenere il giorno giuliano dato un custom time
+double getJulianDateTime(time_t customTime) {
+    struct tm *utc_time = gmtime(&customTime); // gmtime restituisce il tempo UTC, richiesto in astronomia
+    
+    return getJulianDate(
+        utc_time->tm_year + 1900, // tm_year conta gli anni dal 1900
+        utc_time->tm_mon + 1,     // tm_mon va da 0 a 11
+        utc_time->tm_mday,
+        utc_time->tm_hour,
+        utc_time->tm_min,
+        utc_time->tm_sec
+    );
+}
+
+double getIlluminatedFractionOfMoon(double jd) {
+    const double toRad = M_PI / 180.0;
+    const double T = (jd - 2451545.0) / 36525.0;
+
+    const double D = NormalizeDegrees(297.8501921 + 445267.1114034 * T - 0.0018819 * T * T + 1.0 / 545868.0 * T * T * T - 1.0 / 113065000.0 * T * T * T * T) * toRad;
+    const double M = NormalizeDegrees(357.5291092 + 35999.0502909 * T - 0.0001536 * T * T + 1.0 / 24490000.0 * T * T * T) * toRad;
+    const double Mp = NormalizeDegrees(134.9633964 + 477198.8675055 * T + 0.0087414 * T * T + 1.0 / 69699.0 * T * T * T - 1.0 / 14712000.0 * T * T * T * T) * toRad;
+
+    const double i = NormalizeDegrees(180.0 - D * 180.0 / M_PI - 6.289 * sin(Mp) + 2.1 * sin(M) - 1.274 * sin(2.0 * D - Mp) - 0.658 * sin(2.0 * D) - 0.214 * sin(2.0 * Mp) - 0.11 * sin(D)) * toRad;
+
+    const double k = (1.0 + cos(i)) / 2.0;
+    return k;
+}
+
+MoonData CalculateMoonData(time_t utc_time) {
+    // ==========================================================
+    // 1. CALCOLO DELLE COORDINATE (LAT / LON) SULLA MAPPA
+    // ==========================================================
+    double d = ((double)utc_time - 946728000.0) / 86400.0;
+
+    double N = NormalizeDegrees(125.1228 - 0.0529538083 * d);
+    double i = 5.1454;
+    double w = NormalizeDegrees(318.0634 + 0.1643573223 * d);
+    double a = 60.2666;
+    double e = 0.054900;
+    double M = NormalizeDegrees(115.3654 + 13.0649929509 * d);
+
+    double Ms = NormalizeDegrees(356.0470 + 0.9856002585 * d);
+    double ws = NormalizeDegrees(282.9404 + 4.70935E-5 * d);
+    
+    double Lm = NormalizeDegrees(M + w + N); 
+    double Ls = NormalizeDegrees(Ms + ws);   
+
+    double M_rad = M * M_PI / 180.0;
+    double E = M_rad + e * sin(M_rad) * (1.0 + e * cos(M_rad));
+
+    double x_orbit = a * (cos(E) - e);
+    double y_orbit = a * (sqrt(1.0 - e * e) * sin(E));
+    double r = sqrt(x_orbit * x_orbit + y_orbit * y_orbit);
+    double v = atan2(y_orbit, x_orbit) * 180.0 / M_PI;
+
+    double v_w_rad = (v + w) * M_PI / 180.0;
+    double N_rad = N * M_PI / 180.0;
+    double i_rad = i * M_PI / 180.0;
+
+    double x_ecl = r * (cos(N_rad) * cos(v_w_rad) - sin(N_rad) * sin(v_w_rad) * cos(i_rad));
+    double y_ecl = r * (sin(N_rad) * cos(v_w_rad) + cos(N_rad) * sin(v_w_rad) * cos(i_rad));
+    double z_ecl = r * sin(v_w_rad) * sin(i_rad);
+
+    double lon_ecl = atan2(y_ecl, x_ecl) * 180.0 / M_PI;
+    double lat_ecl = atan2(z_ecl, sqrt(x_ecl * x_ecl + y_ecl * y_ecl)) * 180.0 / M_PI;
+
+    double Sl = lon_ecl;
+    Sl += 1.274 * sin((2 * (Lm - Ls) - M) * M_PI / 180.0);
+    Sl += 0.658 * sin((2 * (Lm - Ls)) * M_PI / 180.0);
+    Sl -= 0.186 * sin(Ms * M_PI / 180.0);
+    lon_ecl = NormalizeDegrees(Sl);
+
+    double ecl = 23.4393 - 0.0000004 * d;
+    double ecl_rad = ecl * M_PI / 180.0;
+    double lon_ecl_rad = lon_ecl * M_PI / 180.0;
+    double lat_ecl_rad = lat_ecl * M_PI / 180.0;
+
+    double sin_dec = sin(lat_ecl_rad) * cos(ecl_rad) + cos(lat_ecl_rad) * sin(ecl_rad) * sin(lon_ecl_rad);
+    double declination = asin(sin_dec);
+
+    double y_ra = sin(lon_ecl_rad) * cos(ecl_rad) - tan(lat_ecl_rad) * sin(ecl_rad);
+    double x_ra = cos(lon_ecl_rad);
+    double ra = NormalizeDegrees(atan2(y_ra, x_ra) * 180.0 / M_PI);
+
+    double gmst = NormalizeDegrees(280.46061837 + 360.98564736629 * d);
+    double longitude = NormalizeDegrees(ra - gmst);
+    if (longitude > 180.0) longitude -= 360.0;
+
+    // ==========================================================
+    // 2. CALCOLO AD ALTA PRECISIONE DI FASE ED ILLUMINAZIONE (Ciclo Sinodico)
+    // ==========================================================
+    // Usiamo una Luna Nuova di riferimento nota ed estremamente precisa (6 Gennaio 2000, 18:14 UTC)
+    const double base_new_moon = 947182440.0; 
+    // Durata esatta in secondi del mese sinodico (29.530588853 giorni)
+    const double synodic_period = 2551442.8769; 
+
+    // Calcoliamo quanti secondi sono passati dalla luna nuova di riferimento
+    double delta_time = (double)utc_time - base_new_moon;
+    double age_in_seconds = fmod(delta_time, synodic_period);
+    if (age_in_seconds < 0) age_in_seconds += synodic_period;
+
+    // Convertiamo l'età in un angolo (0 - 360 gradi equivalenti)
+    double phase_angle_rad = (age_in_seconds / synodic_period) * 2.0 * M_PI;
+
+    // Mappatura sui tuoi 8 frame dello spritesheet (spostata di 22.5° per centrare i quarti)
+    double phase_angle_deg = phase_angle_rad * 180.0 / M_PI;
+    int frameIndex = (int)(fmod(phase_angle_deg + 22.5, 360.0) / 45.0);
+
+    static const char* phaseNames[] = {
+        "Luna Nuova",
+        "Luna Crescente",
+        "Primo Quarto",
+        "Gibbosa Crescente",
+        "Luna Piena",
+        "Gibbosa Calante",
+        "Ultimo Quarto",
+        "Luna Calante"
+    };
+
+    MoonData result;
+    result.latitude = (float)(declination * 180.0 / M_PI);
+    result.longitude = (float)longitude;
+    result.phaseFrameIndex = frameIndex;
+    result.phaseName = phaseNames[frameIndex];
+
+    return result;
+}
+
+
 Vector2 MapGeoToPixel(float Lon, float Lat, int mapWidth, int mapHeight) {
     Vector2 pixel;
-    pixel.x = ((Lon + PI) / (2.0f * PI)) * mapWidth;
-    pixel.y = ((PI / 2.0f - Lat) / PI) * mapHeight;
+    pixel.x = ((Lon + M_PI) / (2.0f * M_PI)) * mapWidth;
+    pixel.y = ((M_PI / 2.0f - Lat) / M_PI) * mapHeight;
     return pixel;
 }
 
@@ -261,12 +426,17 @@ int main (int argc, char *argv[])
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
 		SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
+        Font timeFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 18, NULL, 0); 
+
         // Caricamento delle due texture aggiornate alla nuova risoluzione
         Texture2D dayMap = LoadTexture("assets/daymap.png"); 
         Texture2D nightMap = LoadTexture("assets/nightmap.png"); 
 
         //load sun icon
-        Texture2D sunIcon= LoadTexture("assets/sunIcon.png");          // Image converted to texture, GPU memory (VRAM)
+        Texture2D sunIcon= LoadTexture("assets/sun.png");          // Image converted to texture, GPU memory (VRAM)
+
+        // 8x1 sprites per le fasi della Luna (256x32 oppure 128x16)
+        Texture2D moonSpritesheet = LoadTexture("assets/moonphases.png"); 
 
 	    Shader dayNightShader = LoadShader(0, "daynight.fs");
 	    int sunPosLoc = GetShaderLocation(dayNightShader, "sunPosGeo");
@@ -294,6 +464,9 @@ int main (int argc, char *argv[])
         .repeatRate = 0.08f
     };
 
+    const int frameWidth = moonSpritesheet.width / 8; // Dovrebbe essere 16 se l'immagine è larga 128
+    const int frameHeight = moonSpritesheet.height;   // Dovrebbe essere 16
+
     SetTargetFPS(60);
 	// fai riapparire finestra dopo averla nascosta durante il carimento iniziale
 	SetWindowSize(screenWidth,screenHeight);
@@ -307,8 +480,9 @@ while (!WindowShouldClose()) {
 //----------------------------------------------------------------------------------
 
 		float dt = GetFrameTime();
+        Vector2 mousePos = GetMousePosition();
 
-        // Correzione scorrimento tempo reale fluido (C99 compatibile)
+        // Avanzamento in tempo reale del movimento sole/lunaa giorno/notte
         timeAccumulator += GetFrameTime();
         if (timeAccumulator >= 1.0f) {
             time_t sec = (time_t)timeAccumulator;
@@ -316,11 +490,10 @@ while (!WindowShouldClose()) {
             timeAccumulator -= (float)sec;
         }
 
-        Vector2 mousePos = GetMousePosition();   // abilitare se cursore libero   
         float stepParallel = 3.0f; //3 = 1 grado x disegno griglia paralleli
         float stepMeridian = 3.0f; //3 = 1 grado x disegno griglia meridiani
 
-        //
+        // serve ancora?
         if (mousePos.x < 0) mousePos.x = 0;
         if (mousePos.x > 1079) mousePos.x = 1079;
         if (mousePos.y < 0) mousePos.y = 0;
@@ -349,11 +522,10 @@ while (!WindowShouldClose()) {
         tSteps->tm_isdst = -1; // Gestisce automaticamente i cambi d'ora legali/solari locali durante il salto
         simulatedTime = mktime(tSteps);
 
-
-        // Tasto R per resettare al tempo reale corrente
+        // resettare al tempo corrente
         if (IsKeyPressed(KEY_R)) simulatedTime = time(NULL);
         
-        // mostra nascondi citta
+        // mostra / nascondi citta
         if (IsKeyPressed(KEY_C)) showCities = !showCities;
 
             currentSun = CalculateSunPositionFromTime(simulatedTime);
@@ -363,9 +535,9 @@ while (!WindowShouldClose()) {
             if (baseTm != NULL) {
                 for (int i = 0; i < PATH_RESOLUTION; i++) {
                     float t = (float)i / (float)(PATH_RESOLUTION - 1);
-                    float pathLon = -PI + t * (2.0f * PI);
+                    float pathLon = -M_PI + t * (2.0f * M_PI);
                     
-                    float lonDeg = pathLon * (180.0f / PI);
+                    float lonDeg = pathLon * (180.0f / M_PI);
                     float targetUtcHours = 12.0f - (lonDeg / 15.0f);
                     if (targetUtcHours < 0.0f) targetUtcHours += 24.0f;
                     if (targetUtcHours >= 24.0f) targetUtcHours -= 24.0f;
@@ -384,7 +556,6 @@ while (!WindowShouldClose()) {
         SetShaderValue(dayNightShader, sunPosLoc, &sunPosShaderValue, SHADER_UNIFORM_VEC2);
 
         struct tm *localSimTime = localtime(&simulatedTime);
-
         Vector2 sunPixelPos = MapGeoToPixel(currentSun.sunLon, currentSun.sunLat, worldMap.width, worldMap.height);
 
             // momenti dell'anno
@@ -396,28 +567,41 @@ while (!WindowShouldClose()) {
 
             // Primavera (Dal 21 Marzo al 20 Giugno)
             if ((mese == 3 && giorno >= 21) || mese == 4 || mese == 5 || (mese == 6 && giorno <= 20)) {
-                if (mese == 3 && giorno == 21) testoStagione = "Cambio stagione: equinozio di primavera!";
-                else testoStagione = "Siamo in primavera...";
+                if (mese == 3 && giorno == 21) testoStagione = "Equinozio di primavera";
+                else testoStagione = "Primavera.";
             }
 
             // Estate (Dal 21 Giugno al 20 Settembre)
             else if ((mese == 6 && giorno >= 21) || mese == 7 || mese == 8 || (mese == 9 && giorno <= 20)) {
-                if (mese == 6 && giorno == 21) testoStagione = "Cambio stagione: solstizio d'estate!";
-                else testoStagione = "Siamo in estate...";
+                if (mese == 6 && giorno == 21) testoStagione = "Solstizio d'estate";
+                else testoStagione = "Estate.";
             }
 
             // Autunno (Dal 21 Settembre al 20 Dicembre)
             else if ((mese == 9 && giorno >= 21) || mese == 10 || mese == 11 || (mese == 12 && giorno <= 20)) {
                 // Nota: fix per chiarezza di lettura nel blocco: mese == 12 && giorno <= 20
-                if (mese == 9 && giorno == 21) testoStagione = "Cambio stagione: equinozio d'autunno!";
-                else testoStagione = "Siamo in autunno...";
+                if (mese == 9 && giorno == 21) testoStagione = "Equinozio d'autunno";
+                else testoStagione = "Autunno.";
             }
 
             // Inverno (Dal 21 Dicembre al 20 Marzo)
             else {
-                if (mese == 12 && giorno == 21) testoStagione = "Cambio stagione: solstizio d'inverno!";
-                else testoStagione = "Siamo in inverno...";
+                if (mese == 12 && giorno == 21) testoStagione = "Solstizio d'inverno";
+                else testoStagione = "Inverno.";
             }
+
+        // posizione sole giorno/notte
+        float currentLonDeg = currentSun.sunLon * (180.0f / M_PI);
+        float currentLatDeg = currentSun.sunLat * (180.0f / M_PI);
+
+        // calcolo dati luna    
+        MoonData moon = CalculateMoonData(simulatedTime);
+        // Calcola la posizione dei pixel sulla mappa equirettangolare dello schermo
+        Vector2 moonPos = MapGeoToPixel(RAD(moon.longitude), RAD(moon.latitude),worldMap.width, worldMap.height);
+
+        // percentuale di illuminazione della luna
+        double jd_now = getJulianDateTime(simulatedTime);
+        float moonLightPerc = (float)getIlluminatedFractionOfMoon(jd_now);
 
         //
         // do something when  window loses focus
@@ -472,72 +656,90 @@ while (!WindowShouldClose()) {
         DrawText("Equatore (0.00°)", worldMap.width - 132, yEquatore - 12, 10, RAYWHITE);
         DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 212, yCapricorno -12 , 10, RAYWHITE);
 
-
-		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, GOLD);
-
-    	// "disegno" centrato del sole con una icona personalizzata
-        Vector2 origin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
-        DrawTexturePro(
-            sunIcon, 
-            (Rectangle){ 0, 0, sunIcon.width, sunIcon.height },
-            (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, // Dimensione icona
-            origin, 0.0f, GOLD );
-
-
         // Draw Cities point
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawCircleV(cityPos,4.0f,RED);//bigCities[i].color);
-                    if ( CheckCollisionPointCircle(GetMousePosition(), cityPos, 8.0f) ) DrawText(bigCities[i].name,cityPos.x,cityPos.y,20,ORANGE);
+                    DrawCircleV(cityPos,4.0f,ORANGE);//bigCities[i].color);
+                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
+                        DrawTextEx(timeFnt,bigCities[i].name,cityPos,(float)timeFnt.baseSize,0,RED);
             }
         }
+
+		//  traiettoria annuale del sole
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
+
+    	// "disegno" centrato del sole con una icona personalizzata
+        Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
+        DrawTexturePro(
+            sunIcon, 
+            (Rectangle){ 0, 0, sunIcon.width, sunIcon.height },
+            (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, // Dimensione icona
+            sunOrigin, 0.0f, WHITE );
+
+
+        // ----  Draw MOon ---------------------------------------------------------------------------------------------------
+        // Disegnao della luna tramite "sprites"
+        // Definiamo quale rettangolo della texture originale andare a prendere
+        Rectangle sourceRec = {
+            .x = (float)(moon.phaseFrameIndex * frameWidth),
+            .y = 0.0f,
+            .width = (float)frameWidth,
+            .height = (float)frameHeight
+        };
+
+        // Definiamo dove disegnarlo a schermo e a che dimensione (es: scaliamo a 32x32 per visibilità)
+        float displaySize = 32.0f;
+        Rectangle destRec = {
+            .x = moonPos.x,
+            .y = moonPos.y,
+            .width = displaySize,
+            .height = displaySize
+        };
+
+        // Centriamo l'origine dell'icona (cosicché screenPos coincida esattamente con il centro della luna)
+        Vector2 origin = { displaySize / 2.0f, displaySize / 2.0f };
+
+        // Disegna il pezzo di texture ritagliato
+        DrawTexturePro(moonSpritesheet, sourceRec, destRec, origin, 0.0f, WHITE);
+
+        //-------------------------------------------------------------------------------------------------------------------
 
 		// cursore mouse personalizzato
         DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, WHITE);
         DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, WHITE);
         DrawPixel(mousePos.x,mousePos.y, BLACK);
+
     EndScissorMode();
 
-
-
-
-     //info bar
     BeginScissorMode(infoBar.x, infoBar.y, infoBar.width, infoBar.height);
 
-                // posizione sole giorno/notte
-    			float currentLonDeg = currentSun.sunLon * (180.0f / PI);
-    			float currentLatDeg = currentSun.sunLat * (180.0f / PI);
+        // currentDate
+        if (localSimTime != NULL) {
+            strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y | %H:%M:%S (LOC)", localSimTime);
+            DrawTextEx(timeFnt,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+12, infoBar.y+6},(float)timeFnt.baseSize,-1,WHITE);
+        } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
 
-    			// Se l'utente ha cliccato, mostra un punto e le coordinate
-                DrawText(TextFormat("Cur -> x: %.f | y:%.f | Lon: %.2f° | Lat: %.2f°", mousePos.x, mousePos.y, currentClick.lon, currentClick.lat), infoBar.x + 190, infoBar.y+10,10,GRAY);
+		// quando muovi mouse su mappa mostra coordinate x,y e relativa LON,LAAT
+        DrawText(TextFormat("Cur -> Lon: %.2f° | Lat: %.2f°", currentClick.lon, currentClick.lat), infoBar.x + 290, infoBar.y+10,10,GRAY);
 
-    			// currentDate
-                if (localSimTime != NULL) {
-                      DrawText(TextFormat("Data %02d/%02d/%04d %02d:%02d:%02d (LOC)", 
-                            localSimTime->tm_mday, localSimTime->tm_mon + 1, localSimTime->tm_year + 1900,
-                            localSimTime->tm_hour, localSimTime->tm_min, localSimTime->tm_sec), infoBar.x+8,infoBar.y+10, 10, RAYWHITE);
-                } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
-
-    			// sun position
-    			DrawText(TextFormat("Pos. sole -> Lon: %.2f° | Lat: %.2f°", currentLonDeg, currentLatDeg), infoBar.x+460,infoBar.y+10,10, WHITE);
-                
-                // Disegna il testo della stagione sulla UI di raylib
-                DrawText(testoStagione, infoBar.x +660, infoBar.y+10, 10, GRAY);
+		// sun position e periodo anno
+		DrawText(TextFormat("Sole -> Lon: %.2f° | Lat: %.2f° (%s)", currentLonDeg, currentLatDeg, testoStagione), infoBar.x+470,infoBar.y+10,10, WHITE);
+        
+        // info Moon
+        DrawText(TextFormat("Luna -> %s | Illuminazione %.1f%%", moon.phaseName, moonLightPerc * 100.f), infoBar.x +760, infoBar.y +10, 10, GRAY);
 
 		//statusbar with some info
-		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
+		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
 		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoBar.y +10, 10, GRAY); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
     EndScissorMode();
 
 	EndDrawing();
 }
-	
 
-	// unload fonts
-	// UnloadFont(defaultFnt);
+    UnloadFont(timeFnt);
+    UnloadTexture(moonSpritesheet);
     UnloadRenderTexture(target);
     UnloadTexture(dayMap);
     UnloadTexture(sunIcon);
