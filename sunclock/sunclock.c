@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.6.8"
+#define TOOL_VERSION            "1.6.9"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -687,8 +687,8 @@ while (!WindowShouldClose()) {
 		// disegna meridiani 
 		for (int i = 0; i < 360; i+=15) {
 			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.y+5,10,BLACK);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.height-15,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.y+4,10,BLACK);
+			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.height-12,10,BLACK);
 			}
 
 		// Disegna il meridiano 0° di Greenwich
@@ -709,7 +709,7 @@ while (!WindowShouldClose()) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     DrawCircleV(cityPos,4.0f,bigCities[i].color);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
-                        DrawTextEx(timeFnt,bigCities[i].name,cityPos,(float)timeFnt.baseSize,0,isDay?BLACK:WHITE);
+                        DrawTextEx(timeFnt,bigCities[i].name,cityPos,(float)timeFnt.baseSize,0,RAYWHITE);
             }
         }
 
