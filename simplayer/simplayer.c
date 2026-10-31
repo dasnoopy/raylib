@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.5"
+#define TOOL_VERSION            "3.1.6"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -464,13 +464,26 @@ int main (int argc, char *argv[])
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     SetTargetFPS(120);
 
+
+        // carica fonts con tutti i caraatteri da 32 (spazio) a 255 (caratteri estesi europei)
+            int startGlyph = 32;
+            int endGlyph = 255;
+            int glyphCount = endGlyph - startGlyph + 1;
+
+            // Allocachiamo l'array per i codepoints
+            int *codepoints = (int *)malloc(sizeof(int) * glyphCount);
+            for (int i = 0; i < glyphCount; i++) {
+                codepoints[i] = startGlyph + i;
+            }
+
 	// Set UI style
 	// Custom GUI font loading
-	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, NULL, 0);
-	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, NULL, 0);
-	Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, NULL, 0);
-	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, NULL, 0); 
-	Font filesFnt= LoadFontEx("fonts/PixelOperator.ttf", 16, NULL, 0); 
+	Font titleFnt = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 36, codepoints, glyphCount);
+	Font artistFnt = LoadFontEx("fonts/ManropeV5-Regular.otf", 28, codepoints, glyphCount);
+	Font defaultFnt = LoadFontEx("fonts/DINPro-Medium.otf", 18, codepoints, glyphCount);
+	Font digitFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 24, codepoints, glyphCount); 
+	Font filesFnt= LoadFontEx("fonts/PixelOperator.ttf", 16, codepoints, glyphCount);
+    UnloadCodepoints(codepoints); 
 
     // Create framebuffer
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
