@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.8"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -51,75 +51,76 @@ typedef struct {
 } Cities;
 
 const Cities bigCities[] = {
-    {"Verona",          45.4383,   10.9916, RED},
-    {"Roma",            41.9028,   12.4964, ORANGE},
-    {"Londra",          51.5074,   -0.1278, BLUE},
-    {"New York",        40.7128,  -74.0060, PINK},
-    {"Tokyo",           35.6762,  139.6503, YELLOW},
+    //{"Verona",          45.4383,   10.9916, ORANGE},
+    {"Roma",            41.9028,   12.4964, GREEN},
+    {"Milano",            45.4654    ,9.1859, GREEN},
+    {"Londra/Greenwich",51.4800,   -0.0000, RED},
+    {"New York",        40.7128,  -74.0060, GREEN},
+    {"Tokyo",           35.6762,  139.6503, GREEN},
     {"Sydney",         -33.8688,  151.2093, GREEN},
-    {"Il Cairo",        30.0444,   31.2357, LIME},
-    {"San Paolo",      -23.5505,  -46.6333, MAROON},
-    {"Citta' del Capo", -33.9249,   18.4241, WHITE},
-    {"Nuova Delhi",     28.6139,   77.2090, RAYWHITE},
-    {"Reykjavik",       64.1466,  -21.9426, VIOLET},
-    {"Parigi",          48.8566,    2.3522, SKYBLUE},
-    {"Berlino",         52.5200,   13.4050, GOLD},
-    {"Madrid",          40.4168,   -3.7038, ORANGE},
-    {"Mosca",           55.7558,   37.6173, RED},
-    {"Pechino",         39.9042,  116.4074, DARKBROWN},
-    {"Mumbai",          19.0760,   72.8777, LIME},
-    {"Buenos Aires",   -34.6037,  -58.3816, SKYBLUE},
-    {"Lagos",            6.5244,    3.3792, DARKGREEN},
-    {"Toronto",         43.6532,  -79.3832, PINK},
-    {"Citta' del Messico", 19.4326, -99.1332, PURPLE},
-    {"Istanbul",        41.0082,   28.9784, BROWN},
-    {"Seoul",           37.5665,  126.9780, VIOLET},
+    {"Il Cairo",        30.0444,   31.2357, GREEN},
+    {"San Paolo",      -23.5505,  -46.6333, GREEN},
+    {"Citta' del Capo",-33.9249,   18.4241, GREEN},
+    {"Nuova Delhi",     28.6139,   77.2090, GREEN},
+    {"Reykjavik",       64.1466,  -21.9426, GREEN},
+    {"Parigi",          48.8566,    2.3522, GREEN},
+    {"Berlino",         52.5200,   13.4050, GREEN},
+    {"Madrid",          40.4168,   -3.7038, GREEN},
+    {"Mosca",           55.7558,   37.6173, GREEN},
+    {"Pechino",         39.9042,  116.4074, GREEN},
+    {"Mumbai",          19.0760,   72.8777, GREEN},
+    {"Buenos Aires",   -34.6037,  -58.3816, GREEN},
+    {"Lagos",            6.5244,    3.3792, GREEN},
+    {"Toronto",         43.6532,  -79.3832, GREEN},
+    {"Citta' del Messico", 19.4326, -99.1332, GREEN},
+    {"Istanbul",        41.0082,   28.9784, GREEN},
+    {"Seoul",           37.5665,  126.9780, GREEN},
     {"Rio de Janeiro", -22.9068,  -43.1729, GREEN},
-    {"Singapore",        1.3521,  103.8198, DARKBLUE},
-    {"Bangkok",         13.7563,  100.5018, ORANGE},
-    {"Dubai",           25.2048,   55.2708, GOLD},
-    {"Los Angeles",     34.0522, -118.2437, YELLOW},
-    {"Chicago",         41.8781,  -87.6298, DARKGRAY},
+    {"Singapore",        1.3521,  103.8198, GREEN},
+    {"Bangkok",         13.7563,  100.5018, GREEN},
+    {"Dubai",           25.2048,   55.2708, GREEN},
+    {"Los Angeles",     34.0522, -118.2437, GREEN},
+    {"Chicago",         41.8781,  -87.6298, GREEN},
     {"Lima",           -12.0464,  -77.0428, BEIGE},
 
     // Nord America
-    {"San Francisco",   37.7749, -122.4194, SKYBLUE},
-    {"Miami",           25.7617,  -80.1918, MAGENTA},
-    {"Vancouver",       49.2827, -123.1207, SKYBLUE},
-    {"Montreal",        45.5017,  -73.5673, LIGHTGRAY},
-    {"Havana",          23.1136,  -82.3666, ORANGE},
+    {"San Francisco",   37.7749, -122.4194, GREEN},
+    {"Miami",           25.7617,  -80.1918, GREEN},
+    {"Vancouver",       49.2827, -123.1207, GREEN},
+    {"Montreal",        45.5017,  -73.5673, GREEN},
+    {"Havana",          23.1136,  -82.3666, GREEN},
     
     // Sud America
     {"Santiago",       -33.4489,  -70.6693, GREEN},
-    {"Bogotà",           4.7110,  -74.0721, DARKBLUE},
-    {"Lima",           -12.0464,  -77.0428, BEIGE},
-    {"Caracas",         10.4806,  -66.9036, RED},
+    {"Bogotà",           4.7110,  -74.0721, GREEN},
+    {"Lima",           -12.0464,  -77.0428, GREEN},
+    {"Caracas",         10.4806,  -66.9036, GREEN},
     
     // Africa
-    {"Nairobi",         -1.2921,   36.8219, DARKGREEN},
-    {"Johannesburg",   -26.2041,   28.0473, GOLD},
-    {"Casablanca",      33.5731,   -7.5898, BEIGE},
-    {"Addis Abeba",      9.0192,   38.7468, YELLOW},
-    {"Dakar",           14.7167,  -17.4677, PURPLE},
+    {"Nairobi",         -1.2921,   36.8219, GREEN},
+    {"Johannesburg",   -26.2041,   28.0473, GREEN},
+    {"Casablanca",      33.5731,   -7.5898, GREEN},
+    {"Addis Abeba",      9.0192,   38.7468, GREEN},
+    {"Dakar",           14.7167,  -17.4677, GREEN},
     
     // Asia & Medio Oriente
-    {"Shanghai",        31.2304,  121.4737, RED},
-    {"Hong Kong",       22.3193,  114.1694, MAROON},
-    {"Giacarta",        -6.2088,  106.8456, LIME},
-    {"Manila",          14.5995,  120.9842, DARKGRAY},
-    {"Osaka",           34.6937,  135.5023, PINK},
-    {"Taipei",          25.0330,  121.5654, VIOLET},
-    {"Teheran",         35.6892,   51.3890, BROWN},
-    {"Gerusalemme",     31.7683,   35.2137, RAYWHITE},
-    {"Riad",            24.7136,   46.6753, DARKGREEN},
-    {"Baghdad",         33.3152,   44.3661, DARKBROWN},
+    {"Shanghai",        31.2304,  121.4737, GREEN},
+    {"Hong Kong",       22.3193,  114.1694, GREEN},
+    {"Giacarta",        -6.2088,  106.8456, GREEN},
+    {"Manila",          14.5995,  120.9842, GREEN},
+    {"Osaka",           34.6937,  135.5023, GREEN},
+    {"Taipei",          25.0330,  121.5654, GREEN},
+    {"Teheran",         35.6892,   51.3890, GREEN},
+    {"Gerusalemme",     31.7683,   35.2137, GREEN},
+    {"Riad",            24.7136,   46.6753, GREEN},
+    {"Baghdad",         33.3152,   44.3661, GREEN},
     
     // Oceania
-    {"Melbourne",      -37.8136,  144.9631, BLUE},
-    {"Auckland",       -36.8485,  174.7633, DARKBLUE},
-    {"Brisbane",       -27.4705,  153.0260, SKYBLUE},
-    {"Perth",          -31.9505,  115.8605, GOLD},
-    {"Wellington",     -41.2865,  174.7762, WHITE}
+    {"Melbourne",      -37.8136,  144.9631, GREEN},
+    {"Auckland",       -36.8485,  174.7633, GREEN},
+    {"Brisbane",       -27.4705,  153.0260, GREEN},
+    {"Perth",          -31.9505,  115.8605, GREEN},
+    {"Wellington",     -41.2865,  174.7762, GREEN}
 };
 
 
@@ -320,14 +321,14 @@ MoonData CalculateMoonData(time_t utc_time) {
     int frameIndex = (int)(fmod(phase_angle_deg + 22.5, 360.0) / 45.0);
 
     static const char* phaseNames[] = {
-        "Luna nuova",
-        "Luna crescente",
-        "Primo quarto",
-        "Gibbosa crescente",
-        "Luna piena",
-        "Gibbosa calante",
-        "Ultimo quarto",
-        "Luna calante"
+        "nuova",
+        "crescente",
+        "primo quarto",
+        "gibbosa crescente",
+        "piena",
+        "gibbosa calante",
+        "ultimo quarto",
+        "calante"
     };
 
     MoonData result;
@@ -426,7 +427,7 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float dt) {
 int main (int argc, char *argv[]) 
 {
 	// Set configuration flags for window creation
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST | FLAG_WINDOW_ALWAYS_RUN  ); 
 	InitWindow(screenWidth, screenHeight, "sunclock");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window
 
@@ -442,8 +443,20 @@ int main (int argc, char *argv[])
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
 		SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
-        // custom font
-        Font timeFnt= LoadFontEx("fonts/SF-Mono-Semibold.ttf", 18, NULL, 0); 
+        // carica fonts con tutti i caraatteri da 32 (spazio) a 255 (caratteri estesi europei)
+            int startGlyph = 32;
+            int endGlyph = 255;
+            int glyphCount = endGlyph - startGlyph + 1;
+
+            // Allocachiamo l'array per i codepoints
+            int *codepoints = (int *)malloc(sizeof(int) * glyphCount);
+            for (int i = 0; i < glyphCount; i++) {
+                codepoints[i] = startGlyph + i;
+            }
+
+        Font timeFnt = LoadFontEx("fonts/SF-Mono-Semibold.ttf", 16, codepoints, glyphCount);
+        UnloadCodepoints(codepoints); 
+
 
         // Caricamento delle due texture aggiornate alla nuova risoluzione
         Texture2D dayMap = LoadTexture("assets/daymap.png"); 
@@ -570,26 +583,26 @@ while (!WindowShouldClose()) {
         // Primavera (Dal 21 Marzo al 20 Giugno)
         if ((mese == 3 && giorno >= 21) || mese == 4 || mese == 5 || (mese == 6 && giorno <= 20)) {
             if (mese == 3 && giorno == 21) testoStagione = "Equinozio di primavera";
-            else testoStagione = "Primavera.";
+            else testoStagione = "Primavera";
         }
 
         // Estate (Dal 21 Giugno al 20 Settembre)
         else if ((mese == 6 && giorno >= 21) || mese == 7 || mese == 8 || (mese == 9 && giorno <= 20)) {
             if (mese == 6 && giorno == 21) testoStagione = "Solstizio d'estate";
-            else testoStagione = "Estate.";
+            else testoStagione = "Estate";
         }
 
         // Autunno (Dal 21 Settembre al 20 Dicembre)
         else if ((mese == 9 && giorno >= 21) || mese == 10 || mese == 11 || (mese == 12 && giorno <= 20)) {
             // Nota: fix per chiarezza di lettura nel blocco: mese == 12 && giorno <= 20
             if (mese == 9 && giorno == 21) testoStagione = "Equinozio d'autunno";
-            else testoStagione = "Autunno.";
+            else testoStagione = "Autunno";
         }
 
         // Inverno (Dal 21 Dicembre al 20 Marzo)
         else {
             if (mese == 12 && giorno == 21) testoStagione = "Solstizio d'inverno";
-            else testoStagione = "Inverno.";
+            else testoStagione = "Inverno";
         }
 
         // serve ancora?
@@ -622,8 +635,8 @@ while (!WindowShouldClose()) {
         struct tm *tSteps = localtime(&simulatedTime);
 
         // Gestione Input della tastiera ( destra / sinistra : avanzamento x giorno, su / giu avanzamaneto per ora)
-        if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) tSteps->tm_mday += 1; 
-        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) tSteps->tm_mday -= 1;
+        if (UpdateKeyRepeater(&repeater, KEY_DOWN, dt)) tSteps->tm_mday += 1; 
+        if (UpdateKeyRepeater(&repeater, KEY_UP, dt)) tSteps->tm_mday -= 1;
 
         if (UpdateKeyRepeater(&repeater, KEY_LEFT, dt)) tSteps->tm_hour += 1;
         if (UpdateKeyRepeater(&repeater, KEY_RIGHT, dt)) tSteps->tm_hour -= 1;
@@ -687,21 +700,21 @@ while (!WindowShouldClose()) {
         DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
         // etichett
         DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 192, yCancro - 12, 10, LIGHTGRAY);
-        DrawText("Equatore (0.00°)", worldMap.width - 132, yEquatore - 12, 10, LIGHTGRAY);
+        DrawText("Equatore", worldMap.width - 94, yEquatore - 12, 10, LIGHTGRAY);
         DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 212, yCapricorno -12 , 10, LIGHTGRAY);
 
         // Draw Cities point
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawCircleV(cityPos,4.0f,MAROON);//bigCities[i].color);
+                    DrawCircleV(cityPos,4.0f,bigCities[i].color);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
                         DrawTextEx(timeFnt,bigCities[i].name,cityPos,(float)timeFnt.baseSize,0,isDay?BLACK:WHITE);
             }
         }
 
 		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, ORANGE);
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
 
     	// "disegno" centrato del sole con una icona personalizzata
         Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
@@ -738,9 +751,9 @@ while (!WindowShouldClose()) {
         //-------------------------------------------------------------------------------------------------------------------
 
 		// cursore mouse personalizzato
-        DrawRectangleRec((Rectangle) { mousePos.x-20, mousePos.y, 40, 1 }, isDay?BLACK:WHITE);
-        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-20    , 1, 40 }, isDay?BLACK:WHITE);
-        DrawPixel(mousePos.x,mousePos.y, BLACK);
+        DrawRectangleRec((Rectangle) { mousePos.x-18, mousePos.y, 36, 1 }, isDay?BLACK:WHITE);
+        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-18, 1, 36 }, isDay?BLACK:WHITE);
+        DrawPixel(mousePos.x,mousePos.y, isDay?WHITE:BLACK);
 
     EndScissorMode();
 
@@ -748,28 +761,23 @@ while (!WindowShouldClose()) {
 
         // // currentDate
         if (localSimTime != NULL) {
-            strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y | %H:%M:%S (LOC)", localSimTime);
-            DrawTextEx(timeFnt,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+12, infoBar.y+6},(float)timeFnt.baseSize,-1,WHITE);
+            strftime(tempBuffer, sizeof(tempBuffer), "%a,%d %b %Y %H:%M:%S (Loc)", localSimTime);
+            DrawTextEx(timeFnt,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)timeFnt.baseSize,-1,WHITE);
         } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
 
 
 		// quando muovi mouse su mappa mostra coordinate x,y e relativa LON,LAT
-        DrawText(TextFormat("Cur -> Lon: %.2f° | Lat: %.2f°", currentClick.lon, currentClick.lat), infoBar.x + 290, infoBar.y+10,10,GRAY);
+        DrawTextEx(timeFnt, TextFormat("%.2f°,%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 230, infoBar.y+6},(float)timeFnt.baseSize,-1,GREEN);
 
-		// sun position e periodo anno
-		DrawText(TextFormat("Sole -> Lon: %.2f° | Lat: %.2f° (%s)", currentLonDeg, currentLatDeg, testoStagione), infoBar.x+470,infoBar.y+10,10, WHITE);
-
-            
         // info Moon
-        DrawText(TextFormat("Luna -> %s %.1f%% | ", moon.phaseName, moonLightPerc * 100.f), infoBar.x +760, infoBar.y +10, 10, GRAY);
-        // DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, WHITE);
-        
-        DrawText(TextFormat("%.2f° | %.2f°", moon.longitude, moon.latitude), infoBar.x +930, infoBar.y +10, 10, GREEN);
+        DrawTextEx(timeFnt, TextFormat("(%s %.1f%%)", moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +500, infoBar.y +6},(float)timeFnt.baseSize,-1, GRAY);
+        DrawTextEx(timeFnt, TextFormat("Luna: %.2f°,%.2f°", moon.longitude, moon.latitude),(Vector2){infoBar.x +350, infoBar.y +6},(float)timeFnt.baseSize,-1, GRAY);
+        //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
-
-
+		// sun position e periodo anno
+		DrawTextEx(timeFnt, TextFormat("Sole: %.2f°,%.2f° (%s)", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+700,infoBar.y+6},(float)timeFnt.baseSize,-1, GOLD);
 
 		//statusbar with some info
 		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
