@@ -31,7 +31,7 @@ void main() {
 
     // 3. Fattore d'ombra (1.0 = Giorno pieno, 0.0 = Notte fonda)
     // Lo smoothstep crea una transizione morbida di circa 12 gradi d'arco (-0.1 a 0.1)
-    float shadowFactor = smoothstep(-0.05, 0.05, cosZenith);
+    float shadowFactor = smoothstep(-0.1, 0.1, cosZenith);
 
     // 4. Calcola la mappa diurna oscurata per la notte (20% di luminosità ambientale)
     vec3 nightMap = dayColor.rgb * 0.20;
