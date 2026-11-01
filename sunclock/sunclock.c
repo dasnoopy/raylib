@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.6.9"
+#define TOOL_VERSION            "1.7.0"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -454,7 +454,7 @@ int main (int argc, char *argv[])
                 codepoints[i] = startGlyph + i;
             }
 
-        Font timeFnt = LoadFontEx("fonts/SF-Mono-Semibold.ttf", 16, codepoints, glyphCount);
+        Font mainFont = LoadFontEx("fonts/PixelOperator.ttf", 16, codepoints, glyphCount);
         UnloadCodepoints(codepoints); 
 
 
@@ -709,7 +709,7 @@ while (!WindowShouldClose()) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     DrawCircleV(cityPos,4.0f,bigCities[i].color);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
-                        DrawTextEx(timeFnt,bigCities[i].name,cityPos,(float)timeFnt.baseSize,0,RAYWHITE);
+                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,isDay?BLACK:RAYWHITE);
             }
         }
 
@@ -761,26 +761,27 @@ while (!WindowShouldClose()) {
 
         // // currentDate
         if (localSimTime != NULL) {
-            strftime(tempBuffer, sizeof(tempBuffer), "%a,%d %b %Y %H:%M:%S (Loc)", localSimTime);
-            DrawTextEx(timeFnt,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)timeFnt.baseSize,-1,WHITE);
-        } else DrawText("Data Sconosciuta", 10, 60, 10, RAYWHITE);
+            strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M:%S LOC", localSimTime);
+            DrawTextEx(mainFont,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)mainFont.baseSize,-1,WHITE);
+        } else DrawText("Data Sconosciuta", 10, 60, 10, WHITE);
 
 
-		// quando muovi mouse su mappa mostra coordinate x,y e relativa LON,LAT
-        DrawTextEx(timeFnt, TextFormat("%.2f°,%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 230, infoBar.y+6},(float)timeFnt.baseSize,-1,GREEN);
+		// mostra LON,LAT su posizione cursore mouse
+        DrawTextEx(mainFont, TextFormat("| Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)mainFont.baseSize,-1,GRAY);
 
         // info Moon
-        DrawTextEx(timeFnt, TextFormat("(%s %.1f%%)", moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +500, infoBar.y +6},(float)timeFnt.baseSize,-1, GRAY);
-        DrawTextEx(timeFnt, TextFormat("Luna: %.2f°,%.2f°", moon.longitude, moon.latitude),(Vector2){infoBar.x +350, infoBar.y +6},(float)timeFnt.baseSize,-1, GRAY);
+        DrawTextEx(mainFont, TextFormat("| Luna: Lon:%.2f°, Lat:%.2f°", moon.longitude, moon.latitude),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
+        DrawTextEx(mainFont, TextFormat("-> %s %.1f%%", moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +530, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
+
         //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
 		// sun position e periodo anno
-		DrawTextEx(timeFnt, TextFormat("Sole: %.2f°,%.2f° (%s)", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+700,infoBar.y+6},(float)timeFnt.baseSize,-1, GOLD);
+		DrawTextEx(mainFont, TextFormat("| Sole: Lon:%.2f°, Lat:%.2f° -> %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
 
 		//statusbar with some info
-		//DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
+		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
 		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoBar.y +10, 10, GRAY); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
     EndScissorMode();
@@ -788,7 +789,7 @@ while (!WindowShouldClose()) {
 	EndDrawing();
 }
 
-    UnloadFont(timeFnt);
+    UnloadFont(mainFont);
     UnloadTexture(moonSpritesheet);
     UnloadRenderTexture(target);
     UnloadTexture(dayMap);
