@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.0"
+#define TOOL_VERSION            "1.7.2"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -367,18 +367,38 @@ SunPosition CalculateSunPositionFromTime(time_t customTime) {
         return pos;
     }
 
-    // calcolo della longitudine solare
+    int dayOfYear = utcTime->tm_yday + 1;
+
+    // --- 1. CALCOLO DELL'EQUAZIONE DEL TEMPO (EoT) ---
+    // B è l'angolo orbitale approssimato in gradi
+    float B = 360.0f / 365.0f * (dayOfYear - 81);
+    
+    // EoT restituisce lo scostamento in minuti d'ora
+    float eotMinutes = 9.87f * sinf(RAD(2.0f * B)) - 7.53f * cosf(RAD(B)) - 1.5f * sinf(RAD(B));
+
+    // --- 2. CALCOLO DELLA LONGITUDINE SOLARE CORRETTA ---
     float utcHours = utcTime->tm_hour + (utcTime->tm_min / 60.0f) + (utcTime->tm_sec / 3600.0f);
-    float lonDeg = (12.0f - utcHours) * 15.0f;
+    
+    // Aggiungiamo la correzione dell'EoT convertita in ore (minuti / 60)
+    float correctedUtcHours = utcHours + (eotMinutes / 60.0f);
+    
+    // Calcolo finale della longitudine
+    float lonDeg = (12.0f - correctedUtcHours) * 15.0f;
+    
+    // Normalizzazione della longitudine nell'intervallo [-180, 180]
+    while (lonDeg > 180.0f) lonDeg -= 360.0f;
+    while (lonDeg < -180.0f) lonDeg += 360.0f;
+    
     pos.sunLon = RAD(lonDeg);
 
-    // calcolo della latitudine solare (declinazione)
-    int dayOfYear = utcTime->tm_yday + 1;
-    float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (dayOfYear - 80)));
+    // --- 3. CALCOLO DELLA LATITUDINE SOLARE (DECLINAZIONE) ---
+    // Usiamo il giorno 81 (equinozio di primavera) che è astronomicamente più preciso di 80
+    float latDeg = 23.44f * sinf(RAD(360.0f / 365.0f * (dayOfYear - 81)));
     pos.sunLat = RAD(latDeg);
 
     return pos;
 }
+
 
 //
 // implement KEYREPEAT & KEYRATE instead use of IsKeyDown / IsKeyPressed
@@ -437,7 +457,6 @@ int main (int argc, char *argv[])
         CloseWindow();
         return 1;
     }
-
 
 		// Create framebuffer
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
@@ -709,7 +728,7 @@ while (!WindowShouldClose()) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     DrawCircleV(cityPos,4.0f,bigCities[i].color);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
-                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,isDay?BLACK:RAYWHITE);
+                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,RAYWHITE);
             }
         }
 
