@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.2"
+#define TOOL_VERSION            "1.7.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -451,12 +451,6 @@ int main (int argc, char *argv[])
 	InitWindow(screenWidth, screenHeight, "sunclock");
 	SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window
 
-    // Controllo esistenza file shader per evitare crash su macchine Linux
-    if (!FileExists("daynight.fs")) {
-        TraceLog(LOG_ERROR, "ERRORE: File 'daynight.fs' non trovato nella directory corrente!");
-        CloseWindow();
-        return 1;
-    }
 
 		// Create framebuffer
 		RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
@@ -486,6 +480,14 @@ int main (int argc, char *argv[])
 
         // load 8x1 sprites per le fasi lunari (256x32 oppure 128x16)
         Texture2D moonSpritesheet = LoadTexture("assets/moonphases.png"); 
+
+
+        // Controllo esistenza file shader per evitare crash su macchine Linux
+        if (!FileExists("daynight.fs")) {
+            TraceLog(LOG_ERROR, ">> File 'daynight.fs' non trovato nella directory corrente! <<");
+            CloseWindow();
+            return 1;
+        }
 
 	    Shader dayNightShader = LoadShader(0, "daynight.fs");
 	    int sunPosLoc = GetShaderLocation(dayNightShader, "sunPosGeo");
@@ -542,17 +544,7 @@ while (!WindowShouldClose()) {
         float stepParallel = 3.0f; //3 = 1 grado x disegno griglia paralleli
         float stepMeridian = 3.0f; //3 = 1 grado x disegno griglia meridiani
 
-        // ---------------------------------------------------------------------
-        // calcolo dati luna 
-        // ---------------------------------------------------------------------
-        MoonData moon = CalculateMoonData(simulatedTime);
-        // Calcola la posizione dei pixel sulla mappa equirettangolare dello schermo
-        Vector2 moonPos = MapGeoToPixel(RAD(moon.longitude), RAD(moon.latitude),worldMap.width, worldMap.height);
 
-        // percentuale di illuminazione della luna
-        // *** BUG??? se questo pezzo di codice dopo calcoli sole tempo indietro di 1h (GMT)
-        double jd_now = getJulianDateTime(simulatedTime);
-        float moonLightPerc = (float)getIlluminatedFractionOfMoon(jd_now);
 
         // ---------------------------------------------------------------------
         // traiettoria del sole
@@ -601,27 +593,27 @@ while (!WindowShouldClose()) {
 
         // Primavera (Dal 21 Marzo al 20 Giugno)
         if ((mese == 3 && giorno >= 21) || mese == 4 || mese == 5 || (mese == 6 && giorno <= 20)) {
-            if (mese == 3 && giorno == 21) testoStagione = "Equinozio di primavera";
-            else testoStagione = "Primavera";
+            if (mese == 3 && giorno == 21) testoStagione = "equinozio di primavera";
+            else testoStagione = "primavera";
         }
 
         // Estate (Dal 21 Giugno al 20 Settembre)
         else if ((mese == 6 && giorno >= 21) || mese == 7 || mese == 8 || (mese == 9 && giorno <= 20)) {
-            if (mese == 6 && giorno == 21) testoStagione = "Solstizio d'estate";
-            else testoStagione = "Estate";
+            if (mese == 6 && giorno == 21) testoStagione = "solstizio d'estate";
+            else testoStagione = "estate";
         }
 
         // Autunno (Dal 21 Settembre al 20 Dicembre)
         else if ((mese == 9 && giorno >= 21) || mese == 10 || mese == 11 || (mese == 12 && giorno <= 20)) {
             // Nota: fix per chiarezza di lettura nel blocco: mese == 12 && giorno <= 20
-            if (mese == 9 && giorno == 21) testoStagione = "Equinozio d'autunno";
-            else testoStagione = "Autunno";
+            if (mese == 9 && giorno == 21) testoStagione = "equinozio d'autunno";
+            else testoStagione = "autunno";
         }
 
         // Inverno (Dal 21 Dicembre al 20 Marzo)
         else {
-            if (mese == 12 && giorno == 21) testoStagione = "Solstizio d'inverno";
-            else testoStagione = "Inverno";
+            if (mese == 12 && giorno == 21) testoStagione = "solstizio d'inverno";
+            else testoStagione = "inverno";
         }
 
         // serve ancora?
@@ -669,6 +661,20 @@ while (!WindowShouldClose()) {
         // mostra / nascondi citta
         if (IsKeyPressed(KEY_C)) showCities = !showCities;
 
+        // ---------------------------------------------------------------------
+        // calcolo dati luna 
+        // ---------------------------------------------------------------------
+        MoonData moon = CalculateMoonData(simulatedTime);
+        // Calcola la posizione dei pixel sulla mappa equirettangolare dello schermo
+        Vector2 moonPos = MapGeoToPixel(RAD(moon.longitude), RAD(moon.latitude),worldMap.width, worldMap.height);
+
+        // percentuale di illuminazione della luna
+        // *** BUG??? se questo pezzo di codice dopo calcoli sole tempo indietro di 1h (GMT)
+        double jd_now = getJulianDateTime(simulatedTime);
+        float moonLightPerc = (float)getIlluminatedFractionOfMoon(jd_now);
+
+
+
         //
         // do something when  window loses focus
         //
@@ -693,29 +699,33 @@ while (!WindowShouldClose()) {
         EndShaderMode();
 
             
-    // disegna reticolo geograafico
+    // disegna reticolo geografico
     BeginScissorMode(worldMap.x, worldMap.y, worldMap.width, worldMap.height);
 
-		//Disegna paralleli 
-		for (int i = 0.0f; i < 180.0f; i+=15.0f) {
-			DrawLineDashed((Vector2){worldMap.x,i*stepParallel},(Vector2){worldMap.width,i*stepParallel},2,2,DARKGRAY);
-			DrawText(TextFormat("%.f°",90.0f-i),worldMap.x+4.0f ,(i*stepParallel)-12.0f,10,GRAY);
-			DrawText(TextFormat("%.f°",90.0f-i),worldMap.width-21.0f,(i*stepParallel)-12.0f,10,GRAY);
+        // disegna meridiani (v)
+        for (int i = 0; i < 360; i+=15) {
+            if (i!=0){
+                DrawLineDashed((Vector2){i*stepMeridian, worldMap.y + 16},(Vector2){i*stepMeridian ,worldMap.height-16},2,2,DARKGRAY);
+                DrawText(TextFormat("% 3i°",i-180),(i*stepMeridian)-12,worldMap.y+4,10,DARKGRAY);
+                DrawText(TextFormat("% 3i°",i-180),(i*stepMeridian)-12,worldMap.height-12,10,DARKGRAY);
+            }
+        }
+
+		//Disegna paralleli (h)
+		for (int i = 0; i < 180; i+=15) {
+            if (i!=0){
+    			DrawLineDashed((Vector2){worldMap.x+24,i*stepParallel},(Vector2){worldMap.width - 24,i*stepParallel},2,2,DARKGRAY);
+    			DrawText(TextFormat("% 2i°",90-i),worldMap.x+4 ,(i*stepParallel)-5,10,DARKGRAY);
+    			DrawText(TextFormat("% 2i°",90-i),worldMap.width-22,(i*stepParallel)-5,10,DARKGRAY);
+            }
 		}
 
-		// disegna meridiani 
-		for (int i = 0; i < 360; i+=15) {
-			DrawLineDashed((Vector2){i*stepMeridian, worldMap.y},(Vector2){i*stepMeridian ,worldMap.height},2,2,DARKGRAY);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.y+4,10,BLACK);
-			DrawText(TextFormat("%d°",i-180),(i*stepMeridian)+2,worldMap.height-12,10,BLACK);
-			}
-
 		// Disegna il meridiano 0° di Greenwich
-		DrawLine((worldMap.width/2),worldMap.y,(worldMap.width/2),worldMap.height ,bgColor);
+		DrawLine((worldMap.width/2),worldMap.y + 16,(worldMap.width/2),worldMap.height -16,bgColor);
 
         // tropici ed equatore
         DrawLine(0, yCancro, worldMap.width, yCancro, BROWN);
-        DrawLine(0, yEquatore, worldMap.width, yEquatore, bgColor);
+        DrawLine(24, yEquatore, worldMap.width -24, yEquatore, bgColor);
         DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
         // etichett
         DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 192, yCancro - 12, 10, LIGHTGRAY);
@@ -780,24 +790,23 @@ while (!WindowShouldClose()) {
 
         // // currentDate
         if (localSimTime != NULL) {
-            strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M:%S LOC", localSimTime);
+            strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M:%S UTC", localSimTime);
             DrawTextEx(mainFont,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)mainFont.baseSize,-1,WHITE);
         } else DrawText("Data Sconosciuta", 10, 60, 10, WHITE);
 
 
 		// mostra LON,LAT su posizione cursore mouse
-        DrawTextEx(mainFont, TextFormat("| Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)mainFont.baseSize,-1,GRAY);
+        DrawTextEx(mainFont, TextFormat("Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)mainFont.baseSize,-1,GRAY);
 
         // info Moon
-        DrawTextEx(mainFont, TextFormat("| Luna: Lon:%.2f°, Lat:%.2f°", moon.longitude, moon.latitude),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
-        DrawTextEx(mainFont, TextFormat("-> %s %.1f%%", moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +530, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
+        DrawTextEx(mainFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f°, %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
 
         //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
 		// sun position e periodo anno
-		DrawTextEx(mainFont, TextFormat("| Sole: Lon:%.2f°, Lat:%.2f° -> %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
+		DrawTextEx(mainFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f°, %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
 
 		//statusbar with some info
 		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
