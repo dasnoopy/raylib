@@ -728,9 +728,9 @@ while (!WindowShouldClose()) {
         DrawLine(24, yEquatore, worldMap.width -24, yEquatore, bgColor);
         DrawLine(0, yCapricorno, worldMap.width, yCapricorno, BROWN);
         // etichett
-        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 192, yCancro - 12, 10, LIGHTGRAY);
-        DrawText("Equatore", worldMap.width - 94, yEquatore - 12, 10, LIGHTGRAY);
-        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 212, yCapricorno -12 , 10, LIGHTGRAY);
+        DrawText("Tropico del Cancro (+23.44°)", worldMap.width - 192, yCancro - 12, 10, GRAY);
+        DrawText("Equatore", worldMap.width - 94, yEquatore - 12, 10, GRAY);
+        DrawText("Tropico del Capricorno (-23.44°)", worldMap.width - 212, yCapricorno -12 , 10, GRAY);
 
         // Draw Cities point
         if (showCities) {
