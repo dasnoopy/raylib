@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.5"
+#define TOOL_VERSION            "1.7.6"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -40,6 +40,49 @@ bool isDay = false;
 #define SECONDS_PER_HOUR 3600 // Secondi in un giorno (24 ore)
 #define PATH_RESOLUTION 360
 
+// Struttura comoda per i dati geografici
+typedef struct {
+    float lon; // Longitudine (-180 a 180)
+    float lat; // Latitudine (-90 a 90)
+} GeoCoords;
+
+typedef struct {
+    float sunLon; // in radianti
+    float sunLat; // in radianti
+} SunPosition;
+
+// some custom colorsq
+const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
+
+
+// dimensione della mappa
+Rectangle worldMap = { 
+        .x = 0,
+        .y = 0,
+        .width = 1080,
+        .height = 540
+    };
+
+Rectangle infoBar = {0,540,1080,32};
+GeoCoords currentClick = { 0.0f, 0.0f };
+char tempBuffer[64] = { 0 };
+
+// Struttura per gestire lo stato della ripetizione dei tasti
+typedef struct {
+    int currentKey;       // Il tasto attualmente premuto/tracciato
+    float timer;         // Timer per calcolare i delay
+    bool isRepeating;    // true se ha superato il delay iniziale
+    float firstDelay;    // Tempo di attesa iniziale (es. 0.4 secondi)
+    float repeatRate;    // Intervallo di ripetizione (es. 0.05 secondi)
+} KeyRepeater;
+
+// posizione Luna
+typedef struct {
+    float latitude;         // Da -90 a +90
+    float longitude;        // Da -180 a +180
+    int phaseFrameIndex;    // Indice da 0 a 7 per lo spritesheet
+    const char* phaseName;  // Nome testuale della fase
+} MoonData;
 
 // list of interesting places
 // Definizione della struttura per una città
@@ -60,7 +103,7 @@ const Cities bigCities[] = {
     {"Sydney",         -33.8688,  151.2093, GREEN},
     {"Il Cairo",        30.0444,   31.2357, GREEN},
     {"San Paolo",      -23.5505,  -46.6333, GREEN},
-    {"Citta' del Capo",-33.9249,   18.4241, GREEN},
+    {"Città del Capo",-33.9249,   18.4241, GREEN},
     {"Nuova Delhi",     28.6139,   77.2090, GREEN},
     {"Reykjavik",       64.1466,  -21.9426, GREEN},
     {"Parigi",          48.8566,    2.3522, GREEN},
@@ -72,7 +115,7 @@ const Cities bigCities[] = {
     {"Buenos Aires",   -34.6037,  -58.3816, GREEN},
     {"Lagos",            6.5244,    3.3792, GREEN},
     {"Toronto",         43.6532,  -79.3832, GREEN},
-    {"Citta' del Messico", 19.4326, -99.1332, GREEN},
+    {"Città del Messico", 19.4326, -99.1332, GREEN},
     {"Istanbul",        41.0082,   28.9784, GREEN},
     {"Seoul",           37.5665,  126.9780, GREEN},
     {"Rio de Janeiro", -22.9068,  -43.1729, GREEN},
@@ -128,50 +171,6 @@ const Cities bigCities[] = {
 const int numCities = sizeof(bigCities) / sizeof(bigCities[0]);
 bool showCities = false; // non mostrare i punti delle citta : premi C per visualizzare/naascondere
 
-// Struttura comoda per i dati geografici
-typedef struct {
-    float lon; // Longitudine (-180 a 180)
-    float lat; // Latitudine (-90 a 90)
-} GeoCoords;
-
-typedef struct {
-    float sunLon; // in radianti
-    float sunLat; // in radianti
-} SunPosition;
-
-// some custom colorsq
-const Color bgColor = CLITERAL(Color){10, 20, 30, 255};
-
-// offset status bar
-const int bottomOffset = 32;
-
-// Definiamo i confini e la dimensione della mappa sullo schermo
-Rectangle worldMap = { 
-        .x = 0,
-        .y = 0,
-        .width = 1080,
-        .height = 540
-    };
-
-Rectangle infoBar = {0,540,1080,bottomOffset};
-GeoCoords currentClick = { 0.0f, 0.0f };
-char tempBuffer[64] = { 0 };
-
-// Struttura per gestire lo stato della ripetizione dei tasti
-typedef struct {
-    int currentKey;       // Il tasto attualmente premuto/tracciato
-    float timer;         // Timer per calcolare i delay
-    bool isRepeating;    // true se ha superato il delay iniziale
-    float firstDelay;    // Tempo di attesa iniziale (es. 0.4 secondi)
-    float repeatRate;    // Intervallo di ripetizione (es. 0.05 secondi)
-} KeyRepeater;
-
-typedef struct {
-    float latitude;         // Da -90 a +90
-    float longitude;        // Da -180 a +180
-    int phaseFrameIndex;    // Indice da 0 a 7 per lo spritesheet
-    const char* phaseName;  // Nome testuale della fase
-} MoonData;
 
 // -----------------------------------------------------------------------------
 // Functions
@@ -195,7 +194,6 @@ bool IsDaytimeAtCoordinates(float cursorLon, float cursorLat, float sunLon, floa
     return (sin_h >= 0.0f);
 }
 
-
 double NormalizeDegrees(double angle) {
 // fmod calcola il resto della divisione tra double (equivalente a % per gli interi)
     angle = fmod(angle, 360.0);
@@ -204,14 +202,15 @@ double NormalizeDegrees(double angle) {
 }
 
 // Funzione che calcola il Giorno Giuliano a partire da una data/ora UTC
+
 double getJulianDate(int year, int month, int day, int hour, int min, int sec) {
     if (month <= 2) {
         year -= 1;
         month += 12;
     }
     
-    int A = year / 100;
-    int B = 2 - A + (A / 4);
+    int A = (int)year / 100;
+    int B = (int)2 - A + (A / 4);
     
     long E = (long)(365.25 * (year + 4716));
     long F = (long)(30.6001 * (month + 1));
@@ -223,7 +222,7 @@ double getJulianDate(int year, int month, int day, int hour, int min, int sec) {
     return jd;
 }
 
-// Funzione helper per ottenere il giorno giuliano dato un custom time
+// Funzione che ritorna la data giuliana, dividento un custom time in anno,mese, giorno,ora min,sec
 double getJulianDateTime(time_t customTime) {
     struct tm *utc_time = gmtime(&customTime); // gmtime restituisce il tempo UTC, richiesto in astronomia
 
@@ -737,8 +736,11 @@ while (!WindowShouldClose()) {
             for (int i = 0; i < numCities; i++) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     DrawCircleV(cityPos,4.0f,bigCities[i].color);
-                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
-                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,isDay?DARKGRAY:LIGHTGRAY);
+                    Vector2 citySize = MeasureTextEx(mainFont, bigCities[i].name, (float)mainFont.baseSize, 0);
+                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f)) {
+                        DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, DARKGRAY);
+                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,WHITE);
+                    }
             }
         }
 
@@ -779,8 +781,8 @@ while (!WindowShouldClose()) {
 
 
             // cursore mouse personalizzato
-        DrawRectangleRec((Rectangle) { mousePos.x-14, mousePos.y-1, 28, 3 }, isDay?BLACK:WHITE);
-        DrawRectangleRec((Rectangle) { mousePos.x-1, mousePos.y-14, 3, 28 }, isDay?BLACK:WHITE);
+        DrawRectangleRec((Rectangle) { mousePos.x-14, mousePos.y, 28, 1 }, isDay?BLACK:WHITE);
+        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-14, 1, 28 }, isDay?BLACK:WHITE);
         DrawPixel(mousePos.x,mousePos.y, isDay?WHITE:BLACK);
 
 
