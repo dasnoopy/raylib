@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.6"
+#define TOOL_VERSION            "1.7.7"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -735,11 +735,11 @@ while (!WindowShouldClose()) {
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawCircleV(cityPos,4.0f,bigCities[i].color);
+                    DrawRectangle(cityPos.x, cityPos.y,6,6,bigCities[i].color);
                     Vector2 citySize = MeasureTextEx(mainFont, bigCities[i].name, (float)mainFont.baseSize, 0);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f)) {
-                        DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, DARKGRAY);
-                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,WHITE);
+                        DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, WHITE);
+                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,BLACK);
                     }
             }
         }

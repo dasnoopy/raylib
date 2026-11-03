@@ -58,7 +58,7 @@ float minZoomX;
 float minZoomY;
 float minZoom;
 const float stepZoom = 0.20f;
-const float maxZoom = 32.0f;
+const float maxZoom = 96.0f;
 const int txtOffset = 32;
 
 Vector2 barPos = {0,screenHeight - txtOffset };
