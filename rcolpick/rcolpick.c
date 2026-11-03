@@ -36,7 +36,7 @@ bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
 
-const Color bgColor = CLITERAL(Color){40,66,87,255};
+const Color bgColor = CLITERAL(Color){40,66,87,128};
 Color previewCol = bgColor;
 
 int histR[256] = {0};
@@ -62,7 +62,7 @@ const float maxZoom = 32.0f;
 const int txtOffset = 32;
 
 Vector2 barPos = {0,screenHeight - txtOffset };
-Rectangle scissorArea = { 0,0,screenWidth,screenHeight - txtOffset };
+Rectangle scissorArea = { 0,0,screenWidth,screenHeight };
 Rectangle rectPixel = { 8,8,230,338 };
 Rectangle rectHist = { 8,570,270,110 };
 
@@ -590,21 +590,22 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             
             // background of "floating" poanel
-            DrawRectangleRounded(rectPixel,0.080f,36, Fade(bgColor,0.72f));
-            DrawRectangleRoundedLines(rectPixel,0.080f,36, BLACK);
+            // DrawRectangleRounded(rectPixel,0.080f,36, Fade(bgColor,0.72f));
+            DrawRectangleRec(rectPixel, Fade (BLACK,0.72f));
+            //DrawRectangleRoundedLines(rectPixel,0.080f,36, BLACK);
             // MAIN cursor x,y
             DrawCircle(rectPixel.x + 12,rectPixel.y+12 ,6, previewCol);
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
             DrawTextEx(txtFont,buffer,(Vector2){rectPixel.x + 24, rectPixel.y + 4},fntSize,0,WHITE);
 
             
-            // colore FG text in baase al colore selezionato
+            // colore FG text in base al colore selezionato
             Color LeftTextCol = leftCol.g > 180 || (leftCol.r + leftCol.g + leftCol.b) > 450 ? BLACK : WHITE;
             Color RightTextCol = rightCol.g > 180 || (rightCol.r + rightCol.g + rightCol.b) > 450 ? BLACK : WHITE;
 
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,rectPixel.width-2, 118}, Fade(leftCol,0.88f));
+            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,rectPixel.width-2, 178}, Fade(leftCol,0.88f));
             DrawTextEx(txtFont,TextFormat("x1: %i , y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LeftTextCol);
             // RGBA            
             DrawTextEx(txtFont,TextFormat("rgba(%i, %i, %i, %i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 50},fntSize,0,LeftTextCol);

@@ -321,14 +321,14 @@ MoonData CalculateMoonData(time_t utc_time) {
     int frameIndex = (int)(fmod(phase_angle_deg + 22.5, 360.0) / 45.0);
 
     static const char* phaseNames[] = {
-        "nuova",
-        "crescente",
-        "primo quarto",
-        "gibbosa crescente",
-        "piena",
-        "gibbosa calante",
-        "ultimo quarto",
-        "calante"
+        "Nnuova",
+        "Crescente",
+        "Primo quarto",
+        "Gibbosa crescente",
+        "Piena",
+        "Gibbosa calante",
+        "Ultimo quarto",
+        "Calante"
     };
 
     MoonData result;
@@ -593,27 +593,27 @@ while (!WindowShouldClose()) {
 
         // Primavera (Dal 21 Marzo al 20 Giugno)
         if ((mese == 3 && giorno >= 21) || mese == 4 || mese == 5 || (mese == 6 && giorno <= 20)) {
-            if (mese == 3 && giorno == 21) testoStagione = "equinozio di primavera";
-            else testoStagione = "primavera";
+            if (mese == 3 && giorno == 21) testoStagione = "Equinozio di primavera";
+            else testoStagione = "Primavera";
         }
 
         // Estate (Dal 21 Giugno al 20 Settembre)
         else if ((mese == 6 && giorno >= 21) || mese == 7 || mese == 8 || (mese == 9 && giorno <= 20)) {
-            if (mese == 6 && giorno == 21) testoStagione = "solstizio d'estate";
-            else testoStagione = "estate";
+            if (mese == 6 && giorno == 21) testoStagione = "Solstizio d'estate";
+            else testoStagione = "Estate";
         }
 
         // Autunno (Dal 21 Settembre al 20 Dicembre)
         else if ((mese == 9 && giorno >= 21) || mese == 10 || mese == 11 || (mese == 12 && giorno <= 20)) {
             // Nota: fix per chiarezza di lettura nel blocco: mese == 12 && giorno <= 20
-            if (mese == 9 && giorno == 21) testoStagione = "equinozio d'autunno";
-            else testoStagione = "autunno";
+            if (mese == 9 && giorno == 21) testoStagione = "Equinozio d'autunno";
+            else testoStagione = "Autunno";
         }
 
         // Inverno (Dal 21 Dicembre al 20 Marzo)
         else {
-            if (mese == 12 && giorno == 21) testoStagione = "solstizio d'inverno";
-            else testoStagione = "inverno";
+            if (mese == 12 && giorno == 21) testoStagione = "Solstizio d'inverno";
+            else testoStagione = "Inverno";
         }
 
         // serve ancora?
@@ -642,7 +642,7 @@ while (!WindowShouldClose()) {
                 isDay = IsDaytimeAtCoordinates(currentClick.lon, currentClick.lat, currentLonDeg, currentLatDeg);
                 // bool isDay puo' ora essere impiegata in base alle necesità
         } else ShowCursor();
-
+        
         struct tm *tSteps = localtime(&simulatedTime);
 
         // Gestione Input della tastiera ( destra / sinistra : avanzamento x giorno, su / giu avanzamaneto per ora)
@@ -738,7 +738,7 @@ while (!WindowShouldClose()) {
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     DrawCircleV(cityPos,4.0f,bigCities[i].color);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f))
-                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,RAYWHITE);
+                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,isDay?DARKGRAY:LIGHTGRAY);
             }
         }
 
@@ -775,16 +775,14 @@ while (!WindowShouldClose()) {
 
         // Disegna il pezzo di texture ritagliato
         DrawTexturePro(moonSpritesheet, sourceRec, destRec, moonOrigin, 0.0f, WHITE);
+    EndScissorMode();
 
 
-        //-------------------------------------------------------------------------------------------------------------------
-
-		// cursore mouse personalizzato
-        DrawRectangleRec((Rectangle) { mousePos.x-18, mousePos.y, 36, 1 }, isDay?BLACK:WHITE);
-        DrawRectangleRec((Rectangle) { mousePos.x, mousePos.y-18, 1, 36 }, isDay?BLACK:WHITE);
+            // cursore mouse personalizzato
+        DrawRectangleRec((Rectangle) { mousePos.x-14, mousePos.y-1, 28, 3 }, isDay?BLACK:WHITE);
+        DrawRectangleRec((Rectangle) { mousePos.x-1, mousePos.y-14, 3, 28 }, isDay?BLACK:WHITE);
         DrawPixel(mousePos.x,mousePos.y, isDay?WHITE:BLACK);
 
-    EndScissorMode();
 
     BeginScissorMode(infoBar.x, infoBar.y, infoBar.width, infoBar.height);
 
@@ -799,14 +797,14 @@ while (!WindowShouldClose()) {
         DrawTextEx(mainFont, TextFormat("Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)mainFont.baseSize,-1,GRAY);
 
         // info Moon
-        DrawTextEx(mainFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f°, %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
+        DrawTextEx(mainFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f° | %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
 
         //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
 		// sun position e periodo anno
-		DrawTextEx(mainFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f°, %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
+		DrawTextEx(mainFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f° | %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
 
 		//statusbar with some info
 		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
