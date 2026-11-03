@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.7.8"
+#define TOOL_VERSION            "1.8.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -173,6 +173,7 @@ typedef struct {
 // Functions
 //----------------------------------------------------------------------------------
 
+
 // Draw grid lines 
 void drawGridLines(void)
 {
@@ -313,7 +314,7 @@ int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int 
         }
     }
     closedir(dir);
-    qsort(files, count, MAX_NAME, compare_files);  // ordinamento file
+
     return count;
 }
 
@@ -340,6 +341,7 @@ int main (int argc, char *argv[])
 
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
 
+
  // camera2d settings only effect objects between BeginMode2D and EndMode2D
    Camera2D camera = { 0 };
     camera.target = (Vector2) { spriteGridPos.x, spriteGridPos.y};  // centro della zoom area
@@ -350,6 +352,7 @@ int main (int argc, char *argv[])
 // file open/save variables
     char files[MAX_FILES][MAX_NAME];
     int fileCount = load_files_recursive(".", files,0);
+    qsort(files, fileCount, MAX_NAME, compare_files);  // ordinamento file
     int selected = 0;
     int scrollOffset = 0;
     const int itemHeight = 23;
@@ -508,6 +511,27 @@ while (!WindowShouldClose())
             else if (IsKeyPressed(KEY_D)) debug = !debug;
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
             else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
+
+            else if (IsKeyPressed(KEY_W)) 
+            {
+                // Crea l'immagine 32x32 temporanea in RAM
+                Image img = GenImageColor(numCols, numRows, BLANK);
+
+                // Trasferisci i dati dall'array bidimensionale ai pixel del PNG
+                for (int y = 0; y < numRows; y++) 
+                {
+                    for (int x = 0; x < numCols; x++) 
+                    {
+                        int indiceColore = matrice[y][x];
+                        if (indiceColore >= 0 && indiceColore < MAX_COLORS_COUNT) ImageDrawPixel(&img, x, y, colors[indiceColore]);
+                    }
+                }
+                // Esportiamo l'immagine a 32x32 pixel pixel-perfect in formato .PNG
+                if (ExportImage(img, "screenshot_mappa.png")) TraceLog(LOG_INFO, "Mappa salvata con successo in 'screenshot_mappa.png'!");
+                else TraceLog(LOG_ERROR, "Errore durante il salvataggio dello screenshot.");
+
+                UnloadImage(img);
+            }
             else if (btnGrid) showGrid = !showGrid;
             else if (btnNew)
             {
@@ -680,7 +704,7 @@ while (!WindowShouldClose())
                           cellSize},
                           Fade(BLACK, 0.5f));
         //----------------------------------------------------------------------
-        // Draw crosshair curso (and hide grid)
+        // Draw crosshair cursor (and hide grid)
         // ---------------------------------------------------------------------
         if (!showGrid) {
             //vertical
