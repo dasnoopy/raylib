@@ -737,7 +737,7 @@ while (!WindowShouldClose()) {
                     Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -2 )  };
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
                     //DrawTexture(city,cityPos.x,cityPos.y, bigCities[i].color);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, SKYBLUE );
+                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, BLUE );
                     Vector2 citySize = MeasureTextEx(mainFont, bigCities[i].name, (float)mainFont.baseSize, 0);
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 8.0f)) {
                         DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, WHITE);
