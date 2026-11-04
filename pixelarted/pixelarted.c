@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "2.0.1"
+#define TOOL_VERSION            "2.0.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -54,7 +54,7 @@ const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,72};
 const Vector2 toolbarPos = {40,194};
 const Vector2 keyinfoPos = {912,620};
-const Rectangle libraryPos = {906,48, 160,525};
+const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // definizione matrici
@@ -147,7 +147,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
 // some funs
-#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 128}
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 255} 
 
@@ -424,7 +424,7 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "pixelarted");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -925,11 +925,11 @@ while (!WindowShouldClose())
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
 
-                        if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, ON_COLOR);
-                            DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,isOverLib?BLACK:GRID_COLOR);
+                        if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, isOverLib?ON_COLOR:GRID_COLOR);
+                            DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
                             // print truncate too long filenames (max. 88 chars)
                             const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,32); 
-                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,isOverLib?BLACK:GRID_COLOR);
+                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
                         
                         }   
                 //vertical divider between index and filename 
