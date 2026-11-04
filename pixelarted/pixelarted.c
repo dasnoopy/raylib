@@ -929,7 +929,7 @@ while (!WindowShouldClose())
                             DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
                             // print truncate too long filenames (max. 88 chars)
                             const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,32); 
-                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
+                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,BLACK);
                         
                         }   
                 //vertical divider between index and filename 

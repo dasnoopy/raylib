@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.7"
+#define TOOL_VERSION            "1.7.8"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -476,7 +476,7 @@ int main (int argc, char *argv[])
 
         //load sun icon
         Texture2D sunIcon= LoadTexture("assets/sun.png");          // Image converted to texture, GPU memory (VRAM)
-
+        Texture2D cityIcon= LoadTexture("assets/position.png");          // Image converted to texture, GPU memory (VRAM)
         // load 8x1 sprites per le fasi lunari (256x32 oppure 128x16)
         Texture2D moonSpritesheet = LoadTexture("assets/moonphases.png"); 
 
@@ -734,10 +734,12 @@ while (!WindowShouldClose()) {
         // Draw Cities point
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
+                    Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -2 )  };
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawRectangle(cityPos.x, cityPos.y,6,6,bigCities[i].color);
+                    //DrawTexture(city,cityPos.x,cityPos.y, bigCities[i].color);
+                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, SKYBLUE );
                     Vector2 citySize = MeasureTextEx(mainFont, bigCities[i].name, (float)mainFont.baseSize, 0);
-                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 6.0f)) {
+                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 8.0f)) {
                         DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, WHITE);
                         DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,BLACK);
                     }
@@ -749,8 +751,7 @@ while (!WindowShouldClose()) {
 
     	// "disegno" centrato del sole con una icona personalizzata
         Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
-        DrawTexturePro(sunIcon, (Rectangle){ 0, 0, sunIcon.width, sunIcon.height }, (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, // Dimensione icona
-            sunOrigin, 0.0f, WHITE );
+        DrawTexturePro(sunIcon, (Rectangle){ 0, 0, sunIcon.width, sunIcon.height }, (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, sunOrigin, 0.0f, WHITE );
 
 
         // LUNA : --------------------------------------------------------------
@@ -822,6 +823,7 @@ while (!WindowShouldClose()) {
     UnloadRenderTexture(target);
     UnloadTexture(dayMap);
     UnloadTexture(sunIcon);
+    UnloadTexture(cityIcon);
     UnloadTexture(nightMap);
     UnloadShader(dayNightShader);
 	CloseWindow();
