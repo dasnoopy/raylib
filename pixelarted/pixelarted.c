@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "1.8.0"
+#define TOOL_VERSION            "2.0.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -20,14 +20,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <raylib.h>
-
-// barra path su Linux oppure su WIN
-#ifdef _WIN32
-#define SEPARATOR "\\"
-#else
-#define SEPARATOR "/"
-#endif
-
 // raygui integration
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -39,11 +31,22 @@ const int screenHeight = 732;
 #define numRows       32
 const int cellSize = 20;
 
-#define MAX_COLORS_COUNT    24          // Number of colors available
+// Music library && files management
+#define FILTER_PIX      ".pix"
 
-//file management
-#define MAX_FILES 512
-#define MAX_NAME 256
+size_t fileCount;
+#define MAX_FILES 4096
+#define MAX_NAME 1024
+char files[MAX_FILES][MAX_NAME];
+
+// barra path su Linux oppure su WIN
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
+#define MAX_COLORS_COUNT    24          // Number of colors available
 
  // initial X,Y coordinates for variuos interface elements
 const Vector2 colorsBarPos = {40, 356};
@@ -51,8 +54,8 @@ const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,72};
 const Vector2 toolbarPos = {40,194};
 const Vector2 keyinfoPos = {912,620};
-const Vector2 libraryPos = {906,20};
-Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
+const Rectangle libraryPos = {906,48, 160,525};
+const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // definizione matrici
 int matrice[numRows][numCols];
@@ -79,7 +82,17 @@ bool isDrawing = false;
 bool isLoading=false;
 bool isSaving=false;
 bool debug = false;
+bool isOverLib = false;
 int px,py;
+
+// Key repeat structure
+typedef struct {
+    int currentKey;      // Il tasto attualmente premuto
+    float timer;         // Timer per calcolare i delay
+    bool isRepeating;    // true se ha superato il delay iniziale
+    float firstDelay;    // Tempo di attesa iniziale 
+    float repeatRate;    // Intervallo di ripetizione 
+} KeyRepeater;
 
 // custom Colors
 #define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
@@ -134,9 +147,9 @@ Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
 #define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
 // some funs
-#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 128}
 #define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 232} 
+#define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 255} 
 
 // bottoni toolbar
     // UI required variables
@@ -173,6 +186,73 @@ typedef struct {
 // Functions
 //----------------------------------------------------------------------------------
 
+Color darkenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char)(color.r * factor),
+        (unsigned char)(color.g * factor),
+        (unsigned char)(color.b * factor),
+        color.a
+    };
+}
+
+Color lightenColor(Color color, float factor)
+{
+    if (factor < 0.0f) factor = 0.0f;
+    if (factor > 1.0f) factor = 1.0f;
+
+    return (Color){
+        (unsigned char) ( color.r + (255-color.r) * factor ),
+        (unsigned char) ( color.g + (255-color.g) * factor ),
+        (unsigned char) ( color.b + (255-color.b) * factor ),
+        color.a
+    };
+}
+
+// Funzione che aggiorna lo stato delle pressione di un tasto
+// e restituisce true se l'azione deve essere eseguita
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
+    // Se il tasto passato non è premuto, non fare nulla
+    if (!IsKeyDown(key)) {
+        // Se era il tasto che stavamo tracciando, resettiamo lo stato
+        if (repeater->currentKey == key) {
+            repeater->currentKey = 0;
+            repeater->timer = 0.0f;
+            repeater->isRepeating = false;
+        }
+        return false;
+    }
+
+    // Se un nuovo tasto viene premuto (o cambiamo direzione), resettiamo il timer sul nuovo tasto
+    if (repeater->currentKey != key) {
+        repeater->currentKey = key;
+        repeater->timer = 0.0f;
+        repeater->isRepeating = false;
+        return true; // Ritorna true immediatamente per il primo click (reattività)
+    }
+
+    // Se stiamo continuando a tenere premuto lo stesso tasto
+    repeater->timer += deltaTime;
+
+    if (!repeater->isRepeating) {
+        // ritardo iniziale
+        if (repeater->timer >= repeater->firstDelay) {
+            repeater->timer = 0.0f;
+            repeater->isRepeating = true;
+            return true;
+        }
+    } else {
+        // ripetizione continua e rate
+        if (repeater->timer >= repeater->repeatRate) {
+            repeater->timer -= repeater->repeatRate;
+            return true;
+        }
+    }
+    return false;
+}
 
 // Draw grid lines 
 void drawGridLines(void)
@@ -275,52 +355,76 @@ void floodFill(int row, int col, int oldColor, int newColor)
     }
 }
 
-int compare_files(const void *a, const void *b) {
-    const char *fa = (const char *)a;
-    const char *fb = (const char *)b;
-    return strcmp(fa, fb); // case sensitive
-    // return strcasecmp((const char *)a, (const char *)b); // no case sensitive
+int compareFiles(const void *a, const void *b) {
+    const char *path_a = (const char *)a;
+    const char *path_b = (const char *)b;
+
+    // estrapola nome del file dalla path completo, usando raylib
+    const char *filename_a = GetFileName(path_a);
+    const char *filename_b = GetFileName(path_b);
+    
+    // Confronto case sensitive...A <> a
+    //return strcmp(filename_a, filename_b);
+    
+    // Confronto case insensitive A = a
+    return strcasecmp(filename_a, filename_b);
 }
 
-int load_files_recursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
 {
+    // Controllo numero files
+    if (count >= MAX_FILES) return count;
+
+    // controllo percorso se esiste o meno...
+    if (!DirectoryExists(path)) {
+        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
+        exit(1);
+    }   
+
     DIR *dir = opendir(path);
-    if (!dir) return count;
+    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
 
     struct dirent *entry;
 
-    while ((entry = readdir(dir)) != NULL && count < MAX_FILES) {
+    // Controllo sul limite ad ogni iterazione
+    while ((entry = readdir(dir)) != NULL) {
+        if (count >= MAX_FILES) break; 
+
         const char *name = entry->d_name;
 
-        // evita "." e ".."
+        // Salta "." e ".."
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
 
-        char fullpath[512];
+        // MAX_NAME lunghezza massima del path+filename
+        char fullpath[MAX_NAME];
         snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
 
         struct stat st;
         if (stat(fullpath, &st) == -1) continue;
 
-        // se directory procedi con ricorsione
-        if (S_ISDIR(st.st_mode)) count = load_files_recursive(fullpath, files, count);
-        // se è file → controlla estensione
+        // Se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) {
+            count = loadFilesRecursive(fullpath, files, count);
+        }
+        // Se è un file controlla l'estensione
         else if (S_ISREG(st.st_mode)) {
             const char *ext = strrchr(name, '.');
 
-            if (ext && strcmp(ext, extfName) == 0) {
-                 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
-                if (written >= 0 && written < MAX_NAME) count++;
+            if (ext && strcmp(ext, FILTER_PIX) == 0) {
+                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) {
+                    count++;
+                }
             }
         }
     }
     closedir(dir);
-
     return count;
 }
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags (FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT); // occhio che sfalsa visualizzazione linee spessori colori...!!!
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_TRANSPARENT ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "pixelarted");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -338,9 +442,7 @@ int main (int argc, char *argv[])
     Texture checkerboard = LoadTextureFromImage(img);
     UnloadImage(img);
 
-
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);
-
 
  // camera2d settings only effect objects between BeginMode2D and EndMode2D
    Camera2D camera = { 0 };
@@ -349,42 +451,53 @@ int main (int argc, char *argv[])
     camera.rotation = 0;        // rotation in deg
     camera.zoom     = 1.0f;      // magnification, i.e fov or zoom
 
-// file open/save variables
+// load file list and set file library variables
     char files[MAX_FILES][MAX_NAME];
-    int fileCount = load_files_recursive(".", files,0);
-    qsort(files, fileCount, MAX_NAME, compare_files);  // ordinamento file
-    int selected = 0;
-    int scrollOffset = 0;
-    const int itemHeight = 23;
-    const int listHeight = itemHeight*23; // "numero" di file vizualizzati
-    int visibleItems = listHeight / itemHeight;
+    int fileCount = loadFilesRecursive(".", files,0); // carica files .pix
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
 
-// Define colorsRecs data (for every rectangle)
-int offX=0;
-int offY=0;
-for (int i = 0; i < MAX_COLORS_COUNT; i++)
-    {
-    if (i % 3 == 0) {
-        offX=0;
-        offY++;
-    }
-    colorsRecs[i].x = colorsBarPos.x + 34.0f*offX + 2*offX;
-    colorsRecs[i].y = colorsBarPos.y + 35.0f*offY;
-    colorsRecs[i].width = 31;
-    colorsRecs[i].height = 31;
-    offX++;
-    }
+    int selectedIndex = 0;
+    int rowHeight = 21;
+    int visibleRows = 25;
+    const int centerRow = 13;
+    int scrollOffset = 0;     // primo file visualizzato
 
-// Init player 0 (cursor for bin matrix)
-    PlayerState player = { 0 };
-    player.cell = (Point){ 0, 0 };
+    // Define colorsRecs data (for every rectangle)
+    int offX=0;
+    int offY=0;
+    for (int i = 0; i < MAX_COLORS_COUNT; i++)
+        {
+        if (i % 3 == 0) {
+            offX=0;
+            offY++;
+        }
+        colorsRecs[i].x = colorsBarPos.x + 34.0f*offX + 2*offX;
+        colorsRecs[i].y = colorsBarPos.y + 35.0f*offY;
+        colorsRecs[i].width = 31;
+        colorsRecs[i].height = 31;
+        offX++;
+        }
 
-//reset matrice sprite e copia di backup
-    initGrid();
+    // Init player 0 (cursor for bin matrix)
+        PlayerState player = { 0 };
+        player.cell = (Point){ 0, 0 };
 
-// set FPS
-SetTargetFPS(60);
+        // set key repeater speed (400ms initial delay, 80ms repeat rate)
+        KeyRepeater repeater = {
+            .currentKey = 0,
+            .timer = 0.0f,
+            .isRepeating = false,
+            .firstDelay = 0.40f,
+            .repeatRate = 0.064f
+        };
 
+
+    //reset matrice sprite e copia di backup
+        initGrid();
+
+    // set FPS
+    SetTargetFPS(60);
+    ClearWindowState(FLAG_WINDOW_HIDDEN);
 while (!WindowShouldClose())
     {
         //----------------------------------------------------------------------------------
@@ -392,6 +505,7 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------------------
         Vector2 mousePos = GetMousePosition();
         float speed = 150 * GetFrameTime();
+        float deltaTime = GetFrameTime();
         
         //------------------------------------------------------------------------------
         // Choose color with mouse from top color bar
@@ -637,23 +751,34 @@ while (!WindowShouldClose())
                 //---------------------------------------------------------------------
                 //  file LIbrary management
                 //----------------------------------------------------------------------
+                isOverLib = CheckCollisionPointRec(mousePos, libraryPos); 
                 // Scroll con tastiera per sopstarsi tra i files (solo se si e' fuori dalla zona di editing)
-                 if (!isEditing)
+                 if (!isEditing) {
+                    if (fileCount >= visibleRows) 
                     {
-                        if (IsKeyPressed(KEY_DOWN)) selected++;
-                        if (IsKeyPressed(KEY_UP)) selected--;
-                        if (IsKeyPressed(KEY_ENTER) && fileCount > 0) {
-                            strcpy(fName,files[selected]);
-                            camera.zoom=1.0f;
-                            isLoading=true;
-                        }
-                        // Clamp selezione
-                        if (selected < 0) selected = 0;
-                        if (selected >= fileCount) selected = fileCount - 1;
-                        // Mantieni selezione visibile
-                        if (selected < scrollOffset) scrollOffset = selected;
-                        if (selected >= scrollOffset + visibleItems) scrollOffset = selected - visibleItems + 1;
+                        selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
+
+                        if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
+                        if (IsKeyPressed(KEY_END)) selectedIndex = fileCount -1;
+
+                        // tasti con il repeat rate attivo -----------------------------
+                        if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime)) selectedIndex++;
+                        else if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) selectedIndex--;
+                        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) selectedIndex += 9;
+                        else if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
+                        // -------------------------------------------------------------
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+                            if (selectedIndex >= 0 && selectedIndex < fileCount) {
+                                strcpy(fName,files[selectedIndex]);
+                                camera.zoom=1.0f;
+                                isLoading=true;
+                                }
+                            }
+                        // checks
+                        if (selectedIndex < 0) selectedIndex=0;
+                        if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
                     }
+                }
         }       
 //----------------------------------------------------------------------------------
 // Draw
@@ -739,7 +864,7 @@ while (!WindowShouldClose())
         // draw sprite miniature and colors info
         //----------------------------------------------------------------------
         drawThumbnail();
-        //display cursor position and selected color info 
+        //display cursor position and selectedIndex color info 
         // Draw x,y for current cell, zoom value
         DrawTextEx(font, TextFormat("x:%02i y:%02i z:%02.f%%",px,py,camera.zoom*100),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},16,0,FG_COLOR);
         // draw current color frame
@@ -758,7 +883,8 @@ while (!WindowShouldClose())
             fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
             fclose(fSave);
             // aggiorna files list
-            fileCount = load_files_recursive(".", files,0);
+            fileCount = loadFilesRecursive(".", files,0);
+            qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             isSaving=false;
         }
 
@@ -766,7 +892,7 @@ while (!WindowShouldClose())
         {
             FILE *fLoad = fopen(fName, "rb"); 
                 if (fLoad == NULL) {
-                    printf("Impossibile scrivere il file [%s]!\n",fName);
+                    printf("Impossibile leggere il file [%s]!\n",fName);
                 return 1; }
             fread(matrice, sizeof(char), sizeof(matrice), fLoad);
             fclose(fLoad);
@@ -779,23 +905,39 @@ while (!WindowShouldClose())
             //  print file list / library 
             //------------------------------------------------------------------
             DrawText("Library",libraryPos.x, 14, 20, FG_COLOR);
-            DrawRectangle(libraryPos.x,libraryPos.y + 30,160,listHeight,GRID_BG_COLOR);
-            DrawRectangleLines(libraryPos.x,libraryPos.y + 30,160,listHeight,BORDER_COLOR);
-            for (int i = 0; i < visibleItems; i++) {
-                int index = i + scrollOffset;
-                if (index >= fileCount) break;
+            DrawRectangleRec(libraryPos,GRID_BG_COLOR);
+            DrawRectangleLinesEx(libraryPos,1,BORDER_COLOR);
 
-                int y = libraryPos.y + 30 + i * itemHeight;
-                Rectangle rect = {libraryPos.x, y, 160, itemHeight};
-                    // Evidenzia file selezionato
-                if (index == selected) {
-                    DrawRectangleRec(rect, ON_COLOR);
-                }   
-                DrawText(files[index],libraryPos.x + 4 , y + 8, 10, BLACK);
-            }
+
+               
+                if (fileCount < visibleRows) visibleRows = fileCount;
+
+                scrollOffset = selectedIndex - centerRow;
+                if (scrollOffset < 0) scrollOffset = 0;
+                int maxOffset = fileCount - visibleRows;
+                if (maxOffset < 0) maxOffset = 0;
+                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+
+                    for (int i = 0; i < visibleRows; ++i) {
+
+                        if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),BORDER_COLOR);
+
+                        int fileIndex = scrollOffset + i;
+                        if (fileIndex > fileCount) break;
+
+                        if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, ON_COLOR);
+                            DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,isOverLib?BLACK:GRID_COLOR);
+                            // print truncate too long filenames (max. 88 chars)
+                            const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,32); 
+                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,isOverLib?BLACK:GRID_COLOR);
+                        
+                        }   
+                //vertical divider between index and filename 
+                DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,BORDER_COLOR);
             //------------------------------------------------------------------            
-            GuiLabel((Rectangle){ libraryPos.x+2, listHeight + 58, 160, 20 }, "Work file: ['S'] to save.");
-            if (GuiTextBox((Rectangle){ libraryPos.x, listHeight + 78, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+            
+            GuiLabel((Rectangle){ libraryPos.x+2, libraryPos.y + (visibleRows * rowHeight) + 10, 160, 20 }, "Work file: ['S'] to save.");
+            if (GuiTextBox((Rectangle){ libraryPos.x, libraryPos.y + (visibleRows * rowHeight) + 30, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
 
         // toolbar and messages
