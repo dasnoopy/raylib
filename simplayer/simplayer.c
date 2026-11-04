@@ -773,9 +773,9 @@ while (!WindowShouldClose())
                     else qsort(files, totalFiles, MAX_NAME, compareFiles);  // ordinamento file
 
                     // ricarica subito la canzone presente nella stessa posizione prima dello shuffle on/off
-                        StopMusicStream(currMusic);
-                        LoadMusicByIndex(currPlay);
-                        PlayMusicStream(currMusic);
+                        // StopMusicStream(currMusic);
+                        // LoadMusicByIndex(currPlay);
+                        // PlayMusicStream(currMusic);
 				    }
                     
                 if (IsKeyPressed(KEY_R)) isVumColored = !isVumColored;
