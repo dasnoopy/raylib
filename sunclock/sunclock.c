@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.7.8"
+#define TOOL_VERSION            "1.8.2"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -64,6 +64,7 @@ Rectangle worldMap = {
     };
 
 Rectangle infoBar = {0,540,1080,32};
+Rectangle cityPanel = {56,416,192,72};
 GeoCoords currentClick = { 0.0f, 0.0f };
 char tempBuffer[64] = { 0 };
 
@@ -84,87 +85,91 @@ typedef struct {
     const char* phaseName;  // Nome testuale della fase
 } MoonData;
 
-// list of interesting places
+// list of interesting places and big cities in the world
 // Definizione della struttura per una città
 typedef struct {
     const char *name;
     float lat;
     float lon;
     Color color;
+    int utcOffset;
 } Cities;
 
 const Cities bigCities[] = {
-    //{"Verona",          45.4383,   10.9916, ORANGE},
-    {"Roma",            41.9028,   12.4964, GREEN},
-    {"Milano",            45.4654    ,9.1859, GREEN},
-    {"Londra/Greenwich",51.4800,   -0.0000, RED},
-    {"New York",        40.7128,  -74.0060, GREEN},
-    {"Tokyo",           35.6762,  139.6503, GREEN},
-    {"Sydney",         -33.8688,  151.2093, GREEN},
-    {"Il Cairo",        30.0444,   31.2357, GREEN},
-    {"San Paolo",      -23.5505,  -46.6333, GREEN},
-    {"Città del Capo",-33.9249,   18.4241, GREEN},
-    {"Nuova Delhi",     28.6139,   77.2090, GREEN},
-    {"Reykjavik",       64.1466,  -21.9426, GREEN},
-    {"Parigi",          48.8566,    2.3522, GREEN},
-    {"Berlino",         52.5200,   13.4050, GREEN},
-    {"Madrid",          40.4168,   -3.7038, GREEN},
-    {"Mosca",           55.7558,   37.6173, GREEN},
-    {"Pechino",         39.9042,  116.4074, GREEN},
-    {"Mumbai",          19.0760,   72.8777, GREEN},
-    {"Buenos Aires",   -34.6037,  -58.3816, GREEN},
-    {"Lagos",            6.5244,    3.3792, GREEN},
-    {"Toronto",         43.6532,  -79.3832, GREEN},
-    {"Città del Messico", 19.4326, -99.1332, GREEN},
-    {"Istanbul",        41.0082,   28.9784, GREEN},
-    {"Seoul",           37.5665,  126.9780, GREEN},
-    {"Rio de Janeiro", -22.9068,  -43.1729, GREEN},
-    {"Singapore",        1.3521,  103.8198, GREEN},
-    {"Bangkok",         13.7563,  100.5018, GREEN},
-    {"Dubai",           25.2048,   55.2708, GREEN},
-    {"Los Angeles",     34.0522, -118.2437, GREEN},
-    {"Chicago",         41.8781,  -87.6298, GREEN},
-    {"Lima",           -12.0464,  -77.0428, BEIGE},
+    {"Verona",          45.4383,   10.9916, GREEN,  1},
+    {"Roma",            41.9028,   12.4964, BLUE,   1},
+     // "Milano",          45.4654,    9.1859, BLUE,   1},
+    {"Londra/Greenwich",51.4800,   -0.0000, RED,     0},
+    {"New York",        40.7128,  -74.0060, BLUE,  -5},
+    {"Tokyo",           35.6762,  139.6503, BLUE,   9},
+    {"Sydney",         -33.8688,  151.2093, BLUE,  11},
+    {"Il Cairo",        30.0444,   31.2357, BLUE,   2},
+    {"San Paolo",      -23.5505,  -46.6333, BLUE,  -3},
+    {"Città del Capo", -33.9249,   18.4241, BLUE,   2},
+    {"Nuova Delhi",     28.6139,   77.2090, BLUE,   5.5},
+    {"Reykjavik",       64.1466,  -21.9426, BLUE,   0},
+    {"Parigi",          48.8566,    2.3522, BLUE,   1},
+    {"Berlino",         52.5200,   13.4050, BLUE,   1},
+    {"Madrid",          40.4168,   -3.7038, BLUE,   1},
+    {"Mosca",           55.7558,   37.6173, BLUE,   3},
+    {"Pechino",         39.9042,  116.4074, BLUE,   8},
+    {"Mumbai",          19.0760,   72.8777, BLUE,   5.5},
+    {"Buenos Aires",   -34.6037,  -58.3816, BLUE,  -3},
+    {"Lagos",            6.5244,    3.3792, BLUE,   1},
+    {"Toronto",         43.6532,  -79.3832, BLUE,  -5},
+    {"Città del Messico", 19.4326, -99.1332, BLUE,  -6},
+    {"Istanbul",        41.0082,   28.9784, BLUE,   3},
+    {"Seoul",           37.5665,  126.9780, BLUE,   9},
+    {"Rio de Janeiro", -22.9068,  -43.1729, BLUE,  -3},
+    {"Singapore",        1.3521,  103.8198, BLUE,   8},
+    {"Bangkok",         13.7563,  100.5018, BLUE,   7},
+    {"Dubai",           25.2048,   55.2708, BLUE,   4},
+    {"Los Angeles",     34.0522, -118.2437, BLUE,  -8},
+    {"Chicago",         41.8781,  -87.6298, BLUE,  -6},
 
     // Nord America
-    {"San Francisco",   37.7749, -122.4194, GREEN},
-    {"Miami",           25.7617,  -80.1918, GREEN},
-    {"Vancouver",       49.2827, -123.1207, GREEN},
-    {"Montreal",        45.5017,  -73.5673, GREEN},
-    {"Havana",          23.1136,  -82.3666, GREEN},
+    {"Anchorage",       61.2173, -149.8631, BLUE,  -9},
+    {"San Francisco",   37.7749, -122.4194, BLUE,  -8},
+    {"Miami",           25.7617,  -80.1918, BLUE,  -5},
+    {"Vancouver",       49.2827, -123.1207, BLUE,  -8},
+    {"Montreal",        45.5017,  -73.5673, BLUE,  -5},
+    {"Havana",          23.1136,  -82.3666, BLUE,  -5},
     
     // Sud America
-    {"Santiago",       -33.4489,  -70.6693, GREEN},
-    {"Bogotà",           4.7110,  -74.0721, GREEN},
-    {"Lima",           -12.0464,  -77.0428, GREEN},
-    {"Caracas",         10.4806,  -66.9036, GREEN},
+    {"Santiago del Cile",-33.4489,  -70.6693, BLUE,  -3},
+    {"Bogotà",           4.7110,  -74.0721, BLUE,  -5},
+    {"Lima",           -12.0464,  -77.0428, BLUE,  -5},
+    {"Caracas",         10.4806,  -66.9036, BLUE,  -4},
     
     // Africa
-    {"Nairobi",         -1.2921,   36.8219, GREEN},
-    {"Johannesburg",   -26.2041,   28.0473, GREEN},
-    {"Casablanca",      33.5731,   -7.5898, GREEN},
-    {"Addis Abeba",      9.0192,   38.7468, GREEN},
-    {"Dakar",           14.7167,  -17.4677, GREEN},
+    {"Nairobi",         -1.2921,   36.8219, BLUE,   3},
+    {"Johannesburg",   -26.2041,   28.0473, BLUE,   2},
+    {"Casablanca",      33.5731,   -7.5898, BLUE,   1},
+    {"Addis Abeba",      9.0192,   38.7468, BLUE,   3},
+    {"Dakar",           14.7167,  -17.4677, BLUE,   0},
     
     // Asia & Medio Oriente
-    {"Shanghai",        31.2304,  121.4737, GREEN},
-    {"Hong Kong",       22.3193,  114.1694, GREEN},
-    {"Giacarta",        -6.2088,  106.8456, GREEN},
-    {"Manila",          14.5995,  120.9842, GREEN},
-    {"Osaka",           34.6937,  135.5023, GREEN},
-    {"Taipei",          25.0330,  121.5654, GREEN},
-    {"Teheran",         35.6892,   51.3890, GREEN},
-    {"Gerusalemme",     31.7683,   35.2137, GREEN},
-    {"Riad",            24.7136,   46.6753, GREEN},
-    {"Baghdad",         33.3152,   44.3661, GREEN},
+    {"Shanghai",        31.2304,  121.4737, BLUE,   8},
+    {"Hong Kong",       22.3193,  114.1694, BLUE,   8},
+    {"Giacarta",        -6.2088,  106.8456, BLUE,   7},
+    {"Manila",          14.5995,  120.9842, BLUE,   8},
+    {"Osaka",           34.6937,  135.5023, BLUE,   9},
+    {"Taipei",          25.0330,  121.5654, BLUE,   8},
+    {"Teheran",         35.6892,   51.3890, BLUE,   3.5},
+    {"Gerusalemme",     31.7683,   35.2137, BLUE,   2},
+    {"Riad",            24.7136,   46.6753, BLUE,   3},
+    {"Baghdad",         33.3152,   44.3661, BLUE,   3},
     
     // Oceania
-    {"Melbourne",      -37.8136,  144.9631, GREEN},
-    {"Auckland",       -36.8485,  174.7633, GREEN},
-    {"Brisbane",       -27.4705,  153.0260, GREEN},
-    {"Perth",          -31.9505,  115.8605, GREEN},
-    {"Wellington",     -41.2865,  174.7762, GREEN}
+    {"Melbourne",      -37.8136,  144.9631, BLUE,  11},
+    {"Auckland",       -36.8485,  174.7633, BLUE,  13},
+    {"Brisbane",       -27.4705,  153.0260, BLUE,  10},
+    {"Perth",          -31.9505,  115.8605, BLUE,   8},
+    {"Wellington",     -41.2865,  174.7762, BLUE,  13},
+    {"Null Island",      0.0000,    0.0000, BEIGE,  0},
+    {"Ushuaia",        -54.8072,  -68.3080, BLUE,  -3}
 };
+
 
 
 // Calcolo automatico del numero di città nell'array (C99)
@@ -175,6 +180,36 @@ bool showCities = false; // non mostrare i punti delle citta : premi C per visua
 // -----------------------------------------------------------------------------
 // Functions
 // -----------------------------------------------------------------------------
+
+struct tm getCityTime(const Cities *cities, time_t customTime) {
+    // Gestione di sicurezza nel caso in cui il puntatore sia NULL
+    if (cities == NULL) {
+        struct tm error_tm = {0};
+        return error_tm;
+    }
+
+    struct tm *utc_tm = gmtime(&customTime);
+    if (utc_tm == NULL) {
+        struct tm error_tm = {0};
+        return error_tm;
+    }
+
+    struct tm city_time = *utc_tm;
+
+    // Calcola ore e minuti di offset 
+    int offset_hours = (int)cities->utcOffset;
+    int offset_minutes = (int)((cities->utcOffset - offset_hours) * 60);
+
+    // Applica l'offset ai campi temporali della struct tm
+    city_time.tm_hour += offset_hours;
+    city_time.tm_min  += offset_minutes;
+
+    // corregge ore > 23 o minuti > 59 e aggiorna la data
+    mktime(&city_time);
+
+    return city_time;
+}
+
 
 
 // Ritorna true se è giorno, false se è notte
@@ -340,7 +375,6 @@ MoonData CalculateMoonData(time_t utc_time) {
     result.longitude = fmod(result.longitude + 180.0, 360.0);
     if (result.longitude < 0) result.longitude += 360.0;
     result.longitude -= 180.0; // Riporta nel range [-180, 180]
-
 
     result.phaseFrameIndex = frameIndex;
     result.phaseName = phaseNames[frameIndex];
@@ -734,16 +768,21 @@ while (!WindowShouldClose()) {
         // Draw Cities point
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
-                    Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -2 )  };
+                    Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
                     Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    //DrawTexture(city,cityPos.x,cityPos.y, bigCities[i].color);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, BLUE );
-                    Vector2 citySize = MeasureTextEx(mainFont, bigCities[i].name, (float)mainFont.baseSize, 0);
-                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 8.0f)) {
-                        DrawRectangle(cityPos.x, cityPos.y + 1,citySize.x + 1,citySize.y + 1, WHITE);
-                        DrawTextEx(mainFont,bigCities[i].name,cityPos,(float)mainFont.baseSize,0,BLACK);
+                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, bigCities[i].color );
+             
+                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f)) {
+                        DrawRectangleRounded(cityPanel,0.16f,24, RAYWHITE);
+                        DrawTextEx(mainFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)mainFont.baseSize,0,bigCities[i].color);
+                        DrawTextEx(mainFont,TextFormat("Longitudine: %.2f", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)mainFont.baseSize,0,BLACK);
+                        DrawTextEx(mainFont,TextFormat("Latitudine : %.2f", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)mainFont.baseSize,0,BLACK);
+
+                        struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
+                        strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
+                        DrawTextEx(mainFont, TextFormat("%s UTC%+i", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
                     }
-            }
+               }
         }
 
 		//  traiettoria annuale del sole
@@ -814,6 +853,7 @@ while (!WindowShouldClose()) {
 		DrawText(TextFormat("v%s", TOOL_VERSION), 1040,infoBar.y +10, 10, GRAY); 
 		//DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
     EndScissorMode();
+ 
 
 	EndDrawing();
 }
