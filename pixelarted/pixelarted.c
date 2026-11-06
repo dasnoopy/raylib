@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "2.0.2"
+#define TOOL_VERSION            "2.0.3"
 
 #include <stdio.h>
 #include <time.h>
@@ -884,6 +884,7 @@ while (!WindowShouldClose())
             fclose(fSave);
             // aggiorna files list
             fileCount = loadFilesRecursive(".", files,0);
+            visibleRows = fileCount;
             qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             isSaving=false;
         }
@@ -936,8 +937,8 @@ while (!WindowShouldClose())
                 DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,BORDER_COLOR);
             //------------------------------------------------------------------            
             
-            GuiLabel((Rectangle){ libraryPos.x+2, libraryPos.y + (visibleRows * rowHeight) + 10, 160, 20 }, "Work file: ['S'] to save.");
-            if (GuiTextBox((Rectangle){ libraryPos.x, libraryPos.y + (visibleRows * rowHeight) + 30, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+            GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y - 40, 160, 20 }, "Work file: ['S'] to save.");
+            if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y - 20, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
 
         // toolbar and messages
@@ -1019,6 +1020,7 @@ while (!WindowShouldClose())
 
         EndDrawing();
     }
+    printf("%i\n", visibleRows);
     UnloadRenderTexture(target);
     UnloadFont(font);
     CloseWindow();

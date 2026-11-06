@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.8.2"
+#define TOOL_VERSION            "1.8.3"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -64,7 +64,7 @@ Rectangle worldMap = {
     };
 
 Rectangle infoBar = {0,540,1080,32};
-Rectangle cityPanel = {56,416,192,72};
+Rectangle cityPanel = {56,416,194,72};
 GeoCoords currentClick = { 0.0f, 0.0f };
 char tempBuffer[64] = { 0 };
 
@@ -92,7 +92,7 @@ typedef struct {
     float lat;
     float lon;
     Color color;
-    int utcOffset;
+    double utcOffset;
 } Cities;
 
 const Cities bigCities[] = {
@@ -166,7 +166,7 @@ const Cities bigCities[] = {
     {"Brisbane",       -27.4705,  153.0260, BLUE,  10},
     {"Perth",          -31.9505,  115.8605, BLUE,   8},
     {"Wellington",     -41.2865,  174.7762, BLUE,  13},
-    {"Null Island",      0.0000,    0.0000, BEIGE,  0},
+    {"Null Island",      0.0000,    0.0000, GOLD,  0},
     {"Ushuaia",        -54.8072,  -68.3080, BLUE,  -3}
 };
 
@@ -209,7 +209,6 @@ struct tm getCityTime(const Cities *cities, time_t customTime) {
 
     return city_time;
 }
-
 
 
 // Ritorna true se è giorno, false se è notte
@@ -566,6 +565,11 @@ while (!WindowShouldClose()) {
 		float dt = GetFrameTime();
         Vector2 mousePos = GetMousePosition();
 
+        // percentuale di illuminazione della luna
+        // *** BUG??? se questo pezzo di codice dopo calcoli sole tempo indietro di 1h (GMT)
+        double jd_now = getJulianDateTime(simulatedTime);
+        float moonLightPerc = (float)getIlluminatedFractionOfMoon(jd_now);
+
         // Avanzamento in tempo reale del movimento sole/lunaa giorno/notte
         timeAccumulator += GetFrameTime();
         if (timeAccumulator >= 1.0f) {
@@ -576,8 +580,6 @@ while (!WindowShouldClose()) {
 
         float stepParallel = 3.0f; //3 = 1 grado x disegno griglia paralleli
         float stepMeridian = 3.0f; //3 = 1 grado x disegno griglia meridiani
-
-
 
         // ---------------------------------------------------------------------
         // traiettoria del sole
@@ -701,13 +703,6 @@ while (!WindowShouldClose()) {
         // Calcola la posizione dei pixel sulla mappa equirettangolare dello schermo
         Vector2 moonPos = MapGeoToPixel(RAD(moon.longitude), RAD(moon.latitude),worldMap.width, worldMap.height);
 
-        // percentuale di illuminazione della luna
-        // *** BUG??? se questo pezzo di codice dopo calcoli sole tempo indietro di 1h (GMT)
-        double jd_now = getJulianDateTime(simulatedTime);
-        float moonLightPerc = (float)getIlluminatedFractionOfMoon(jd_now);
-
-
-
         //
         // do something when  window loses focus
         //
@@ -780,13 +775,13 @@ while (!WindowShouldClose()) {
 
                         struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
                         strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
-                        DrawTextEx(mainFont, TextFormat("%s UTC%+i", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
+                        DrawTextEx(mainFont, TextFormat("%s UTC+%.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
                     }
                }
         }
 
 		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, RED);
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
 
     	// "disegno" centrato del sole con una icona personalizzata
         Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
