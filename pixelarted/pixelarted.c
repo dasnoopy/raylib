@@ -884,7 +884,6 @@ while (!WindowShouldClose())
             fclose(fSave);
             // aggiorna files list
             fileCount = loadFilesRecursive(".", files,0);
-            visibleRows = fileCount;
             qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             isSaving=false;
         }
