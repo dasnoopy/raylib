@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "2.0.3"
+#define TOOL_VERSION            "2.0.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -38,6 +38,13 @@ size_t fileCount;
 #define MAX_FILES 4096
 #define MAX_NAME 1024
 char files[MAX_FILES][MAX_NAME];
+
+int selectedIndex = 0;
+int rowHeight = 21;
+int visibleRows;
+int maxRows = 25;
+int centerRow;
+int scrollOffset = 0;     // primo file visualizzato
 
 // barra path su Linux oppure su WIN
 #ifdef _WIN32
@@ -452,15 +459,13 @@ int main (int argc, char *argv[])
     camera.zoom     = 1.0f;      // magnification, i.e fov or zoom
 
 // load file list and set file library variables
-    char files[MAX_FILES][MAX_NAME];
-    int fileCount = loadFilesRecursive(".", files,0); // carica files .pix
+    fileCount = loadFilesRecursive(".", files,0); // carica files .png
+    // setta variabile di visualizzazione libreria in base al numero di files presenti...
+        if (fileCount<maxRows) visibleRows = fileCount;
+        else visibleRows=maxRows;
+        centerRow = visibleRows / 2;
     qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
 
-    int selectedIndex = 0;
-    int rowHeight = 21;
-    int visibleRows = 25;
-    const int centerRow = 13;
-    int scrollOffset = 0;     // primo file visualizzato
 
     // Define colorsRecs data (for every rectangle)
     int offX=0;
@@ -882,10 +887,17 @@ while (!WindowShouldClose())
                     return 1; }
             fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
             fclose(fSave);
-            // aggiorna files list
-            fileCount = loadFilesRecursive(".", files,0);
-            qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
-            isSaving=false;
+
+    // aggiorna files list
+    fileCount = loadFilesRecursive(".", files,0);
+        // setta variabile di visualizzazione libreria in base al numero di files presenti...
+        if (fileCount<maxRows) visibleRows = fileCount;
+        else visibleRows=maxRows;
+        centerRow = visibleRows / 2;
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+    isSaving=false;
+
+
         }
 
         if (isLoading)
