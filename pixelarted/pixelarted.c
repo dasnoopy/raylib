@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.0.5"
+#define TOOL_VERSION            "3.0.8"
 
 #include <stdio.h>
 #include <time.h>
@@ -57,12 +57,12 @@ int scrollOffset = 0;     // primo file visualizzato
 #define MAX_COLORS_COUNT    24          // Number of colors available
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {40, 328};
+const Vector2 colorsBarPos = {40, 340};
 const Vector2 spriteGridPos = {220, 48};
-const Vector2 miniaturePos = {44,72};
+const Vector2 miniaturePos = {44,64};
 const Vector2 toolbarPos = {40,178};
 const Vector2 keyinfoPos = {912,620};
-const Vector2 colorsInfoPos = {16,654};
+const Vector2 colorsInfoPos = {24,560};
 const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
@@ -76,7 +76,7 @@ Color selectedColor = (Color){0,0,0,0}; // Nero
 Color currentColor = (Color){0,0,0,0}; // trasparente
 int colorMouseHover = 0;
 int paletteColor = 0;
-int miniatureSCALE= 3;
+int miniatureScale= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
 char fName[] = "default.png";
@@ -92,7 +92,7 @@ bool isDrawing = false;
 bool isSaving=false;
 bool isOverLib = false;
 bool isDebug = false;
-int px,py;
+int px,py,px1,py1;
 
 // Key repeat structure
 typedef struct {
@@ -134,17 +134,6 @@ const Color colors[MAX_COLORS_COUNT] = {
         myBLANK, myWHITE,myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
         mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
         myLIGHTGRAY, myGRAY, myDARKGRAY, myBLACK };
-
-// // Colors to choose from
-// const Color colors[MAX_COLORS_COUNT] = {
-//          BLANK, WHITE,YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, DARKGREEN,
-//          SKYBLUE, BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN,
-//          LIGHTGRAY, GRAY, DARKGRAY, BLACK };
-
-const char *colorNames[MAX_COLORS_COUNT] = { 
-        "Blank","White", "Yellow", "Gold", "Orange", "Pink", "Red", "Maroon", "Green", "Lime", "DarkGreen",
-        "SkyBlue", "Blue", "DarkBlue", "Purple", "Violet", "DarkPurple", "Beige", "Brown", "DarkBrown",
-        "LightGray", "Gray", "DarkGray", "Black" };
 
 // Define colorsRecs data
 Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
@@ -233,7 +222,7 @@ void showSimilColors(Color color)
     Color textColor = GetReadableTextColor(color);
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++) 
-            if (AreColorsEqual(matrice[row][col], color)) DrawText("X", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
+            if (AreColorsEqual(matrice[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
 
 }
 
@@ -302,7 +291,6 @@ void drawSprite()
                           cellSize, 
                           cellSize }, 
                           matrice[row][col]);
-
                     }
                 }   
 }
@@ -310,14 +298,14 @@ void drawSprite()
 void drawThumbnail (void)
 {
     // cornice e sfondo miniatura
-        DrawRectangleLines(miniaturePos.x-2, miniaturePos.y-2 , 4+(numCols*miniatureSCALE), 4+(numRows*miniatureSCALE), BORDER_COLOR);
-        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureSCALE,numRows*miniatureSCALE, GRID_BG_COLOR);
+        DrawRectangleLines(miniaturePos.x-2, miniaturePos.y-2 , 4+(numCols*miniatureScale), 4+(numRows*miniatureScale), BORDER_COLOR);
+        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureScale,numRows*miniatureScale, GRID_BG_COLOR);
         //miniatura
         for (int row = 0; row < numRows; row++)
         {
             for (int col = 0; col < numCols; ++col)
             {
-            DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE,miniatureSCALE, matrice[row][col]);
+            DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, matrice[row][col]);
             }
         }
 }
@@ -542,14 +530,14 @@ int main (int argc, char *argv[])
     int offY=0;
     for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
-        if (i % 3 == 0) {
+        if (i % 4 == 0) {
             offX=0;
             offY++;
         }
-        colorsRecs[i].x = colorsBarPos.x + 34.0f*offX + 2*offX;
-        colorsRecs[i].y = colorsBarPos.y + 35.0f*offY;
-        colorsRecs[i].width = 31;
-        colorsRecs[i].height = 31;
+        colorsRecs[i].x = colorsBarPos.x + 25 * offX + 2*offX;
+        colorsRecs[i].y = colorsBarPos.y + 26 * offY;
+        colorsRecs[i].width = 24;
+        colorsRecs[i].height = 24;
         offX++;
         }
 
@@ -664,7 +652,8 @@ while (!WindowShouldClose())
 
                 if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
                     selectedColor = matrice[player.cell.x][player.cell.y];
-                    paletteColor = 25;
+                    px1=px;
+                    py1=py;
                 }
 
             //-------------------------------------------------------------------
@@ -875,7 +864,7 @@ while (!WindowShouldClose())
         //  riquadro attorno ai colori
             DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
         }
-        // passando sopra il colore rendilo piu chiaro
+        // passando sopra il colore evidenzialo piu chiaro
         if (paletteColor > -1 || paletteColor < MAX_COLORS_COUNT) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.3f));
 
 
@@ -919,13 +908,13 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         for (int row = 0; row < numRows; row++)
         {
-            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, font.baseSize, -1, FG_COLOR); //sinistra
-            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, font.baseSize, -1, FG_COLOR);//destra
+            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 3) + (row * cellSize)}, font.baseSize, -1, FG_COLOR); //sinistra
+            //DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, font.baseSize, -1, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
-            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},font.baseSize,-1,FG_COLOR);//sopra
-            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,font.baseSize,-1,FG_COLOR);//sotto
+            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 2 + (col * cellSize),spriteGridPos.y -20},font.baseSize,-1,FG_COLOR);//sopra
+            //DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,font.baseSize,-1,FG_COLOR);//sotto
         }
 
         //----------------------------------------------------------------------
@@ -934,18 +923,24 @@ while (!WindowShouldClose())
         drawThumbnail();
 
         //display cursor position and selectedIndex color info 
-        // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x: %02i y: %02i z: %02.f%%",px,py,camera.zoom*100),(Vector2){colorsInfoPos.x+12, colorsInfoPos.y-6},font.baseSize,-1,FG_COLOR);
-        
-        // draw selected color
-        DrawRectangleLines(colorsInfoPos.x-2  ,colorsInfoPos.y + 18 , 22,22,BORDER_COLOR);
-        DrawRectangle(colorsInfoPos.x ,colorsInfoPos.y + 20, 18 , 18, currentColor);
-        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x+24,colorsInfoPos.y + 22},font.baseSize,-1,FG_COLOR);
-
         // draw current color under mouse cursor
-        DrawRectangleLines(colorsInfoPos.x-2  ,colorsInfoPos.y + 44 , 22,22,BORDER_COLOR);
-        DrawRectangle(colorsInfoPos.x ,colorsInfoPos.y + 46, 18 , 18, selectedColor);
-        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x+24,colorsInfoPos.y + 48},font.baseSize,-1,FG_COLOR);
+        DrawRectangle(colorsInfoPos.x, colorsInfoPos.y, 23,23,currentColor);
+        DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y, 23,23,GRID_COLOR);
+        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 28},font.baseSize,-1,FG_COLOR);
+        
+        DrawLine(colorsInfoPos.x,colorsInfoPos.y+52,colorsInfoPos.x+148,colorsInfoPos.y+52,GRID_COLOR);
+
+        // Draw x,y for current cell, zoom value
+        DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},font.baseSize,-1,FG_COLOR);
+        DrawTextEx(font, TextFormat("x1:%02i y1:%02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},font.baseSize,-1,FG_COLOR);
+        DrawTextEx(font, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){colorsInfoPos.x+16, colorsInfoPos.y+124},22,-1,BLACK);
+
+        // draw selected color
+        DrawRectangle(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, selectedColor);
+        DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
+        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 88},font.baseSize,-1,FG_COLOR);
+
+
 
         // -----------------------------------------------------------------
         //  print file list / library 
