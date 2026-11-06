@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "2.0.5"
+#define TOOL_VERSION            "3.0.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -29,10 +29,11 @@ const int screenHeight = 732;
 
 #define numCols       32
 #define numRows       32
+#define MATRICE_SIZE 32
 const int cellSize = 20;
 
 // Music library && files management
-#define FILTER_PIX      ".pix"
+#define FILTER_PNG      ".png"
 
 size_t fileCount;
 #define MAX_FILES 4096
@@ -56,28 +57,30 @@ int scrollOffset = 0;     // primo file visualizzato
 #define MAX_COLORS_COUNT    24          // Number of colors available
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {40, 356};
+const Vector2 colorsBarPos = {40, 328};
 const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,72};
-const Vector2 toolbarPos = {40,194};
+const Vector2 toolbarPos = {40,178};
 const Vector2 keyinfoPos = {912,620};
+const Vector2 colorsInfoPos = {16,654};
 const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // definizione matrici
-int matrice[numRows][numCols];
-int matriceUndo[numRows][numCols];
-int matriceMirror[numRows][numCols];
+Color matrice[numRows][numCols];
+Color matriceUndo[numRows][numCols];
+Color matriceMirror[numRows][numCols];
 
 // Definizione variabili
-int selectedColor = 24;
-int currentColor = 0;
+Color selectedColor = (Color){0,0,0,0}; // Nero
+Color currentColor = (Color){0,0,0,0}; // trasparente
 int colorMouseHover = 0;
+int paletteColor = 0;
 int miniatureSCALE= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fName[] = "default.pix";
-const char extfName[] = ".pix" ;
+char fName[] = "default.png";
+const char extfName[] = ".png" ;
 bool fnameEditMode = false;
 bool isEditing = false;
 bool isDrawHmirr = false;
@@ -86,10 +89,9 @@ bool isFloodFill = false;
 bool isColorRepl = false;
 bool isDrawing = false;
 // gestione stato load & save file
-bool isLoading=false;
 bool isSaving=false;
-bool debug = false;
 bool isOverLib = false;
+bool isDebug = false;
 int px,py;
 
 // Key repeat structure
@@ -117,9 +119,9 @@ typedef struct {
 #define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
 #define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
 #define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myPURPLE     CLITERAL(Color){ 144,99,205, 255 }   // Purple
-#define myVIOLET     CLITERAL(Color){ 112,74,191, 255 }    // Violet
 #define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
+#define myVIOLET     CLITERAL(Color){ 135, 60, 190, 255}    // Violet
+#define myPURPLE     CLITERAL(Color){ 200, 122, 255, 255}   // Purple
 #define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
 #define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
 #define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
@@ -193,31 +195,48 @@ typedef struct {
 // Functions
 //----------------------------------------------------------------------------------
 
-Color darkenColor(Color color, float factor)
+bool AreColorsEqualThreshold(Color c1, Color c2, int threshold) 
 {
-    if (factor < 0.0f) factor = 0.0f;
-    if (factor > 1.0f) factor = 1.0f;
-
-    return (Color){
-        (unsigned char)(color.r * factor),
-        (unsigned char)(color.g * factor),
-        (unsigned char)(color.b * factor),
-        color.a
-    };
+    return (abs(c1.r - c2.r) <= threshold) &&
+           (abs(c1.g - c2.g) <= threshold) &&
+           (abs(c1.b - c2.b) <= threshold) &&
+           (c1.a == c2.a); // Alpha deve essere identico
 }
 
-Color lightenColor(Color color, float factor)
+// Funzione  per confrontare due colori
+bool AreColorsEqual(Color c1, Color c2) 
 {
-    if (factor < 0.0f) factor = 0.0f;
-    if (factor > 1.0f) factor = 1.0f;
+    // return (c1.r == c2.r) && 
+    //        (c1.g == c2.g) && 
+    //        (c1.b == c2.b) && 
+    //        (c1.a == c2.a);
 
-    return (Color){
-        (unsigned char) ( color.r + (255-color.r) * factor ),
-        (unsigned char) ( color.g + (255-color.g) * factor ),
-        (unsigned char) ( color.b + (255-color.b) * factor ),
-        color.a
-    };
+    //
+    return *(uint32_t*)&c1 == *(uint32_t*)&c2;
+    // raylib ha gia cmq la funzione ColorIsEqual
 }
+
+// Restituisce un testo leggibile (BIANCO o NERO) in base al colore di sfondo
+Color GetReadableTextColor(Color bgColor) {
+    
+    // intercetta colori con trasparenza quasi a zero (che visivamente si fa fatica a distinguere)
+    if (bgColor.a <= 24) return BLACK;
+
+    // Formula della luminanza percepita dall'occhio umano
+    float luminance = 0.299f * bgColor.r + 0.587f * bgColor.g + 0.114f * bgColor.b;
+    return (luminance > 127.5f) ? BLACK : WHITE;
+}
+
+// trova i colori uguali nella matrice e mostra una "X" all'interno della "cella" (KEY_D)
+void showSimilColors(Color color)
+{
+    Color textColor = GetReadableTextColor(color);
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++) 
+            if (AreColorsEqual(matrice[row][col], color)) DrawText("X", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
+
+}
+
 
 // Funzione che aggiorna lo stato delle pressione di un tasto
 // e restituisce true se l'azione deve essere eseguita
@@ -282,7 +301,7 @@ void drawSprite()
                         DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), 
                           cellSize, 
                           cellSize }, 
-                          colors[matrice[row][col]]);
+                          matrice[row][col]);
 
                     }
                 }   
@@ -298,7 +317,7 @@ void drawThumbnail (void)
         {
             for (int col = 0; col < numCols; ++col)
             {
-            DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE,miniatureSCALE, colors[matrice[row][col]]);
+            DrawRectangle(miniaturePos.x + (miniatureSCALE * col), miniaturePos.y + (miniatureSCALE*row) ,miniatureSCALE,miniatureSCALE, matrice[row][col]);
             }
         }
 }
@@ -308,29 +327,24 @@ void initGrid(void)
 {
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++)
-            matrice[row][col] = 0;
+            matrice[row][col] = (Color){0,0,0.0};
 }
-void showArrayVal(void)
+
+void replaceColor(Color old, Color new)
 {
-    for (int row = 0; row < numRows; row++)
+    for (int row = 0; row < numRows; row++) 
         for (int col = 0; col < numCols; col++) 
-            DrawText(TextFormat("%2d",matrice[row][col]), 4 + (spriteGridPos.x + cellSize*col), 5 + (spriteGridPos.y + cellSize*row),10, FG_COLOR);
+             if (ColorIsEqual(matrice[row][col],old)) matrice[row][col] = new;
 }
 
-void replaceColor(int old, int new)
-{
-            for (int row = 0; row < numRows; row++) 
-                for (int col = 0; col < numCols; col++) 
-                    if (matrice[row][col] == old) matrice[row][col] = new;
-}
 
-void copyMatrix(int * src, int * dst, int N, int M)
+void copyMatrix(Color * src, Color * dst, int N, int M)
 {
     for(int i=0; i<N; i++)
         for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
 }
 
-void floodFill(int row, int col, int oldColor, int newColor)
+void floodFill(int row, int col, Color oldColor, Color newColor)
 {
     int checkRow; /* The positions we're checking currently */
     int checkCol;
@@ -340,7 +354,7 @@ void floodFill(int row, int col, int oldColor, int newColor)
         int dy;
     }   adjacent[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
 
-    if(oldColor != newColor)
+    if(!ColorIsEqual(oldColor,newColor))
     {
         matrice[row][col] = newColor;
         for(int i = 0; i < 4; i++)
@@ -351,7 +365,7 @@ void floodFill(int row, int col, int oldColor, int newColor)
             {
                 if((checkRow >= 0) && (checkCol >= 0))
                 {
-                    if(matrice[checkRow][checkCol] == oldColor)
+                    if(ColorIsEqual(matrice[checkRow][checkCol],oldColor))
                     {
                         matrice[checkRow][checkCol] = newColor;
                         floodFill(checkRow, checkCol, oldColor, newColor);
@@ -417,7 +431,7 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
         else if (S_ISREG(st.st_mode)) {
             const char *ext = strrchr(name, '.');
 
-            if (ext && strcmp(ext, FILTER_PIX) == 0) {
+            if (ext && strcmp(ext, FILTER_PNG) == 0) {
                 int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
                 if (written >= 0 && written < MAX_NAME) {
                     count++;
@@ -427,6 +441,62 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
     }
     closedir(dir);
     return count;
+}
+
+void loadPngToGrid(const char *filename) {
+    // 1. Inizializza TUTTA la matrice a trasparente (cancella lo sporco precedente)
+    for (int x = 0; x < numRows; x++) {
+        for (int y = 0; y < numCols; y++) {
+            matrice[x][y] = BLANK; // oppure(Color){ 0, 0, 0, 0 }
+        }
+    }
+    Image img = LoadImage(filename);
+    
+    // Sicurezza: controlla se l'immagine è stata caricata correttamente
+    if (img.data != NULL) {
+        
+        // 3. Determina i limiti massimi per non andare fuori dai bordi della matrice
+        int maxWidth = (img.width > numCols) ? numCols : img.width;
+        int maxHeight = (img.height > numRows) ? numRows : img.height;
+
+        // 4. Copia i pixel dall'immagine alla matrice solo fino alle dimensioni effettive
+        for (int y = 0; y < maxHeight; y++) {
+            for (int x = 0; x < maxWidth; x++) {
+                // GetImageColor estrae il colore RGBA corretto indipendentemente dal formato nativo del PNG
+                matrice[y][x] = GetImageColor(img, x, y);
+            }
+        }
+        UnloadImage(img);
+    }
+}
+
+void saveGridToPNG(const char *filename) {
+    // Crea l'immagine 32x32 temporanea in RAM
+    Image img = GenImageColor(numCols, numRows, BLANK);
+
+    // Trasferisci i dati dall'array bidimensionale ai pixel del PNG
+    for (int y = 0; y < numRows; y++) 
+    {
+        for (int x = 0; x < numCols; x++) 
+        {
+            Color indiceColore = matrice[y][x];
+            ImageDrawPixel(&img, x, y, indiceColore);
+        }
+    }
+    // Esportiamo l'immagine a 32x32 pixel pixel-perfect in formato .PNG
+    if (ExportImage(img, fName)) TraceLog(LOG_INFO, "file salvato con successo!");
+    else TraceLog(LOG_ERROR, "Errore durante il salvataggio del file.");
+
+    UnloadImage(img);
+
+    // aggiorna files list
+    fileCount = loadFilesRecursive(".", files,0);
+        // setta variabile di visualizzazione libreria in base al numero di files presenti...
+        if (fileCount<maxRows) visibleRows = fileCount;
+        else visibleRows=maxRows;
+        centerRow = visibleRows / 2;
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+    isSaving=false;
 }
 
 int main (int argc, char *argv[])
@@ -439,7 +509,7 @@ int main (int argc, char *argv[])
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
     // load TTF font with better antialiasing
-    Font font = LoadFontEx("assets/computer-says-no.otf", 16, 0, 0);
+    Font font = LoadFontEx("assets/SF-Mono-Regular.ttf", 16, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
     GuiSetIconScale(1);
@@ -498,11 +568,12 @@ int main (int argc, char *argv[])
 
 
     //reset matrice sprite e copia di backup
-        initGrid();
+    initGrid();
 
     // set FPS
     SetTargetFPS(60);
     ClearWindowState(FLAG_WINDOW_HIDDEN);
+
 while (!WindowShouldClose())
     {
         //----------------------------------------------------------------------------------
@@ -513,10 +584,10 @@ while (!WindowShouldClose())
         float deltaTime = GetFrameTime();
         
         //------------------------------------------------------------------------------
-        // Choose color with mouse from top color bar
+        // Choose color with mouse from colors palette
         //------------------------------------------------------------------------------
-        if (selectedColor >= MAX_COLORS_COUNT) selectedColor = MAX_COLORS_COUNT - 1;
-        else if (selectedColor < 0) selectedColor = 0;
+        if (paletteColor >= MAX_COLORS_COUNT) paletteColor = MAX_COLORS_COUNT - 1;
+        else if (paletteColor < 0) paletteColor = 0;
 
         for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
@@ -528,7 +599,10 @@ while (!WindowShouldClose())
             else colorMouseHover = -1;
         }
         //LEFT MOUSE :select color
-        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) selectedColor = colorMouseHover;
+        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            paletteColor = colorMouseHover;
+            selectedColor = colors[colorMouseHover];
+        }
 
         //------------------------------------------------------------------------------
         // rileva se la posizione mouse e' dentro la matrice sprite...
@@ -588,7 +662,10 @@ while (!WindowShouldClose())
                         if (isFloodFill) floodFill(px,py,currentColor,selectedColor);
                     }
 
-                if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) selectedColor = matrice[player.cell.x][player.cell.y];
+                if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+                    selectedColor = matrice[player.cell.x][player.cell.y];
+                    paletteColor = 25;
+                }
 
             //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
@@ -627,35 +704,23 @@ while (!WindowShouldClose())
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
             if (btnQuit || IsKeyPressed(KEY_Q)) break;
-            else if (IsKeyPressed(KEY_D)) debug = !debug;
             else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
-            else if (IsKeyPressed(KEY_S)) isSaving=true; //save file
-
-            else if (IsKeyPressed(KEY_W)) 
-            {
-                // Crea l'immagine 32x32 temporanea in RAM
-                Image img = GenImageColor(numCols, numRows, BLANK);
-
-                // Trasferisci i dati dall'array bidimensionale ai pixel del PNG
-                for (int y = 0; y < numRows; y++) 
-                {
-                    for (int x = 0; x < numCols; x++) 
-                    {
-                        int indiceColore = matrice[y][x];
-                        if (indiceColore >= 0 && indiceColore < MAX_COLORS_COUNT) ImageDrawPixel(&img, x, y, colors[indiceColore]);
-                    }
-                }
-                // Esportiamo l'immagine a 32x32 pixel pixel-perfect in formato .PNG
-                if (ExportImage(img, "screenshot_mappa.png")) TraceLog(LOG_INFO, "Mappa salvata con successo in 'screenshot_mappa.png'!");
-                else TraceLog(LOG_ERROR, "Errore durante il salvataggio dello screenshot.");
-
-                UnloadImage(img);
+            else if (IsKeyPressed(KEY_S)) saveGridToPNG(fName);
+            else if (IsKeyPressed(KEY_D)) isDebug = !isDebug;
+            else if (IsKeyPressed(KEY_L)) {
+                    // aggiorna files list
+                    fileCount = loadFilesRecursive(".", files,0);
+                        // setta variabile di visualizzazione libreria in base al numero di files presenti...
+                        if (fileCount<maxRows) visibleRows = fileCount;
+                        else visibleRows=maxRows;
+                        centerRow = visibleRows / 2;
+                    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             }
             else if (btnGrid) showGrid = !showGrid;
             else if (btnNew)
             {
                     initGrid();
-                    strcpy(fName,"default.pix");
+                    strcpy(fName,"default.png");
                     //azzera matrice undo
                     copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
             }
@@ -671,7 +736,7 @@ while (!WindowShouldClose())
                 for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza ultimo bit della riga
-                        const int temp = matrice[row][numCols - 1];
+                        const Color temp = matrice[row][numCols - 1];
                         for (int col = numCols-1; col > 0; col--) // colonne
                             matrice[row][col] = matrice[row][col-1];
                         // alla fine il "primo" bit prende il valore dell'ultimo
@@ -683,7 +748,7 @@ while (!WindowShouldClose())
                 for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza primo bit della riga
-                        const int temp = matrice[row][0];
+                        const Color temp = matrice[row][0];
                         for (int col = 0; col < numCols-1; col++) // colonne
                             matrice[row][col] = matrice[row][col+1];
                         // alla fine ultimo bit prende il valore del prim
@@ -695,7 +760,7 @@ while (!WindowShouldClose())
                 for (int col = 0; col < numCols; col++) // colonne
                     {
                         // memorizza prima riga
-                        const int temp = matrice[0][col];
+                        const Color temp = matrice[0][col];
                             for (int row=0; row < numRows-1; row++) // righe
                                 matrice[row][col] = matrice[row+1][col];
                         // ultima riga prende valori della prima
@@ -707,7 +772,7 @@ while (!WindowShouldClose())
                     for (int col = 0; col < numCols; col++) // colonne
                         {
                             // memorizza stato ultima riga
-                            const int temp = matrice[numRows - 1][col];
+                            const Color temp = matrice[numRows - 1][col];
                             for (int row = numRows -1;  row > 0; row--) // righe
                                 matrice[row][col] = matrice[row-1][col];
                             // prima riga prende valore ultima riga
@@ -720,7 +785,7 @@ while (!WindowShouldClose())
                     // trasposizione  matrice binaria
                     for (int row = 0; row < numRows; row++) {
                         for (int col = row + 1 ; col < numCols ; col++) { 
-                           int temp = matrice[col][row];
+                           Color temp = matrice[col][row];
                            matrice[col][row] =  matrice[row][col];
                            matrice[row][col] = temp;
                         }
@@ -728,7 +793,7 @@ while (!WindowShouldClose())
                     // poi ruota di 90° in senso orario
                     for (int row = 0; row < numRows; row++) {
                         for (int col = 0,k = numCols -1; col<k; col++, k--) { 
-                           int temp = matrice[row][col];
+                           Color temp = matrice[row][col];
                            matrice[row][col] =  matrice[row][k];
                            matrice[row][k] = temp;
                         }
@@ -776,7 +841,10 @@ while (!WindowShouldClose())
                             if (selectedIndex >= 0 && selectedIndex < fileCount) {
                                 strcpy(fName,files[selectedIndex]);
                                 camera.zoom=1.0f;
-                                isLoading=true;
+                                // carica file .png
+                                loadPngToGrid(fName);
+                                // fai subito una copia della matrice
+                                copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                                 }
                             }
                         // checks
@@ -806,14 +874,10 @@ while (!WindowShouldClose())
             DrawRectangleRec(colorsRecs[i], colors[i]);
         //  riquadro attorno ai colori
             DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
-        // debug info
-            if (debug)  DrawText(TextFormat("%2d",i), colorsRecs[i].x + 2 , colorsRecs[i].y + 4,10, FG_COLOR);
         }
         // passando sopra il colore rendilo piu chiaro
-        if (colorMouseHover >= 0) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.2f));
-        // cliccando sul colore disegna riguadro attorno o sotto per evidenziare selezione
-        DrawRectangleLinesEx((Rectangle){ colorsRecs[selectedColor].x-1, colorsRecs[selectedColor].y-1 ,
-                            colorsRecs[selectedColor].width+2, colorsRecs[selectedColor].height+2},3, BLACK);
+        if (paletteColor > -1 || paletteColor < MAX_COLORS_COUNT) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.3f));
+
 
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
@@ -824,8 +888,7 @@ while (!WindowShouldClose())
         DrawTexture(checkerboard, spriteGridPos.x, spriteGridPos.y, WHITE);
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
-        if (debug) showArrayVal();  // enable just to debug content of matrix
-
+        if (isDebug) showSimilColors(currentColor);  // enable just to debug content of matrix
         //----------------------------------------------------------------------
         // Draw cursor moving when inside the sprite grid
         //----------------------------------------------------------------------
@@ -856,97 +919,64 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         for (int row = 0; row < numRows; row++)
         {
-        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, 12, 0, FG_COLOR); //sinistra
-        DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, 12, 0, FG_COLOR);//destra
+            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 4) + (row * cellSize)}, font.baseSize, -1, FG_COLOR); //sinistra
+            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, font.baseSize, -1, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
-        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},12,0,FG_COLOR);//sopra
-        DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,12,0,FG_COLOR);//sotto
+            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y -20},font.baseSize,-1,FG_COLOR);//sopra
+            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,font.baseSize,-1,FG_COLOR);//sotto
         }
 
         //----------------------------------------------------------------------
         // draw sprite miniature and colors info
         //----------------------------------------------------------------------
         drawThumbnail();
+
         //display cursor position and selectedIndex color info 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i z:%02.f%%",px,py,camera.zoom*100),(Vector2){colorsBarPos.x+ 10, colorsBarPos.y+346},16,0,FG_COLOR);
-        // draw current color frame
-        DrawRectangleLines(colorsBarPos.x-20  ,colorsBarPos.y + 342 , 22,22,BORDER_COLOR);
-        DrawRectangle(colorsBarPos.x-18 ,colorsBarPos.y + 344, 18 , 18, colors[currentColor]);
+        DrawTextEx(font, TextFormat("x: %02i y: %02i z: %02.f%%",px,py,camera.zoom*100),(Vector2){colorsInfoPos.x+12, colorsInfoPos.y-6},font.baseSize,-1,FG_COLOR);
+        
+        // draw selected color
+        DrawRectangleLines(colorsInfoPos.x-2  ,colorsInfoPos.y + 18 , 22,22,BORDER_COLOR);
+        DrawRectangle(colorsInfoPos.x ,colorsInfoPos.y + 20, 18 , 18, currentColor);
+        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x+24,colorsInfoPos.y + 22},font.baseSize,-1,FG_COLOR);
 
-        //----------------------------------------------------------------------
-        // SAVE and LOAD in binary mode : to improve!
-        //----------------------------------------------------------------------
-        if (isSaving)
-        {
-            FILE *fSave = fopen(fName, "wb");
-                if (fSave == NULL) {
-                    printf("Impossibile scrivere il file [%s]!\n",fName);
-                    return 1; }
-            fwrite(matrice, sizeof(char), sizeof(matrice), fSave);
-            fclose(fSave);
+        // draw current color under mouse cursor
+        DrawRectangleLines(colorsInfoPos.x-2  ,colorsInfoPos.y + 44 , 22,22,BORDER_COLOR);
+        DrawRectangle(colorsInfoPos.x ,colorsInfoPos.y + 46, 18 , 18, selectedColor);
+        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x+24,colorsInfoPos.y + 48},font.baseSize,-1,FG_COLOR);
 
-    // aggiorna files list
-    fileCount = loadFilesRecursive(".", files,0);
-        // setta variabile di visualizzazione libreria in base al numero di files presenti...
-        if (fileCount<maxRows) visibleRows = fileCount;
-        else visibleRows=maxRows;
-        centerRow = visibleRows / 2;
-    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
-    isSaving=false;
+        // -----------------------------------------------------------------
+        //  print file list / library 
+        //------------------------------------------------------------------
+        DrawText("Library",libraryPos.x, 14, 20, FG_COLOR);
+        DrawRectangleRec(libraryPos,GRID_BG_COLOR);
+        DrawRectangleLinesEx(libraryPos,1,BORDER_COLOR);
 
+            scrollOffset = selectedIndex - centerRow;
+            if (scrollOffset < 0) scrollOffset = 0;
+            int maxOffset = fileCount - visibleRows;
+            if (maxOffset < 0) maxOffset = 0;
+            if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
-        }
+                for (int i = 0; i < visibleRows; ++i) {
 
-        if (isLoading)
-        {
-            FILE *fLoad = fopen(fName, "rb"); 
-                if (fLoad == NULL) {
-                    printf("Impossibile leggere il file [%s]!\n",fName);
-                return 1; }
-            fread(matrice, sizeof(char), sizeof(matrice), fLoad);
-            fclose(fLoad);
-            isLoading=false;
-            // fai subito una copia della matrice
-            copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-        }
+                    if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),BORDER_COLOR);
 
-            // -----------------------------------------------------------------
-            //  print file list / library 
-            //------------------------------------------------------------------
-            DrawText("Library",libraryPos.x, 14, 20, FG_COLOR);
-            DrawRectangleRec(libraryPos,GRID_BG_COLOR);
-            DrawRectangleLinesEx(libraryPos,1,BORDER_COLOR);
+                    int fileIndex = scrollOffset + i;
+                    if (fileIndex > fileCount) break;
 
-
-               
-                if (fileCount < visibleRows) visibleRows = fileCount;
-
-                scrollOffset = selectedIndex - centerRow;
-                if (scrollOffset < 0) scrollOffset = 0;
-                int maxOffset = fileCount - visibleRows;
-                if (maxOffset < 0) maxOffset = 0;
-                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
-
-                    for (int i = 0; i < visibleRows; ++i) {
-
-                        if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),BORDER_COLOR);
-
-                        int fileIndex = scrollOffset + i;
-                        if (fileIndex > fileCount) break;
-
-                        if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, isOverLib?ON_COLOR:GRID_COLOR);
-                            DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
-                            // print truncate too long filenames (max. 88 chars)
-                            const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,32); 
-                            DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,BLACK);
-                        
-                        }   
-                //vertical divider between index and filename 
-                DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,BORDER_COLOR);
-            //------------------------------------------------------------------            
+                    if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, isOverLib?ON_COLOR:GRID_COLOR);
+                        DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
+                        // print truncate too long filenames (max. 88 chars)
+                        const char *fileNameTrunc = TextSubtext(GetFileName(files[fileIndex]),0,20); 
+                        DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,BLACK);
+                    
+                    }   
+            //vertical divider between index and filename 
+            DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,BORDER_COLOR);
+        //------------------------------------------------------------------            
             
             GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y - 40, 160, 20 }, "Work file: ['S'] to save.");
             if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y - 20, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
@@ -1031,7 +1061,6 @@ while (!WindowShouldClose())
 
         EndDrawing();
     }
-    printf("%i\n", visibleRows);
     UnloadRenderTexture(target);
     UnloadFont(font);
     CloseWindow();
