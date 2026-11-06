@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.0.8"
+#define TOOL_VERSION            "3.1.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -315,8 +315,17 @@ void initGrid(void)
 {
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++)
-            matrice[row][col] = (Color){0,0,0.0};
+            matrice[row][col] = BLANK; // (Color){col*32,row*32,128,255};
 }
+
+
+// def print_colors_wall():
+//     for r in range(0,255,32):
+//         for g in range(0,255,32):
+//             for b in range(0,255,32):
+//                 print ('\033[48;2;' + str(r) + ';' + str(g) + ';' + str(b) + 'm  ',end='')
+//     print (f"{colors.reset}")
+
 
 void replaceColor(Color old, Color new)
 {
@@ -433,11 +442,8 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
 
 void loadPngToGrid(const char *filename) {
     // 1. Inizializza TUTTA la matrice a trasparente (cancella lo sporco precedente)
-    for (int x = 0; x < numRows; x++) {
-        for (int y = 0; y < numCols; y++) {
-            matrice[x][y] = BLANK; // oppure(Color){ 0, 0, 0, 0 }
-        }
-    }
+    initGrid();
+
     Image img = LoadImage(filename);
     
     // Sicurezza: controlla se l'immagine è stata caricata correttamente
@@ -931,9 +937,9 @@ while (!WindowShouldClose())
         DrawLine(colorsInfoPos.x,colorsInfoPos.y+52,colorsInfoPos.x+148,colorsInfoPos.y+52,GRID_COLOR);
 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},font.baseSize,-1,FG_COLOR);
-        DrawTextEx(font, TextFormat("x1:%02i y1:%02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},font.baseSize,-1,FG_COLOR);
-        DrawTextEx(font, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){colorsInfoPos.x+16, colorsInfoPos.y+124},22,-1,BLACK);
+        DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},20,-1,BLACK);
+        DrawTextEx(font, TextFormat("x1:%02i y1:%02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},20,-1,BLACK);
+        DrawTextEx(font, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){colorsInfoPos.x+16, colorsInfoPos.y+124},20,-1,BLACK);
 
         // draw selected color
         DrawRectangle(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, selectedColor);
