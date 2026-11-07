@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.1.6"
+#define TOOL_VERSION            "3.2.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -29,17 +29,16 @@ const int screenHeight = 732;
 
 #define numCols       32
 #define numRows       32
-#define MATRICE_SIZE 32
 const int cellSize = 20;
 
-// Music library && files management
-#define FILTER_PNG      ".png"
-
+// library & files management
 size_t fileCount;
 #define MAX_FILES 4096
 #define MAX_NAME 1024
+#define FILTER_PNG      ".png"
 char files[MAX_FILES][MAX_NAME];
-
+char fName[MAX_NAME] = "default.png";
+bool fnameEditMode = false;
 int selectedIndex = 0;
 int rowHeight = 21;
 int visibleRows;
@@ -66,32 +65,24 @@ const Vector2 colorsInfoPos = {32,600};
 const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
-// definizione matrici
-Color matrice[numRows][numCols];
-Color matriceUndo[numRows][numCols];
-Color matriceMirror[numRows][numCols];
-
 // Definizione variabili
-Color selectedColor = (Color){0,0,0,0}; // Nero
-Color currentColor = (Color){0,0,0,0}; // trasparente
+Color selectedColor = (Color){0,0,0,255}; // Nero
+Color currentColor = (Color){0,0,0,255}; // trasparente
 int colorMouseHover = 0;
 int miniatureScale= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
-char fName[] = "default.png";
-const char extfName[] = ".png" ;
-bool fnameEditMode = false;
+
 bool isEditing = false;
 bool isDrawHmirr = false;
 bool isDrawVmirr = false;
 bool isFloodFill = false;
 bool isColorRepl = false;
-bool isDrawing = false;
+bool isDrawing = true;
 // gestione stato load & save file
-bool isSaving=false;
 bool isOverLib = false;
 bool isDebug = false;
-int px,py,px1,py1;
+
 
 // Key repeat structure
 typedef struct {
@@ -163,25 +154,87 @@ bool btnBruVer = false;
 bool btnQuit = false;
 float pastelSlider = 0.0f; 
 
-//----------------------------------------------------------------------------------
-// Types and Structures Definition
-//----------------------------------------------------------------------------------
 // Point struct, like Vector2 but using int
+int px,py,px1,py1;
 typedef struct {
     int x;
     int y;
 } Point;
-
 // Player state struct
 typedef struct {
     Point cell;
     Color color;
 } PlayerState;
 
+
+// Struttura per gestire lo stato della matrice current , undo e redo
+typedef struct {
+    Color current[numRows][numCols]; // matrice attiva dove disegno
+    Color mirror[numRows][numCols]; // matrice per funzione mirror
+    Color undoBuffer[numRows][numCols];
+    Color redoBuffer[numRows][numCols];
+    bool hasUndo;
+    bool hasRedo;
+} EditorState;
+
+EditorState editor; // <--- Questa è la variabile concreta
+
 //----------------------------------------------------------------------------------
 // Functions
 //----------------------------------------------------------------------------------
+// azzera matrice colore
+void resetMatrix(void)
+{
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++)
+            editor.current[row][col] = BLANK; // (Color){col*32,row*32,128,255};
+}
 
+void copyMatrix(Color *src, Color *dst, int N, int M)
+{
+    for(int i=0; i<N; i++)
+        for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
+}
+
+// Salva lo stato corrente nell'Undo prima di una modifica
+void SaveUndoState(EditorState *state) {
+    // Copia la matrice corrente nel buffer di undo
+    memcpy(state->undoBuffer, state->current, sizeof(state->current));
+    state->hasUndo = true;
+    
+    // Una nuova azione cancella la possibilità di fare Redo
+    state->hasRedo = false; 
+}
+
+// Esegue l'Undo (Annulla)
+void PerformUndo(EditorState *state) {
+    if (!state->hasUndo) return;
+
+    // 1. Salva lo stato corrente nel Redo (così puoi ripristinarlo)
+    memcpy(state->redoBuffer, state->current, sizeof(state->current));
+    state->hasRedo = true;
+
+    // 2. Ripristina la matrice dall'Undo
+    memcpy(state->current, state->undoBuffer, sizeof(state->current));
+    
+    // 3. Consuma l'unico livello di Undo disponibile
+    state->hasUndo = false;
+}
+
+// Esegue il Redo (Ripristina)
+void PerformRedo(EditorState *state) {
+    if (!state->hasRedo) return;
+
+    // 1. Salva lo stato corrente nell'Undo (così puoi annullare di nuovo)
+    memcpy(state->undoBuffer, state->current, sizeof(state->current));
+    state->hasUndo = true;
+
+    // 2. Ripristina la matrice dal Redo
+    memcpy(state->current, state->redoBuffer, sizeof(state->current));
+
+    // 3. Consuma l'unico livello di Redo disponibile
+    state->hasRedo = false;
+}
 
 // Funzione per trasformare dinamicamente un colore in pastello/contrastato
 Color GetDynamicPastel(Color baseColor, float pastelFactor) {
@@ -198,7 +251,6 @@ Color GetDynamicPastel(Color baseColor, float pastelFactor) {
     
     return result;
 }
-
 
 bool AreColorsEqualThreshold(Color c1, Color c2, int threshold) 
 {
@@ -238,10 +290,16 @@ void showSimilColors(Color color)
     Color textColor = GetReadableTextColor(color);
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++) 
-            if (AreColorsEqual(matrice[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
+            if (AreColorsEqual(editor.current[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
 
 }
 
+void replaceColor(Color old, Color new)
+{
+    for (int row = 0; row < numRows; row++) 
+        for (int col = 0; col < numCols; col++) 
+             if (ColorIsEqual(editor.current[row][col],old)) editor.current[row][col] = new;
+}
 
 // Funzione che aggiorna lo stato delle pressione di un tasto
 // e restituisce true se l'azione deve essere eseguita
@@ -306,7 +364,7 @@ void drawSprite()
                         DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), 
                           cellSize, 
                           cellSize }, 
-                          matrice[row][col]);
+                          editor.current[row][col]);
                     }
                 }   
 }
@@ -321,40 +379,9 @@ void drawThumbnail (void)
         {
             for (int col = 0; col < numCols; ++col)
             {
-            DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, matrice[row][col]);
+            DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, editor.current[row][col]);
             }
         }
-}
-
-// azzera matrice colore
-void initGrid(void)
-{
-    for (int row = 0; row < numRows; row++)
-        for (int col = 0; col < numCols; col++)
-            matrice[row][col] = BLANK; // (Color){col*32,row*32,128,255};
-}
-
-
-// def print_colors_wall():
-//     for r in range(0,255,32):
-//         for g in range(0,255,32):
-//             for b in range(0,255,32):
-//                 print ('\033[48;2;' + str(r) + ';' + str(g) + ';' + str(b) + 'm  ',end='')
-//     print (f"{colors.reset}")
-
-
-void replaceColor(Color old, Color new)
-{
-    for (int row = 0; row < numRows; row++) 
-        for (int col = 0; col < numCols; col++) 
-             if (ColorIsEqual(matrice[row][col],old)) matrice[row][col] = new;
-}
-
-
-void copyMatrix(Color * src, Color * dst, int N, int M)
-{
-    for(int i=0; i<N; i++)
-        for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
 }
 
 void floodFill(int row, int col, Color oldColor, Color newColor)
@@ -369,7 +396,7 @@ void floodFill(int row, int col, Color oldColor, Color newColor)
 
     if(!ColorIsEqual(oldColor,newColor))
     {
-        matrice[row][col] = newColor;
+        editor.current[row][col] = newColor;
         for(int i = 0; i < 4; i++)
         {
             checkRow = row + adjacent[i].dx;
@@ -378,9 +405,9 @@ void floodFill(int row, int col, Color oldColor, Color newColor)
             {
                 if((checkRow >= 0) && (checkCol >= 0))
                 {
-                    if(ColorIsEqual(matrice[checkRow][checkCol],oldColor))
+                    if(ColorIsEqual(editor.current[checkRow][checkCol],oldColor))
                     {
-                        matrice[checkRow][checkCol] = newColor;
+                        editor.current[checkRow][checkCol] = newColor;
                         floodFill(checkRow, checkCol, oldColor, newColor);
                     }
                 }
@@ -458,7 +485,7 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
 
 void loadPngToGrid(const char *filename) {
     // 1. Inizializza TUTTA la matrice a trasparente (cancella lo sporco precedente)
-    initGrid();
+    resetMatrix();
 
     Image img = LoadImage(filename);
     
@@ -473,7 +500,7 @@ void loadPngToGrid(const char *filename) {
         for (int y = 0; y < maxHeight; y++) {
             for (int x = 0; x < maxWidth; x++) {
                 // GetImageColor estrae il colore RGBA corretto indipendentemente dal formato nativo del PNG
-                matrice[y][x] = GetImageColor(img, x, y);
+                editor.current[y][x] = GetImageColor(img, x, y);
             }
         }
         UnloadImage(img);
@@ -489,7 +516,7 @@ void saveGridToPNG(const char *filename) {
     {
         for (int x = 0; x < numCols; x++) 
         {
-            Color indiceColore = matrice[y][x];
+            Color indiceColore = editor.current[y][x];
             ImageDrawPixel(&img, x, y, indiceColore);
         }
     }
@@ -506,7 +533,6 @@ void saveGridToPNG(const char *filename) {
         else visibleRows=maxRows;
         centerRow = visibleRows / 2;
     qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
-    isSaving=false;
 }
 
 int main (int argc, char *argv[])
@@ -578,9 +604,12 @@ int main (int argc, char *argv[])
             .repeatRate = 0.064f
         };
 
-
+    // 3. Inizializzi lo stato (es. tutto vuoto/trasparente)
+    editor.hasUndo = false;
+    editor.hasRedo = false;
+    
     //reset matrice sprite e copia di backup
-    initGrid();
+    resetMatrix();
 
     // set FPS
     SetTargetFPS(60);
@@ -609,9 +638,7 @@ while (!WindowShouldClose())
         }
 
         //LEFT MOUSE :select color
-        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            selectedColor = colors[colorMouseHover];
-        }
+        if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) selectedColor = colors[colorMouseHover];
 
         //------------------------------------------------------------------------------
         // rileva se la posizione mouse e' dentro la matrice sprite...
@@ -619,8 +646,8 @@ while (!WindowShouldClose())
         mouseHoverCells = CheckCollisionPointRec(mousePos,scissorArea);
         if (mouseHoverCells)
             {
-                //HideCursor(); //hide os cursor inside matrix
-                isEditing = true;
+            //HideCursor(); //hide os cursor inside matrix
+            isEditing = true;
 
             //---------------------------------------------------------------------
             // ZOOM sprite con rotella mouse
@@ -638,7 +665,7 @@ while (!WindowShouldClose())
                         camera.zoom = 1.0f; // min. zoom x1
                         } 
                     if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
-            }
+                }
 
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
@@ -655,24 +682,31 @@ while (!WindowShouldClose())
                 // aggiorna posizione "cursore" e relativo colore...
                 px= player.cell.x;
                 py= player.cell.y;
-                currentColor = matrice[px][py];
+                currentColor = editor.current[px][py];
 
-                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || IsKeyPressed(KEY_SPACE)) {
-                        if (isDrawing) matrice[player.cell.x][player.cell.y] = selectedColor;
+                    // 1. GESTIONE DEL DISEGNO (Salva l'undo appena il mouse viene premuto)
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                        // L'utente ha appena cliccato per iniziare una sessione di disegno:
+                        // salviamo la matrice *prima* che i pixel vengano alterati.
+                        SaveUndoState(&editor);
+                    }
+
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE)) {
+                        if (isDrawing) editor.current[player.cell.x][player.cell.y] = selectedColor;
                         if (isDrawHmirr) {
-                            matrice[player.cell.x][player.cell.y] = selectedColor;
-                            matrice[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
+                            editor.current[player.cell.x][player.cell.y] = selectedColor;
+                            editor.current[numRows-player.cell.x-1][player.cell.y] = selectedColor;  
                         }
                         if (isDrawVmirr) {
-                            matrice[player.cell.x][player.cell.y] = selectedColor;
-                            matrice[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
+                            editor.current[player.cell.x][player.cell.y] = selectedColor;
+                            editor.current[player.cell.x][numCols-player.cell.y-1] = selectedColor;  
                         }
                         if (isColorRepl) replaceColor(currentColor, selectedColor);
                         if (isFloodFill) floodFill(px,py,currentColor,selectedColor);
                     }
 
                 if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-                    selectedColor = matrice[player.cell.x][player.cell.y];
+                    selectedColor = editor.current[player.cell.x][player.cell.y];
                     px1=px;
                     py1=py;
                 }
@@ -705,8 +739,9 @@ while (!WindowShouldClose())
                 }
         }
         else { 
-        ShowCursor(); //restore os cursor visibility outside matrix
-        isEditing = false; } // fuori dalla matrice faccio quello che voglio!
+            ShowCursor(); //restore os cursor visibility outside matrix
+            isEditing = false; // fuori dalla matrice faccio quello che voglio!
+        } 
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -714,7 +749,12 @@ while (!WindowShouldClose())
         if (!fnameEditMode) // se stò digitando il nome file nel riquadro di input, disabilita i keybindings
         {
             if (btnQuit || IsKeyPressed(KEY_Q)) break;
-            else if (IsKeyPressed(KEY_Z)) copyMatrix(&matriceUndo[0][0], &matrice[0][0], numRows, numCols);
+            
+            else if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
+                    if (IsKeyPressed(KEY_Z)) PerformUndo(&editor);
+                    if (IsKeyPressed(KEY_R)) PerformRedo(&editor);
+                }
+
             else if (IsKeyPressed(KEY_S)) saveGridToPNG(fName);
             else if (IsKeyPressed(KEY_D)) isDebug = !isDebug;
             else if (IsKeyPressed(KEY_L)) {
@@ -727,18 +767,13 @@ while (!WindowShouldClose())
                     qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             }
             else if (btnGrid) showGrid = !showGrid;
-            else if (btnNew)
-            {
-                    initGrid();
+            else if (btnNew) {
+                    resetMatrix();
                     strcpy(fName,"default.png");
-                    //azzera matrice undo
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
             }
-            else if (btnClear)  //clear matrix 
-                {
-                    // fai sempre una copia di backup dello stato attuale della matrice
-                    copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
-                    initGrid();
+            else if (btnClear) {
+                    SaveUndoState(&editor);
+                    resetMatrix();
                 }
 
             else if (btnShtDx) // shift bin array right by 1
@@ -746,11 +781,11 @@ while (!WindowShouldClose())
                 for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza ultimo bit della riga
-                        const Color temp = matrice[row][numCols - 1];
+                        const Color temp = editor.current[row][numCols - 1];
                         for (int col = numCols-1; col > 0; col--) // colonne
-                            matrice[row][col] = matrice[row][col-1];
+                            editor.current[row][col] = editor.current[row][col-1];
                         // alla fine il "primo" bit prende il valore dell'ultimo
-                        matrice[row][0] = temp;
+                        editor.current[row][0] = temp;
                     }
             }
             else if (btnShtSx) // shift bin array left by 1
@@ -758,11 +793,11 @@ while (!WindowShouldClose())
                 for (int row = 0; row < numRows; row++) // righe
                     {
                         // memorizza primo bit della riga
-                        const Color temp = matrice[row][0];
+                        const Color temp = editor.current[row][0];
                         for (int col = 0; col < numCols-1; col++) // colonne
-                            matrice[row][col] = matrice[row][col+1];
+                            editor.current[row][col] = editor.current[row][col+1];
                         // alla fine ultimo bit prende il valore del prim
-                        matrice[row][numCols-1] = temp;
+                        editor.current[row][numCols-1] = temp;
                     }
             }
             else if (btnShtUp) // shift bin array up by 1
@@ -770,11 +805,11 @@ while (!WindowShouldClose())
                 for (int col = 0; col < numCols; col++) // colonne
                     {
                         // memorizza prima riga
-                        const Color temp = matrice[0][col];
+                        const Color temp = editor.current[0][col];
                             for (int row=0; row < numRows-1; row++) // righe
-                                matrice[row][col] = matrice[row+1][col];
+                                editor.current[row][col] = editor.current[row+1][col];
                         // ultima riga prende valori della prima
-                        matrice[numRows - 1][col] = temp;
+                        editor.current[numRows - 1][col] = temp;
                     }
             }
             else if (btnShtDn) // shift bin array down by 1
@@ -782,11 +817,11 @@ while (!WindowShouldClose())
                     for (int col = 0; col < numCols; col++) // colonne
                         {
                             // memorizza stato ultima riga
-                            const Color temp = matrice[numRows - 1][col];
+                            const Color temp = editor.current[numRows - 1][col];
                             for (int row = numRows -1;  row > 0; row--) // righe
-                                matrice[row][col] = matrice[row-1][col];
+                                editor.current[row][col] = editor.current[row-1][col];
                             // prima riga prende valore ultima riga
-                            matrice[0][col] = temp;
+                            editor.current[0][col] = temp;
                         }
                 }
 
@@ -795,36 +830,36 @@ while (!WindowShouldClose())
                     // trasposizione  matrice binaria
                     for (int row = 0; row < numRows; row++) {
                         for (int col = row + 1 ; col < numCols ; col++) { 
-                           Color temp = matrice[col][row];
-                           matrice[col][row] =  matrice[row][col];
-                           matrice[row][col] = temp;
+                           Color temp = editor.current[col][row];
+                           editor.current[col][row] =  editor.current[row][col];
+                           editor.current[row][col] = temp;
                         }
                     }
                     // poi ruota di 90° in senso orario
                     for (int row = 0; row < numRows; row++) {
                         for (int col = 0,k = numCols -1; col<k; col++, k--) { 
-                           Color temp = matrice[row][col];
-                           matrice[row][col] =  matrice[row][k];
-                           matrice[row][k] = temp;
+                           Color temp = editor.current[row][col];
+                           editor.current[row][col] =  editor.current[row][k];
+                           editor.current[row][k] = temp;
                         }
                     }
             }
 
                 else if (btnVmirr) // vertical mirror
                 {
-                    copyMatrix(&matrice[0][0], &matriceMirror[0][0], numRows, numCols);
+                    copyMatrix(&editor.current[0][0], &editor.mirror[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
-                            matrice[row][numCols -1 - col] = matriceMirror[row][col];
+                            editor.current[row][numCols -1 - col] = editor.mirror[row][col];
                     }
                 }
 
                 else if (btnHmirr) // horizontal mirror
                 {
-                    copyMatrix(&matrice[0][0], &matriceMirror[0][0], numRows, numCols);
+                    copyMatrix(&editor.current[0][0], &editor.mirror[0][0], numRows, numCols);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
-                            matrice[numRows -1 - row][col] = matriceMirror[row][col];
+                            editor.current[numRows -1 - row][col] = editor.mirror[row][col];
                     }
                 }
 
@@ -853,8 +888,6 @@ while (!WindowShouldClose())
                                 camera.zoom=1.0f;
                                 // carica file .png
                                 loadPngToGrid(fName);
-                                // fai subito una copia della matrice
-                                copyMatrix(&matrice[0][0], &matriceUndo[0][0], numRows, numCols);
                                 }
                             }
                         // checks
@@ -884,6 +917,7 @@ while (!WindowShouldClose())
         BeginMode2D(camera);
         //drawCheckerboard(); // just to emulate a transparent background
         DrawTexture(checkerboard, spriteGridPos.x, spriteGridPos.y, WHITE);
+
         // Draw SPRITE AREA
         drawSprite(); // disegna immagine
         if (isDebug) showSimilColors(currentColor);  // enable just to debug content of matrix
@@ -907,8 +941,11 @@ while (!WindowShouldClose())
                        (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
                        1, Fade(BLACK, 0.5f));
             }
-        // grid below sprite (if want grid above sprite move line just before EndMode2D)
+
+        // grid over sprite (if want grid below sprite, just  move line  up)
         if (showGrid) drawGridLines();
+        
+
         EndMode2D();
     EndScissorMode();
 
@@ -998,13 +1035,13 @@ while (!WindowShouldClose())
                     }   
             //vertical divider between index and filename 
             DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,GRID_COLOR);
+        
         //------------------------------------------------------------------            
-            
-            GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y - 40, 160, 20 }, "Work file: ['S'] to save.");
-            if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y - 20, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+        GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y , 160, 20 }, "Work file: ['S'] to save.");
+        if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y + 20, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
 
-        // toolbar and messages
+        // Draw toolbar and messages
         int btnWidth = 32;
         int btnHeight = 32;
         GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
@@ -1075,9 +1112,9 @@ while (!WindowShouldClose())
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 144, btnWidth, btnHeight }, "#120#");
         btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 144, btnWidth, btnHeight }, "#40#");
 
-        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
-        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
-        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
+        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
+        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
+        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
 
         btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
 
