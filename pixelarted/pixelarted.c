@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.2.1"
+#define TOOL_VERSION            "3.2.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -138,7 +138,7 @@ Rectangle colorsRecs[MAX_COLORS_COUNT];
 #define BORDER_COLOR CLITERAL(Color){ 120, 122,122, 255} 
 
 // bottoni toolbar
-    // UI required variables
+// UI required variables
 bool btnGrid = false;
 bool btnNew = false;
 bool btnClear = false;
@@ -167,7 +167,7 @@ typedef struct {
 } PlayerState;
 
 
-// Struttura per gestire lo stato della matrice current , undo e redo
+// Struttura per gestire lo stato della matrice current ,mirror,  undo e redo
 typedef struct {
     Color current[numRows][numCols]; // matrice attiva dove disegno
     Color mirror[numRows][numCols]; // matrice per funzione mirror
@@ -177,7 +177,7 @@ typedef struct {
     bool hasRedo;
 } EditorState;
 
-EditorState editor; // <--- Questa è la variabile concreta
+EditorState editor; // 
 
 //----------------------------------------------------------------------------------
 // Functions
@@ -210,14 +210,14 @@ void SaveUndoState(EditorState *state) {
 void PerformUndo(EditorState *state) {
     if (!state->hasUndo) return;
 
-    // 1. Salva lo stato corrente nel Redo (così puoi ripristinarlo)
+    // Salva lo stato current in redo
     memcpy(state->redoBuffer, state->current, sizeof(state->current));
     state->hasRedo = true;
 
-    // 2. Ripristina la matrice dall'Undo
+    // da undo a current
     memcpy(state->current, state->undoBuffer, sizeof(state->current));
     
-    // 3. Consuma l'unico livello di Undo disponibile
+    // reset undo level
     state->hasUndo = false;
 }
 
@@ -225,14 +225,14 @@ void PerformUndo(EditorState *state) {
 void PerformRedo(EditorState *state) {
     if (!state->hasRedo) return;
 
-    // 1. Salva lo stato corrente nell'Undo (così puoi annullare di nuovo)
+    // cuurent in undo
     memcpy(state->undoBuffer, state->current, sizeof(state->current));
     state->hasUndo = true;
 
-    // 2. Ripristina la matrice dal Redo
+    // da redo a current
     memcpy(state->current, state->redoBuffer, sizeof(state->current));
 
-    // 3. Consuma l'unico livello di Redo disponibile
+    // reset redo level
     state->hasRedo = false;
 }
 
@@ -241,7 +241,7 @@ Color GetDynamicPastel(Color baseColor, float pastelFactor) {
     // pastelFactor deve essere normalizzato tra 0.0f e 1.0f
     float factor = pastelFactor / 255.0f;
     
-    // Per fare l'effetto pastello, mescoliamo il colore base con il bianco (255)
+    // Per effetto pastello,mix tra colore base e il bianco (255)
     // Più il fattore è alto, più ci avviciniamo al bianco, riducendo il contrasto.
     Color result;
     result.r = (unsigned char)(baseColor.r + (255 - baseColor.r) * factor);
@@ -273,7 +273,7 @@ bool AreColorsEqual(Color c1, Color c2)
     // raylib ha gia cmq la funzione ColorIsEqual
 }
 
-// Restituisce un testo leggibile (BIANCO o NERO) in base al colore di sfondo
+// Restituisce un colore leggibile (BIANCO o NERO) in contrasto al colore di sfondo
 Color GetReadableTextColor(Color bgColor) {
     
     // intercetta colori con trasparenza quasi a zero (che visivamente si fa fatica a distinguere)
@@ -291,7 +291,6 @@ void showSimilColors(Color color)
     for (int row = 0; row < numRows; row++)
         for (int col = 0; col < numCols; col++) 
             if (AreColorsEqual(editor.current[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
-
 }
 
 void replaceColor(Color old, Color new)
@@ -299,6 +298,38 @@ void replaceColor(Color old, Color new)
     for (int row = 0; row < numRows; row++) 
         for (int col = 0; col < numCols; col++) 
              if (ColorIsEqual(editor.current[row][col],old)) editor.current[row][col] = new;
+}
+
+void floodFill(int row, int col, Color oldColor, Color newColor)
+{
+    int checkRow; /* The positions we're checking currently */
+    int checkCol;
+    struct /* vectors for checking adjacent cells */
+    {
+        int dx;
+        int dy;
+    }   adjacent[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+
+    if(!ColorIsEqual(oldColor,newColor))
+    {
+        editor.current[row][col] = newColor;
+        for(int i = 0; i < 4; i++)
+        {
+            checkRow = row + adjacent[i].dx;
+            checkCol = col + adjacent[i].dy;
+            if((checkRow < numRows) && (checkCol < numCols)) /* within window boundaries */
+            {
+                if((checkRow >= 0) && (checkCol >= 0))
+                {
+                    if(ColorIsEqual(editor.current[checkRow][checkCol],oldColor))
+                    {
+                        editor.current[checkRow][checkCol] = newColor;
+                        floodFill(checkRow, checkCol, oldColor, newColor);
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Funzione che aggiorna lo stato delle pressione di un tasto
@@ -359,7 +390,7 @@ void drawSprite()
                 {
                     for (int col = 0; col < numCols; col++)
                     {
-                        // disegna sfondo cella  in base al valore 1/0
+                        // disegna colore sfondo cella
                         // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
                         DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), 
                           cellSize, 
@@ -376,44 +407,7 @@ void drawThumbnail (void)
         DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureScale,numRows*miniatureScale, GRID_BG_COLOR);
         //miniatura
         for (int row = 0; row < numRows; row++)
-        {
-            for (int col = 0; col < numCols; ++col)
-            {
-            DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, editor.current[row][col]);
-            }
-        }
-}
-
-void floodFill(int row, int col, Color oldColor, Color newColor)
-{
-    int checkRow; /* The positions we're checking currently */
-    int checkCol;
-    struct /* vectors for checking adjacent cells */
-    {
-        int dx;
-        int dy;
-    }   adjacent[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
-
-    if(!ColorIsEqual(oldColor,newColor))
-    {
-        editor.current[row][col] = newColor;
-        for(int i = 0; i < 4; i++)
-        {
-            checkRow = row + adjacent[i].dx;
-            checkCol = col + adjacent[i].dy;
-            if((checkRow < numRows) && (checkCol < numCols)) /* within window boundaries */
-            {
-                if((checkRow >= 0) && (checkCol >= 0))
-                {
-                    if(ColorIsEqual(editor.current[checkRow][checkCol],oldColor))
-                    {
-                        editor.current[checkRow][checkCol] = newColor;
-                        floodFill(checkRow, checkCol, oldColor, newColor);
-                    }
-                }
-            }
-        }
-    }
+            for (int col = 0; col < numCols; ++col) DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, editor.current[row][col]);
 }
 
 int compareFiles(const void *a, const void *b) {
@@ -1042,8 +1036,8 @@ while (!WindowShouldClose())
             DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,GRID_COLOR);
         
         //------------------------------------------------------------------            
-        GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y , 160, 20 }, "Work file: ['S'] to save.");
-        if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y + 20, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
+        GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y -20, 160, 20 }, "Work file: ['S'] to save.");
+        if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
 
 
         // Draw toolbar and messages
@@ -1064,9 +1058,9 @@ while (!WindowShouldClose())
         GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
-        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#38#", &showGrid);
+        GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#97#", &showGrid);
         btnNew = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y, btnWidth, btnHeight }, "#218#");
-        btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#63#");
+        btnClear = GuiButton((Rectangle){toolbarPos.x+72, toolbarPos.y, btnWidth, btnHeight }, "#109#");
 
         GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y + 36 , 32, 32 }, "#23#", &isDrawing);
             if (isDrawing) {
@@ -1117,9 +1111,9 @@ while (!WindowShouldClose())
         btnShtDn = GuiButton((Rectangle){toolbarPos.x +36, toolbarPos.y + 144, btnWidth, btnHeight }, "#120#");
         btnVmirr = GuiButton((Rectangle){toolbarPos.x +72, toolbarPos.y + 144, btnWidth, btnHeight }, "#40#");
 
-        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
-        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
-        //GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+40, 140, 20 }, "Mousewheel to zoom in/out.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+60, 140, 20 }, "WinKey + mouse left to move.");
+        GuiLabel((Rectangle){ keyinfoPos.x, keyinfoPos.y+80, 140, 20 }, "['Q'] to quit program.");
 
         btnQuit = GuiButton((Rectangle){screenWidth-34,14,20,20}, "#128#");
 
