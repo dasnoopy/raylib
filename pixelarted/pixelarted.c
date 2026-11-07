@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.1.5"
+#define TOOL_VERSION            "3.1.6"
 
 #include <stdio.h>
 #include <time.h>
@@ -102,7 +102,7 @@ typedef struct {
     float repeatRate;    // Intervallo di ripetizione 
 } KeyRepeater;
 
-// custom Colors (Vivaci / High-Saturation Variant)
+// base colors palette (Vivaci / High-Saturation Variant)
 Color baseColors[MAX_COLORS_COUNT] = {
     (Color){ 0, 0, 0, 0 },           // Blank (Transparent)
     (Color){ 255, 255, 255, 255 },   // White (Pure Brilliant)
@@ -121,7 +121,7 @@ Color baseColors[MAX_COLORS_COUNT] = {
     (Color){ 215, 100, 255, 255 },   // Purple (Vivid Magenta/Purple)
     (Color){ 160, 40, 255, 255 },    // Violet (Electric Violet)
     (Color){ 90, 30, 200, 255 },     // Dark Purple (Deep Indigo)
-    (Color){ 255, 210, 170, 255 },   // Beige (Warm Sandy Gold)
+    (Color){ 217,182,154, 255 },   // Beige (Warm Sandy Gold)
     (Color){ 165, 90, 40, 255 },     // Brown (Rich Terracotta)
     (Color){ 110, 55, 20, 255 },     // Dark Brown (Chocolate Intense)
     (Color){ 200, 230, 245, 255 },   // Light Gray (Cool Ice Blue-Gray)
@@ -129,7 +129,6 @@ Color baseColors[MAX_COLORS_COUNT] = {
     (Color){ 45, 75, 95, 255 },      // Dark Gray (Deep Cyber Slate)
     (Color){ 10, 15, 25, 255 }       // Black (Onyx / Rich Navy-Black)
 };
-
 
 Color colors[MAX_COLORS_COUNT];
 
