@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.1.0"
+#define TOOL_VERSION            "3.1.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -57,12 +57,12 @@ int scrollOffset = 0;     // primo file visualizzato
 #define MAX_COLORS_COUNT    24          // Number of colors available
 
  // initial X,Y coordinates for variuos interface elements
-const Vector2 colorsBarPos = {40, 340};
+const Vector2 colorsBarPos = {40, 360};
 const Vector2 spriteGridPos = {220, 48};
 const Vector2 miniaturePos = {44,64};
-const Vector2 toolbarPos = {40,178};
+const Vector2 toolbarPos = {40,200};
 const Vector2 keyinfoPos = {912,620};
-const Vector2 colorsInfoPos = {24,560};
+const Vector2 colorsInfoPos = {32,600};
 const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
@@ -75,7 +75,6 @@ Color matriceMirror[numRows][numCols];
 Color selectedColor = (Color){0,0,0,0}; // Nero
 Color currentColor = (Color){0,0,0,0}; // trasparente
 int colorMouseHover = 0;
-int paletteColor = 0;
 int miniatureScale= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
@@ -103,40 +102,39 @@ typedef struct {
     float repeatRate;    // Intervallo di ripetizione 
 } KeyRepeater;
 
-// custom Colors
-#define myWHITE      CLITERAL(Color){ 255, 255, 255, 255 }   // White
-#define myBLACK      CLITERAL(Color){ 10, 20, 30, 255 }         // Black
-#define myBLANK      CLITERAL(Color){ 0, 0, 0, 0 }           // Blank (Transparent)
-#define myYELLOW     CLITERAL(Color){ 255, 233, 3, 255 }     // Yellow / Giallo Modena Ferrari
-#define myGOLD       CLITERAL(Color){ 239,191,4, 255 }     // Gold
-#define myORANGE     CLITERAL(Color){ 255, 128, 0, 255 }     //  Orange Mclaren Papaya
-#define myPINK       CLITERAL(Color){ 255, 192, 203, 255 }     //  Pink Panther
-#define myRED        CLITERAL(Color){ 205, 33, 42, 255 }     //  Red /Rosso bandiera
-#define myMAROON     CLITERAL(Color){ 148,34,34, 255 }     //  Maroon / Granata
-#define myGREEN      CLITERAL(Color){ 141, 198, 84, 255 }      // Green
-#define myLIME       CLITERAL(Color){ 70, 163, 41, 255 }      // Lime
-#define myDARKGREEN  CLITERAL(Color){ 32, 104, 17, 255 }      // Dark Green /verde bandiera
-#define mySKYBLUE    CLITERAL(Color){ 25, 174, 255, 255 }   // Sky Blue
-#define myBLUE       CLITERAL(Color){ 0, 132, 200, 255 }     // Blue
-#define myDARKBLUE   CLITERAL(Color){ 0, 92, 148, 255 }      // Dark Blue
-#define myDARKPURPLE CLITERAL(Color){ 66,49,137, 255 }    // Dark Purple
-#define myVIOLET     CLITERAL(Color){ 135, 60, 190, 255}    // Violet
-#define myPURPLE     CLITERAL(Color){ 200, 122, 255, 255}   // Purple
-#define myBEIGE      CLITERAL(Color){ 217,182,154, 255 }   // Beige
-#define myBROWN      CLITERAL(Color){ 121,85,61, 255 }    // Brown
-#define myDARKBROWN  CLITERAL(Color){ 73,55,43, 255 }      // Dark Brown
-#define myLIGHTGRAY  CLITERAL(Color){ 189, 205, 212,255}   // Light Gray
-#define myGRAY       CLITERAL(Color){ 111, 131, 136, 255 }   // Gray
-#define myDARKGRAY   CLITERAL(Color){ 54, 78, 89, 255 }      // Dark Gray
+// custom Colors (Vivaci / High-Saturation Variant)
+Color baseColors[MAX_COLORS_COUNT] = {
+    (Color){ 0, 0, 0, 0 },           // Blank (Transparent)
+    (Color){ 255, 255, 255, 255 },   // White (Pure Brilliant)
+    (Color){ 255, 240, 0, 255 },     // Yellow / Giallo Modena Fluido
+    (Color){ 255, 200, 0, 255 },     // Gold (Vibrant Gold)
+    (Color){ 255, 110, 0, 255 },     // Orange Mclaren Papaya (Aggressive)
+    (Color){ 255, 150, 200, 255 },   // Pink Panther (Neon Pink)
+    (Color){ 255, 10, 30, 255 },     // Red / Rosso Corsa Vivo
+    (Color){ 180, 20, 40, 255 },     // Maroon / Granata Acceso
+    (Color){ 130, 255, 40, 255 },    // Green (Neon/Lime Mix)
+    (Color){ 50, 220, 20, 255 },     // Lime (Electric Green)
+    (Color){ 10, 160, 30, 255 },     // Dark Green / Verde Bandiera Saturo
+    (Color){ 0, 200, 255, 255 },     // Sky Blue (Electric Cyan)
+    (Color){ 0, 140, 255, 255 },     // Blue (Deep Neon Blue)
+    (Color){ 0, 80, 230, 255 },      // Dark Blue (Ultramarine)
+    (Color){ 215, 100, 255, 255 },   // Purple (Vivid Magenta/Purple)
+    (Color){ 160, 40, 255, 255 },    // Violet (Electric Violet)
+    (Color){ 90, 30, 200, 255 },     // Dark Purple (Deep Indigo)
+    (Color){ 255, 210, 170, 255 },   // Beige (Warm Sandy Gold)
+    (Color){ 165, 90, 40, 255 },     // Brown (Rich Terracotta)
+    (Color){ 110, 55, 20, 255 },     // Dark Brown (Chocolate Intense)
+    (Color){ 200, 230, 245, 255 },   // Light Gray (Cool Ice Blue-Gray)
+    (Color){ 120, 150, 170, 255 },   // Gray (Steel Blue-Gray)
+    (Color){ 45, 75, 95, 255 },      // Dark Gray (Deep Cyber Slate)
+    (Color){ 10, 15, 25, 255 }       // Black (Onyx / Rich Navy-Black)
+};
 
-// Colors to choose from
-const Color colors[MAX_COLORS_COUNT] = {
-        myBLANK, myWHITE,myYELLOW, myGOLD, myORANGE, myPINK, myRED, myMAROON, myGREEN, myLIME, myDARKGREEN,
-        mySKYBLUE, myBLUE, myDARKBLUE, myPURPLE, myVIOLET, myDARKPURPLE, myBEIGE, myBROWN, myDARKBROWN,
-        myLIGHTGRAY, myGRAY, myDARKGRAY, myBLACK };
+
+Color colors[MAX_COLORS_COUNT];
 
 // Define colorsRecs data
-Rectangle colorsRecs[MAX_COLORS_COUNT] = { 0 };
+Rectangle colorsRecs[MAX_COLORS_COUNT];
 
 // ARDUINO Matrix tool colors (light)
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
@@ -164,6 +162,7 @@ bool btnRotate = false;
 bool btnBruHor = false;
 bool btnBruVer = false;
 bool btnQuit = false;
+float pastelSlider = 0.0f; 
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -183,6 +182,24 @@ typedef struct {
 //----------------------------------------------------------------------------------
 // Functions
 //----------------------------------------------------------------------------------
+
+
+// Funzione per trasformare dinamicamente un colore in pastello/contrastato
+Color GetDynamicPastel(Color baseColor, float pastelFactor) {
+    // pastelFactor deve essere normalizzato tra 0.0f e 1.0f
+    float factor = pastelFactor / 255.0f;
+    
+    // Per fare l'effetto pastello, mescoliamo il colore base con il bianco (255)
+    // Più il fattore è alto, più ci avviciniamo al bianco, riducendo il contrasto.
+    Color result;
+    result.r = (unsigned char)(baseColor.r + (255 - baseColor.r) * factor);
+    result.g = (unsigned char)(baseColor.g + (255 - baseColor.g) * factor);
+    result.b = (unsigned char)(baseColor.b + (255 - baseColor.b) * factor);
+    result.a = baseColor.a; // Mantieni l'alpha originale
+    
+    return result;
+}
+
 
 bool AreColorsEqualThreshold(Color c1, Color c2, int threshold) 
 {
@@ -495,7 +512,7 @@ void saveGridToPNG(const char *filename) {
 
 int main (int argc, char *argv[])
 {
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_MSAA_4X_HINT | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "pixelarted");
         // center window on the screen
     SetWindowPosition(GetMonitorWidth(0) / 2 - screenWidth/2, GetMonitorHeight(0) / 2 - screenHeight/2); 
@@ -503,7 +520,9 @@ int main (int argc, char *argv[])
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
     // load TTF font with better antialiasing
-    Font font = LoadFontEx("assets/SF-Mono-Regular.ttf", 16, 0, 0);
+    Font font = LoadFontEx("assets/PixelOperator.ttf", 16, 0, 0);
+    // load TTF font with better antialiasing
+    Font boldfont = LoadFontEx("assets/PixelOperator-Bold.ttf", 16, 0, 0);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
     GuiSetIconScale(1);
@@ -580,8 +599,6 @@ while (!WindowShouldClose())
         //------------------------------------------------------------------------------
         // Choose color with mouse from colors palette
         //------------------------------------------------------------------------------
-        if (paletteColor >= MAX_COLORS_COUNT) paletteColor = MAX_COLORS_COUNT - 1;
-        else if (paletteColor < 0) paletteColor = 0;
 
         for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
@@ -589,12 +606,11 @@ while (!WindowShouldClose())
             {
                 colorMouseHover = i;
                 break;
-            }
-            else colorMouseHover = -1;
+            } else colorMouseHover = -1;
         }
+
         //LEFT MOUSE :select color
         if ((colorMouseHover >= 0) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            paletteColor = colorMouseHover;
             selectedColor = colors[colorMouseHover];
         }
 
@@ -863,18 +879,6 @@ while (!WindowShouldClose())
         DrawText(TextFormat("version %s", TOOL_VERSION), 58, 38, 10, GRAY); 
 
         //----------------------------------------------------------------------
-        // Draw color selection bar
-        //-----------------------------------------------------------------------
-        for (int i = 0; i < MAX_COLORS_COUNT; i++) {
-            DrawRectangleRec(colorsRecs[i], colors[i]);
-        //  riquadro attorno ai colori
-            DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
-        }
-        // passando sopra il colore evidenzialo piu chiaro
-        if (paletteColor > -1 || paletteColor < MAX_COLORS_COUNT) DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.3f));
-
-
-        //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
         //----------------------------------------------------------------------
     BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
@@ -915,12 +919,12 @@ while (!WindowShouldClose())
         for (int row = 0; row < numRows; row++)
         {
             DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x - 18,(spriteGridPos.y + 3) + (row * cellSize)}, font.baseSize, -1, FG_COLOR); //sinistra
-            //DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, font.baseSize, -1, FG_COLOR);//destra
+            DrawTextEx(font, TextFormat("%02d",row),(Vector2){spriteGridPos.x + numCols*cellSize +8,spriteGridPos.y + 4 + (row * cellSize)}, font.baseSize, -1, FG_COLOR);//destra
         }
         for (int col = 0; col < numCols; col++)
         {
             DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 2 + (col * cellSize),spriteGridPos.y -20},font.baseSize,-1,FG_COLOR);//sopra
-            //DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,font.baseSize,-1,FG_COLOR);//sotto
+            DrawTextEx(font,TextFormat("%02d",col),(Vector2){spriteGridPos.x + 4 + (col * cellSize),spriteGridPos.y + numRows*cellSize+8} ,font.baseSize,-1,FG_COLOR);//sotto
         }
 
         //----------------------------------------------------------------------
@@ -928,25 +932,43 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         drawThumbnail();
 
+
+        //----------------------------------------------------------------------
+        // Draw color selection bar
+        //-----------------------------------------------------------------------
+        for (int i = 0; i < MAX_COLORS_COUNT; i++) {
+            colors[i] = GetDynamicPastel(baseColors[i], pastelSlider);
+            DrawRectangleRec(colorsRecs[i], colors[i]);
+            DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
+            // passando sopra il colore evidenzialo..
+            if (i == colorMouseHover) {
+                //DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.3f));
+                DrawRectangleLinesEx(colorsRecs[i],2,BLACK);
+            }
+        }
+        
+        // slider contrasto
+        DrawText(TextFormat("DynaBright: %.f",pastelSlider),40,550,10,FG_COLOR);
+        GuiSlider((Rectangle){ 40,564, 106, 16 }, "", "", &pastelSlider, 0.0f, 192.0f);
+
+
         //display cursor position and selectedIndex color info 
         // draw current color under mouse cursor
         DrawRectangle(colorsInfoPos.x, colorsInfoPos.y, 23,23,currentColor);
         DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y, 23,23,GRID_COLOR);
-        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 28},font.baseSize,-1,FG_COLOR);
+        DrawTextEx(font,TextFormat("rgba(%i, %i, %i, %i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 28},font.baseSize,-1,FG_COLOR);
         
-        DrawLine(colorsInfoPos.x,colorsInfoPos.y+52,colorsInfoPos.x+148,colorsInfoPos.y+52,GRID_COLOR);
+        DrawLine(colorsInfoPos.x,colorsInfoPos.y+52,colorsInfoPos.x+128,colorsInfoPos.y+52,GRID_COLOR);
 
         // Draw x,y for current cell, zoom value
-        DrawTextEx(font, TextFormat("x:%02i y:%02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},20,-1,BLACK);
-        DrawTextEx(font, TextFormat("x1:%02i y1:%02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},20,-1,BLACK);
-        DrawTextEx(font, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){colorsInfoPos.x+16, colorsInfoPos.y+124},20,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("x: %02i, y: %02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},boldfont.baseSize,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
 
         // draw selected color
         DrawRectangle(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, selectedColor);
         DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
-        DrawTextEx(font,TextFormat("RGBA(%i,%i,%i,%i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 88},font.baseSize,-1,FG_COLOR);
-
-
+        DrawTextEx(font,TextFormat("rgba(%i, %i, %i, %i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 88},font.baseSize,-1,FG_COLOR);
 
         // -----------------------------------------------------------------
         //  print file list / library 
@@ -963,7 +985,7 @@ while (!WindowShouldClose())
 
                 for (int i = 0; i < visibleRows; ++i) {
 
-                    if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),BORDER_COLOR);
+                    if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),GRID_COLOR);
 
                     int fileIndex = scrollOffset + i;
                     if (fileIndex > fileCount) break;
@@ -976,7 +998,7 @@ while (!WindowShouldClose())
                     
                     }   
             //vertical divider between index and filename 
-            DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,BORDER_COLOR);
+            DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,GRID_COLOR);
         //------------------------------------------------------------------            
             
             GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y - 40, 160, 20 }, "Work file: ['S'] to save.");
@@ -1064,6 +1086,7 @@ while (!WindowShouldClose())
     }
     UnloadRenderTexture(target);
     UnloadFont(font);
+    UnloadFont(boldfont);
     CloseWindow();
     return 0;
 }

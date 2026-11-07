@@ -775,7 +775,7 @@ while (!WindowShouldClose()) {
 
                         struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
                         strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
-                        DrawTextEx(mainFont, TextFormat("%s UTC+%.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
+                        DrawTextEx(mainFont, TextFormat("%s UTC%+.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
                     }
                }
         }
