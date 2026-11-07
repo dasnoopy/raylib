@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.2.0"
+#define TOOL_VERSION            "3.2.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -504,6 +504,8 @@ void loadPngToGrid(const char *filename) {
             }
         }
         UnloadImage(img);
+        // 3. resetta lo stato undo
+        editor.hasUndo = false;
     }
 }
 
@@ -533,6 +535,9 @@ void saveGridToPNG(const char *filename) {
         else visibleRows=maxRows;
         centerRow = visibleRows / 2;
     qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+
+    // 3. resetta lo stato undo
+    editor.hasUndo = false;
 }
 
 int main (int argc, char *argv[])
