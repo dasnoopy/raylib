@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.8.3"
+#define TOOL_VERSION            "1.8.4"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -354,7 +354,7 @@ MoonData CalculateMoonData(time_t utc_time) {
     int frameIndex = (int)(fmod(phase_angle_deg + 22.5, 360.0) / 45.0);
 
     static const char* phaseNames[] = {
-        "Nnuova",
+        "Nuova",
         "Crescente",
         "Primo quarto",
         "Gibbosa crescente",
@@ -499,7 +499,8 @@ int main (int argc, char *argv[])
                 codepoints[i] = startGlyph + i;
             }
 
-        Font mainFont = LoadFontEx("fonts/PixelOperator.ttf", 16, codepoints, glyphCount);
+        Font textFont = LoadFontEx("fonts/PixelOperator.ttf", 16, codepoints, glyphCount);
+        Font titleFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", 16, codepoints, glyphCount);
         UnloadCodepoints(codepoints); 
 
 
@@ -769,13 +770,13 @@ while (!WindowShouldClose()) {
              
                     if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f)) {
                         DrawRectangleRounded(cityPanel,0.16f,24, RAYWHITE);
-                        DrawTextEx(mainFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)mainFont.baseSize,0,bigCities[i].color);
-                        DrawTextEx(mainFont,TextFormat("Longitudine: %.2f", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)mainFont.baseSize,0,BLACK);
-                        DrawTextEx(mainFont,TextFormat("Latitudine : %.2f", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)mainFont.baseSize,0,BLACK);
+                        DrawTextEx(titleFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)titleFont.baseSize,0,bigCities[i].color);
+                        DrawTextEx(textFont,TextFormat("Longitudine: %.2f", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)textFont.baseSize,0,BLACK);
+                        DrawTextEx(textFont,TextFormat("Latitudine : %.2f", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)textFont.baseSize,0,BLACK);
 
                         struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
                         strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
-                        DrawTextEx(mainFont, TextFormat("%s UTC%+.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)mainFont.baseSize,0,BLACK);
+                        DrawTextEx(textFont, TextFormat("%s UTC%+.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)textFont.baseSize,0,BLACK);
                     }
                }
         }
@@ -826,22 +827,22 @@ while (!WindowShouldClose()) {
         // // currentDate
         if (localSimTime != NULL) {
             strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M:%S UTC", localSimTime);
-            DrawTextEx(mainFont,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)mainFont.baseSize,-1,WHITE);
+            DrawTextEx(textFont,TextFormat("%s", tempBuffer),(Vector2){infoBar.x+8, infoBar.y+6},(float)textFont.baseSize,-1,WHITE);
         } else DrawText("Data Sconosciuta", 10, 60, 10, WHITE);
 
 
 		// mostra LON,LAT su posizione cursore mouse
-        DrawTextEx(mainFont, TextFormat("Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)mainFont.baseSize,-1,GRAY);
+        DrawTextEx(textFont, TextFormat("Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)textFont.baseSize,-1,GRAY);
 
         // info Moon
-        DrawTextEx(mainFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f° | %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)mainFont.baseSize,-1, WHITE);
+        DrawTextEx(textFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f° | %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)textFont.baseSize,-1, WHITE);
 
         //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
 		// sun position e periodo anno
-		DrawTextEx(mainFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f° | %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)mainFont.baseSize,-1, GRAY);
+		DrawTextEx(textFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f° | %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)textFont.baseSize,-1, GRAY);
 
 		//statusbar with some info
 		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
@@ -852,8 +853,8 @@ while (!WindowShouldClose()) {
 
 	EndDrawing();
 }
-
-    UnloadFont(mainFont);
+    UnloadFont(textFont);
+    UnloadFont(titleFont);
     UnloadTexture(moonSpritesheet);
     UnloadRenderTexture(target);
     UnloadTexture(dayMap);

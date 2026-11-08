@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.3.0"
+#define TOOL_VERSION            "3.3.1"
 
 #include <stdio.h>
 #include <time.h>
@@ -66,8 +66,6 @@ const Rectangle libraryPos = {906,48, 160,526};
 const Rectangle drawingArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // Definizione variabili
-Color selectedColor = (Color){0,0,0,255}; // Nero
-Color currentColor = (Color){0,0,0,255}; // trasparente
 int colorMouseHover = 0;
 int miniatureScale= 3;
 bool showGrid = true;
@@ -83,45 +81,38 @@ bool isDrawing = true;
 bool isOverLib = false;
 bool isDebug = false;
 
-
-// Key repeat structure
-typedef struct {
-    int currentKey;      // Il tasto attualmente premuto
-    float timer;         // Timer per calcolare i delay
-    bool isRepeating;    // true se ha superato il delay iniziale
-    float firstDelay;    // Tempo di attesa iniziale 
-    float repeatRate;    // Intervallo di ripetizione 
-} KeyRepeater;
-
 // base colors palette (Vivaci / High-Saturation Variant)
 Color baseColors[MAX_COLORS_COUNT] = {
-    (Color){ 0, 0, 0, 0 },           // Blank (Transparent)
-    (Color){ 255, 255, 255, 255 },   // White (Pure Brilliant)
-    (Color){ 255, 240, 0, 255 },     // Yellow / Giallo Modena Fluido
-    (Color){ 255, 200, 0, 255 },     // Gold (Vibrant Gold)
-    (Color){ 255, 110, 0, 255 },     // Orange Mclaren Papaya (Aggressive)
-    (Color){ 255, 150, 200, 255 },   // Pink Panther (Neon Pink)
-    (Color){ 255, 10, 30, 255 },     // Red / Rosso Corsa Vivo
-    (Color){ 180, 20, 40, 255 },     // Maroon / Granata Acceso
-    (Color){ 130, 255, 40, 255 },    // Green (Neon/Lime Mix)
-    (Color){ 50, 220, 20, 255 },     // Lime (Electric Green)
-    (Color){ 10, 160, 30, 255 },     // Dark Green / Verde Bandiera Saturo
-    (Color){ 0, 200, 255, 255 },     // Sky Blue (Electric Cyan)
-    (Color){ 0, 140, 255, 255 },     // Blue (Deep Neon Blue)
-    (Color){ 0, 80, 230, 255 },      // Dark Blue (Ultramarine)
-    (Color){ 215, 100, 255, 255 },   // Purple (Vivid Magenta/Purple)
-    (Color){ 160, 40, 255, 255 },    // Violet (Electric Violet)
-    (Color){ 90, 30, 200, 255 },     // Dark Purple (Deep Indigo)
-    (Color){ 217,182,154, 255 },   // Beige (Warm Sandy Gold)
-    (Color){ 165, 90, 40, 255 },     // Brown (Rich Terracotta)
-    (Color){ 110, 55, 20, 255 },     // Dark Brown (Chocolate Intense)
-    (Color){ 200, 230, 245, 255 },   // Light Gray (Cool Ice Blue-Gray)
-    (Color){ 120, 150, 170, 255 },   // Gray (Steel Blue-Gray)
-    (Color){ 45, 75, 95, 255 },      // Dark Gray (Deep Cyber Slate)
-    (Color){ 10, 15, 25, 255 }       // Black (Onyx / Rich Navy-Black)
+    (Color){   0,   0,   0,   0 },  // Traansparent
+    (Color){ 255, 255, 255, 255 },  // White
+    (Color){ 255, 233,   3, 255 },  // Yellow 
+    (Color){ 239, 191,   4, 255 },  // Gold
+    (Color){ 255, 128,   0, 255 },  // Orange Mc
+    (Color){ 255, 192, 203, 255 },  // Pink 
+    (Color){ 205,  33,  42, 255 },  // Red 
+    (Color){ 148,  34,  34, 255 },  // Dark Red
+    (Color){ 141, 198,  84, 255 },  // Green
+    (Color){  70, 163,  41, 255 },  // Lime
+    (Color){  32, 104,  17, 255 },  // Dark Green
+    (Color){  25, 174, 255, 255 },  // Sky Blue
+    (Color){   0, 132, 200, 255 },  // Blue
+    (Color){   0,  92, 148, 255 },  // Dark Blue
+    (Color){ 144,  99, 205, 255 },  // Purple
+    (Color){ 112,  74, 191, 255 },  // Violet
+    (Color){  66,  49, 137, 255 },  // Dark Purple
+    (Color){ 217, 182, 154, 255 },  // Beige
+    (Color){ 121,  85,  61, 255 },  // Brown
+    (Color){  73,  55,  43, 255 },  // Dark Brown
+    (Color){ 189, 205, 212, 255 },  // Light Gray
+    (Color){ 111, 131, 136, 255 },  // Gray
+    (Color){  54, 78,   89, 255 },  // Dark Gray
+    (Color){  10, 15,   20, 255 }   // Black
 };
 
 Color colors[MAX_COLORS_COUNT];
+
+Color selectedColor = (Color){10,15,20,255 }; // Black
+Color currentColor = (Color){0,0,0,0}; // Transparent
 
 // Define colorsRecs data
 Rectangle colorsRecs[MAX_COLORS_COUNT];
@@ -154,18 +145,27 @@ bool btnBruVer = false;
 bool btnQuit = false;
 float pastelSlider = 0.0f; 
 
+// Key repeat structure
+typedef struct {
+    int currentKey;      // Il tasto attualmente premuto
+    float timer;         // Timer per calcolare i delay
+    bool isRepeating;    // true se ha superato il delay iniziale
+    float firstDelay;    // Tempo di attesa iniziale 
+    float repeatRate;    // Intervallo di ripetizione 
+} KeyRepeater;
+
 // Point struct, like Vector2 but using int
 int px,py,px1,py1;
 typedef struct {
     int x;
     int y;
 } Point;
+
 // Player state struct
 typedef struct {
     Point cell;
     Color color;
 } PlayerState;
-
 
 // Struttura per gestire lo stato della matrice current ,mirror,  undo e redo
 typedef struct {
@@ -884,11 +884,14 @@ while (!WindowShouldClose())
             //vertical
             DrawLineEx((Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y }, 
                        (Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y + (numRows*cellSize)  },
-                       1, Fade(GetReadableTextColor(currentColor), 0.5f));
+                       1, BORDER_COLOR);
             // horizontal
             DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (px*cellSize) + cellSize/2 }, 
                        (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
-                       1, Fade(GetReadableTextColor(currentColor), 0.5f));
+                       1, BORDER_COLOR);
+
+            DrawRectangleLinesEx(drawingArea,1,BORDER_COLOR);
+
             }
         // grid over sprite (if want grid below sprite, just  move line  up)
         else  drawGridLines(BORDER_COLOR);
