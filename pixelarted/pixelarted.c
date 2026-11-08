@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.2.2"
+#define TOOL_VERSION            "3.3.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -63,7 +63,7 @@ const Vector2 toolbarPos = {40,200};
 const Vector2 keyinfoPos = {912,620};
 const Vector2 colorsInfoPos = {32,600};
 const Rectangle libraryPos = {906,48, 160,526};
-const Rectangle scissorArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
+const Rectangle drawingArea = { spriteGridPos.x,spriteGridPos.y, numCols*cellSize,numRows*cellSize };
 
 // Definizione variabili
 Color selectedColor = (Color){0,0,0,255}; // Nero
@@ -190,10 +190,11 @@ void resetMatrix(void)
             editor.current[row][col] = BLANK; // (Color){col*32,row*32,128,255};
 }
 
-void copyMatrix(Color *src, Color *dst, int N, int M)
+void copyMatrix(EditorState *state)
 {
-    for(int i=0; i<N; i++)
-        for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
+    // for(int i=0; i<N; i++)
+    //     for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
+    memcpy(state->mirror, state->current, sizeof(state->current));
 }
 
 // Salva lo stato corrente nell'Undo prima di una modifica
@@ -375,13 +376,13 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
 }
 
 // Draw grid lines 
-void drawGridLines(void)
+void drawGridLines(Color border)
 {
         for (int row = 0; row <= numRows; row+=1) // horizontal lines
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, BORDER_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, border);
         for (int col = 0; col <= numCols; col+=1) //vertical lines
-            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, BORDER_COLOR);
-        DrawRectangleLinesEx(scissorArea,1,BORDER_COLOR);
+            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, border);
+        DrawRectangleLinesEx(drawingArea,1,border);
 }
 
 void drawSprite()
@@ -574,20 +575,20 @@ int main (int argc, char *argv[])
     qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
 
 
-    // Define colorsRecs data (for every rectangle)
-    int offX=0;
-    int offY=0;
+// Definisci un Rectangle con la poszione dei rettangoli della color palette
+    int x=0;
+    int y=0;
+    const int col = 4;
+    const int size = 26;
+    const int space = 1;
     for (int i = 0; i < MAX_COLORS_COUNT; i++)
         {
-        if (i % 4 == 0) {
-            offX=0;
-            offY++;
-        }
-        colorsRecs[i].x = colorsBarPos.x + 25 * offX + 2*offX;
-        colorsRecs[i].y = colorsBarPos.y + 26 * offY;
-        colorsRecs[i].width = 24;
-        colorsRecs[i].height = 24;
-        offX++;
+        if (i % col == 0) { x=0; y++; }
+            colorsRecs[i].x = colorsBarPos.x + (size * x);
+            colorsRecs[i].y = colorsBarPos.y + (size * y);
+            colorsRecs[i].width = size-space;
+            colorsRecs[i].height = size-space;
+            x++;
         }
 
     // Init player 0 (cursor for bin matrix)
@@ -620,7 +621,7 @@ while (!WindowShouldClose())
         // Update
         //----------------------------------------------------------------------------------
         Vector2 mousePos = GetMousePosition();
-        float speed = 150 * GetFrameTime();
+        //float speed = 150 * GetFrameTime();
         float deltaTime = GetFrameTime();
         
         //------------------------------------------------------------------------------
@@ -642,30 +643,11 @@ while (!WindowShouldClose())
         //------------------------------------------------------------------------------
         // rileva se la posizione mouse e' dentro la matrice sprite...
         //------------------------------------------------------------------------------
-        mouseHoverCells = CheckCollisionPointRec(mousePos,scissorArea);
+        mouseHoverCells = CheckCollisionPointRec(mousePos,drawingArea);
         if (mouseHoverCells)
             {
-            //HideCursor(); //hide os cursor inside matrix
+            HideCursor(); //hide os cursor inside matrix
             isEditing = true;
-
-            //---------------------------------------------------------------------
-            // ZOOM sprite con rotella mouse
-            //----------------------------------------------------------------------
-
-                float wheel = GetMouseWheelMove();
-                if (wheel != 0) {
-                    Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
-                    camera.offset = GetMousePosition();
-                    camera.target = mouseWorld;
-                    camera.zoom  += wheel * 0.2f * camera.zoom;   // proportional zoom
-                    if (camera.zoom < 1.0f)
-                        { 
-                        camera.target = mousePos;
-                        camera.zoom = 1.0f; // min. zoom x1
-                        } 
-                    if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
-                }
-
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
 
@@ -683,12 +665,8 @@ while (!WindowShouldClose())
                 py= player.cell.y;
                 currentColor = editor.current[px][py];
 
-                    // 1. GESTIONE DEL DISEGNO (Salva l'undo appena il mouse viene premuto)
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                        // L'utente ha appena cliccato per iniziare una sessione di disegno:
-                        // salviamo la matrice *prima* che i pixel vengano alterati.
-                        SaveUndoState(&editor);
-                    }
+                    // Salva undo appena il mouse viene premuto
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) SaveUndoState(&editor);
 
                 if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE)) {
                         if (isDrawing) editor.current[player.cell.x][player.cell.y] = selectedColor;
@@ -708,33 +686,6 @@ while (!WindowShouldClose())
                     selectedColor = editor.current[player.cell.x][player.cell.y];
                     px1=px;
                     py1=py;
-                }
-
-            //-------------------------------------------------------------------
-            // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
-            //-------------------------------------------------------------------
-                if (camera.zoom > 1.0f)
-                {
-                    if (IsKeyDown(KEY_UP))
-                    {
-                        camera.target.y -= speed;
-                         if (camera.target.y < spriteGridPos.y) camera.target.y = spriteGridPos.y;
-                    }
-                    if (IsKeyDown(KEY_DOWN))
-                    {
-                        camera.target.y += speed;
-                         if (camera.target.y > spriteGridPos.y + (numRows*cellSize)) camera.target.y = spriteGridPos.y + (numRows*cellSize);
-                    }
-                    if (IsKeyDown(KEY_LEFT))
-                    {
-                        camera.target.x -= speed;
-                         if (camera.target.x < spriteGridPos.x) camera.target.x = spriteGridPos.x;
-                    }
-                    if (IsKeyDown(KEY_RIGHT))
-                    {
-                        camera.target.x += speed;
-                         if (camera.target.x > spriteGridPos.x + (numCols*cellSize)) camera.target.x = spriteGridPos.x + (numCols*cellSize);
-                    }
                 }
         }
         else { 
@@ -846,7 +797,7 @@ while (!WindowShouldClose())
 
                 else if (btnVmirr) // vertical mirror
                 {
-                    copyMatrix(&editor.current[0][0], &editor.mirror[0][0], numRows, numCols);
+                    copyMatrix(&editor);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
                             editor.current[row][numCols -1 - col] = editor.mirror[row][col];
@@ -855,7 +806,7 @@ while (!WindowShouldClose())
 
                 else if (btnHmirr) // horizontal mirror
                 {
-                    copyMatrix(&editor.current[0][0], &editor.mirror[0][0], numRows, numCols);
+                    copyMatrix(&editor);
                     for (int row = 0; row < numRows; row++)
                         for (int col = 0; col < numCols; col++) {
                             editor.current[numRows -1 - row][col] = editor.mirror[row][col];
@@ -884,7 +835,6 @@ while (!WindowShouldClose())
                         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
                             if (selectedIndex >= 0 && selectedIndex < fileCount) {
                                 strcpy(fName,files[selectedIndex]);
-                                camera.zoom=1.0f;
                                 // carica file .png
                                 loadPngToGrid(fName);
                                 }
@@ -912,7 +862,7 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
         //----------------------------------------------------------------------
-    BeginScissorMode((int)scissorArea.x, (int)scissorArea.y, (int)scissorArea.width, (int)scissorArea.height);     
+    BeginScissorMode((int)drawingArea.x, (int)drawingArea.y, (int)drawingArea.width, (int)drawingArea.height);     
         BeginMode2D(camera);
         //drawCheckerboard(); // just to emulate a transparent background
         DrawTexture(checkerboard, spriteGridPos.x, spriteGridPos.y, WHITE);
@@ -926,23 +876,22 @@ while (!WindowShouldClose())
         DrawRectangleRec((Rectangle){ spriteGridPos.x + (py*cellSize), spriteGridPos.y + (px*cellSize), 
                           cellSize, 
                           cellSize},
-                          Fade(BLACK, 0.5f));
+                          Fade(GetReadableTextColor(currentColor), 0.5f));
         //----------------------------------------------------------------------
-        // Draw crosshair cursor (and hide grid)
+        // Draw crosshair cursor (when grid is off)
         // ---------------------------------------------------------------------
         if (!showGrid) {
             //vertical
             DrawLineEx((Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y }, 
                        (Vector2){ spriteGridPos.x + (py*cellSize) + (cellSize/2), spriteGridPos.y + (numRows*cellSize)  },
-                       1, Fade(BLACK, 0.5f));
+                       1, Fade(GetReadableTextColor(currentColor), 0.5f));
             // horizontal
             DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (px*cellSize) + cellSize/2 }, 
                        (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
-                       1, Fade(BLACK, 0.5f));
+                       1, Fade(GetReadableTextColor(currentColor), 0.5f));
             }
-
         // grid over sprite (if want grid below sprite, just  move line  up)
-        if (showGrid) drawGridLines();
+        else  drawGridLines(BORDER_COLOR);
         
 
         EndMode2D();
@@ -974,7 +923,7 @@ while (!WindowShouldClose())
         for (int i = 0; i < MAX_COLORS_COUNT; i++) {
             colors[i] = GetDynamicPastel(baseColors[i], pastelSlider);
             DrawRectangleRec(colorsRecs[i], colors[i]);
-            DrawRectangleLinesEx(colorsRecs[i],1,GRID_COLOR);
+            DrawRectangleLinesEx(colorsRecs[i],1,BORDER_COLOR);
             // passando sopra il colore evidenzialo..
             if (i == colorMouseHover) {
                 //DrawRectangleRec(colorsRecs[colorMouseHover], Fade(WHITE, 0.3f));
@@ -984,7 +933,7 @@ while (!WindowShouldClose())
         
         // slider contrasto
         DrawText(TextFormat("DynaBright: %.f",pastelSlider),40,550,10,FG_COLOR);
-        GuiSlider((Rectangle){ 40,564, 106, 16 }, "", "", &pastelSlider, 0.0f, 192.0f);
+        GuiSlider((Rectangle){ 40,564, 103, 16 }, "", "", &pastelSlider, 0.0f, 192.0f);
 
 
         //display cursor position and selectedIndex color info 
@@ -997,12 +946,12 @@ while (!WindowShouldClose())
 
         // Draw x,y for current cell, zoom value
         DrawTextEx(boldfont, TextFormat("x: %02i, y: %02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},boldfont.baseSize,-1,BLACK);
-        DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
-        DrawTextEx(boldfont, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("Scale: %ix",miniatureScale),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
 
         // draw selected color
-        DrawRectangle(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, selectedColor);
-        DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
+        DrawRectangle(colorsInfoPos.x+104, colorsInfoPos.y + 60, 23, 23, selectedColor);
+        DrawRectangleLines(colorsInfoPos.x+104, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
         DrawTextEx(font,TextFormat("rgba(%i, %i, %i, %i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 88},font.baseSize,-1,FG_COLOR);
 
         // -----------------------------------------------------------------
