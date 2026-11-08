@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.3.1"
+#define TOOL_VERSION            "3.3.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -646,8 +646,28 @@ while (!WindowShouldClose())
         mouseHoverCells = CheckCollisionPointRec(mousePos,drawingArea);
         if (mouseHoverCells)
             {
-            HideCursor(); //hide os cursor inside matrix
+            //HideCursor(); //hide os cursor inside matrix
             isEditing = true;
+
+            //---------------------------------------------------------------------
+            // ZOOM sprite con rotella mouse
+            //----------------------------------------------------------------------
+
+                float wheel = GetMouseWheelMove();
+                if (wheel != 0) {
+                    Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
+                    camera.offset = GetMousePosition();
+                    camera.target = mouseWorld;
+                    camera.zoom  += wheel * 0.2f * camera.zoom;   // proportional zoom
+                    if (camera.zoom < 1.0f)
+                        { 
+                        camera.target = mousePos;
+                        camera.zoom = 1.0f; // min. zoom x1
+                        } 
+                    if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
+                }
+
+
                  // Icon painting mouse logic
                 Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
 
@@ -664,10 +684,7 @@ while (!WindowShouldClose())
                 px= player.cell.x;
                 py= player.cell.y;
                 currentColor = editor.current[px][py];
-
-                    // Salva undo appena il mouse viene premuto
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) SaveUndoState(&editor);
-
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) SaveUndoState(&editor); 
                 if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE)) {
                         if (isDrawing) editor.current[player.cell.x][player.cell.y] = selectedColor;
                         if (isDrawHmirr) {
@@ -835,6 +852,7 @@ while (!WindowShouldClose())
                         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
                             if (selectedIndex >= 0 && selectedIndex < fileCount) {
                                 strcpy(fName,files[selectedIndex]);
+                                camera.zoom=1.0f;
                                 // carica file .png
                                 loadPngToGrid(fName);
                                 }
@@ -950,7 +968,7 @@ while (!WindowShouldClose())
         // Draw x,y for current cell, zoom value
         DrawTextEx(boldfont, TextFormat("x: %02i, y: %02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},boldfont.baseSize,-1,BLACK);
         DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
-        DrawTextEx(boldfont, TextFormat("Scale: %ix",miniatureScale),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
+        DrawTextEx(boldfont, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
 
         // draw selected color
         DrawRectangle(colorsInfoPos.x+104, colorsInfoPos.y + 60, 23, 23, selectedColor);
