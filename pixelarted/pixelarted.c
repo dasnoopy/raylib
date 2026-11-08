@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.3.2"
+#define TOOL_VERSION            "3.3.5"
 
 #include <stdio.h>
 #include <time.h>
@@ -71,7 +71,6 @@ int miniatureScale= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
 
-bool isEditing = false;
 bool isDrawHmirr = false;
 bool isDrawVmirr = false;
 bool isFloodFill = false;
@@ -81,36 +80,62 @@ bool isDrawing = true;
 bool isOverLib = false;
 bool isDebug = false;
 
-// base colors palette (Vivaci / High-Saturation Variant)
+// base colors palette 
 Color baseColors[MAX_COLORS_COUNT] = {
-    (Color){   0,   0,   0,   0 },  // Traansparent
-    (Color){ 255, 255, 255, 255 },  // White
-    (Color){ 255, 233,   3, 255 },  // Yellow 
-    (Color){ 239, 191,   4, 255 },  // Gold
-    (Color){ 255, 128,   0, 255 },  // Orange Mc
-    (Color){ 255, 192, 203, 255 },  // Pink 
-    (Color){ 205,  33,  42, 255 },  // Red 
-    (Color){ 148,  34,  34, 255 },  // Dark Red
-    (Color){ 141, 198,  84, 255 },  // Green
-    (Color){  70, 163,  41, 255 },  // Lime
-    (Color){  32, 104,  17, 255 },  // Dark Green
-    (Color){  25, 174, 255, 255 },  // Sky Blue
-    (Color){   0, 132, 200, 255 },  // Blue
-    (Color){   0,  92, 148, 255 },  // Dark Blue
-    (Color){ 144,  99, 205, 255 },  // Purple
-    (Color){ 112,  74, 191, 255 },  // Violet
-    (Color){  66,  49, 137, 255 },  // Dark Purple
-    (Color){ 217, 182, 154, 255 },  // Beige
-    (Color){ 121,  85,  61, 255 },  // Brown
-    (Color){  73,  55,  43, 255 },  // Dark Brown
-    (Color){ 189, 205, 212, 255 },  // Light Gray
-    (Color){ 111, 131, 136, 255 },  // Gray
-    (Color){  54, 78,   89, 255 },  // Dark Gray
-    (Color){  10, 15,   20, 255 }   // Black
+    (Color){   0,   0,   0,   0 },  // Transparent ()
+    (Color){ 250, 250, 250, 255 },  // White (Leggermente spento)
+    (Color){ 252, 235,  58, 255 },  // Yellow 
+    (Color){ 232, 194,  51, 255 },  // Gold
+    (Color){ 247, 137,  27, 255 },  // Orange Mc
+    (Color){ 247, 196, 205, 255 },  // Pink 
+    (Color){ 199,  51,  59, 255 },  // Red 
+    (Color){ 143,  48,  48, 255 },  // Dark Red
+    (Color){ 143, 191,  96, 255 },  // Green
+    (Color){  80, 161,  55, 255 },  // Lime
+    (Color){  45, 107,  32, 255 },  // Dark Green
+    (Color){  51, 180, 250, 255 },  // Sky Blue
+    (Color){  25, 138, 196, 255 },  // Blue
+    (Color){  22, 101, 150, 255 },  // Dark Blue
+    (Color){ 148, 109, 201, 255 },  // Purple
+    (Color){ 118,  85, 186, 255 },  // Violet
+    (Color){  74,  59, 135, 255 },  // Dark Purple
+    (Color){ 212, 182, 159, 255 },  // Beige
+    (Color){ 122,  91,  70, 255 },  // Brown
+    (Color){  77,  61,  51, 255 },  // Dark Brown
+    (Color){ 188, 201, 207, 255 },  // Light Gray
+    (Color){ 114, 131, 135, 255 },  // Gray
+    (Color){  61,  82,  92, 255 },  // Dark Gray
+    (Color){  18,  22,  26, 255 }   // Black (Meno assoluto)
 };
 
-Color colors[MAX_COLORS_COUNT];
+// Color baseColors[MAX_COLORS_COUNT] = {
+//     (Color){   0,   0,   0,   0 },  // Transparent (Invariato)
+//     (Color){ 245, 245, 245, 255 },  // White (Morbido)
+//     (Color){ 245, 232, 110, 255 },  // Yellow (Pastello)
+//     (Color){ 224, 194, 101, 255 },  // Gold
+//     (Color){ 237, 154,  76, 255 },  // Orange Mc
+//     (Color){ 242, 199, 206, 255 },  // Pink 
+//     (Color){ 194,  81,  88, 255 },  // Red 
+//     (Color){ 143,  70,  70, 255 },  // Dark Red
+//     (Color){ 150, 189, 117, 255 },  // Green
+//     (Color){ 104, 168,  86, 255 },  // Lime
+//     (Color){  68, 117,  59, 255 },  // Dark Green
+//     (Color){  94, 187, 237, 255 },  // Sky Blue
+//     (Color){  68, 149, 191, 255 },  // Blue
+//     (Color){  58, 115, 150, 255 },  // Dark Blue
+//     (Color){ 154, 125, 194, 255 },  // Purple
+//     (Color){ 129, 105, 181, 255 },  // Violet
+//     (Color){  91,  80, 138, 255 },  // Dark Purple
+//     (Color){ 212, 188, 172, 255 },  // Beige
+//     (Color){ 128, 103,  87, 255 },  // Brown
+//     (Color){  87,  74,  66, 255 },  // Dark Brown
+//     (Color){ 186, 198, 204, 255 },  // Light Gray
+//     (Color){ 121, 134, 138, 255 },  // Gray
+//     (Color){  75,  91,  99, 255 },  // Dark Gray
+//     (Color){  28,  32,  36, 255 }   // Black (Opaco e desaturato)
+// };
 
+Color colors[MAX_COLORS_COUNT];
 Color selectedColor = (Color){10,15,20,255 }; // Black
 Color currentColor = (Color){0,0,0,0}; // Transparent
 
@@ -378,11 +403,11 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
 // Draw grid lines 
 void drawGridLines(Color border)
 {
-        for (int row = 0; row <= numRows; row+=1) // horizontal lines
+        for (int row = 0; row < numRows; row+=1) // horizontal lines
             DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, border);
-        for (int col = 0; col <= numCols; col+=1) //vertical lines
+        for (int col = 0; col < numCols; col+=1) //vertical lines
             DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, border);
-        DrawRectangleLinesEx(drawingArea,1,border);
+        //DrawRectangleLinesEx(drawingArea,1,border);
 }
 
 void drawSprite()
@@ -621,7 +646,7 @@ while (!WindowShouldClose())
         // Update
         //----------------------------------------------------------------------------------
         Vector2 mousePos = GetMousePosition();
-        //float speed = 150 * GetFrameTime();
+        Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
         float deltaTime = GetFrameTime();
         
         //------------------------------------------------------------------------------
@@ -646,18 +671,15 @@ while (!WindowShouldClose())
         mouseHoverCells = CheckCollisionPointRec(mousePos,drawingArea);
         if (mouseHoverCells)
             {
-            //HideCursor(); //hide os cursor inside matrix
-            isEditing = true;
-
+            SetMouseCursor(4); 
             //---------------------------------------------------------------------
             // ZOOM sprite con rotella mouse
             //----------------------------------------------------------------------
 
                 float wheel = GetMouseWheelMove();
                 if (wheel != 0) {
-                    Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), camera);
-                    camera.offset = GetMousePosition();
-                    camera.target = mouseWorld;
+                    camera.offset = mousePos;
+                    camera.target = mouseWorldPos;
                     camera.zoom  += wheel * 0.2f * camera.zoom;   // proportional zoom
                     if (camera.zoom < 1.0f)
                         { 
@@ -666,10 +688,6 @@ while (!WindowShouldClose())
                         } 
                     if (camera.zoom > 5.0f) camera.zoom = 5.0f; // max. zoom 5x
                 }
-
-
-                 // Icon painting mouse logic
-                Vector2 mouseWorldPos = GetScreenToWorld2D(mousePos, camera);
 
                 player.cell.x = (mouseWorldPos.y - spriteGridPos.y) / cellSize ;
                 player.cell.y = (mouseWorldPos.x - spriteGridPos.x) / cellSize;
@@ -684,6 +702,7 @@ while (!WindowShouldClose())
                 px= player.cell.x;
                 py= player.cell.y;
                 currentColor = editor.current[px][py];
+                
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) SaveUndoState(&editor); 
                 if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE)) {
                         if (isDrawing) editor.current[player.cell.x][player.cell.y] = selectedColor;
@@ -704,11 +723,8 @@ while (!WindowShouldClose())
                     px1=px;
                     py1=py;
                 }
-        }
-        else { 
-            ShowCursor(); //restore os cursor visibility outside matrix
-            isEditing = false; // fuori dalla matrice faccio quello che voglio!
-        } 
+        } else SetMouseCursor(0); //restore os cursor visibility outside matrix
+
 
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
@@ -835,7 +851,7 @@ while (!WindowShouldClose())
                 //----------------------------------------------------------------------
                 isOverLib = CheckCollisionPointRec(mousePos, libraryPos); 
                 // Scroll con tastiera per sopstarsi tra i files (solo se si e' fuori dalla zona di editing)
-                 if (!isEditing) {
+                 if (isOverLib) {
                     if (fileCount >= visibleRows) 
                     {
                         selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
@@ -880,6 +896,10 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // draw sprite and grid matrix inside scissor & camera2d area
         //----------------------------------------------------------------------
+
+        // Draw border for drwaing area
+        DrawRectangleLinesEx((Rectangle){drawingArea.x-1, drawingArea.y-1, drawingArea.width+2, drawingArea.height+2},1,BORDER_COLOR);
+    
     BeginScissorMode((int)drawingArea.x, (int)drawingArea.y, (int)drawingArea.width, (int)drawingArea.height);     
         BeginMode2D(camera);
         //drawCheckerboard(); // just to emulate a transparent background
@@ -907,12 +927,9 @@ while (!WindowShouldClose())
             DrawLineEx((Vector2){ spriteGridPos.x, spriteGridPos.y  + (px*cellSize) + cellSize/2 }, 
                        (Vector2){ spriteGridPos.x + (numCols*cellSize) , spriteGridPos.y  + (px*cellSize) + (cellSize/2) },
                        1, BORDER_COLOR);
-
-            DrawRectangleLinesEx(drawingArea,1,BORDER_COLOR);
-
             }
         // grid over sprite (if want grid below sprite, just  move line  up)
-        else  drawGridLines(BORDER_COLOR);
+        else  drawGridLines(GRID_COLOR);
         
 
         EndMode2D();
