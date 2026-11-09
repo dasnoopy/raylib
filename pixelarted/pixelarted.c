@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.3.5"
+#define TOOL_VERSION            "3.4.0"
 
 #include <stdio.h>
 #include <time.h>
@@ -70,20 +70,18 @@ int colorMouseHover = 0;
 int miniatureScale= 3;
 bool showGrid = true;
 bool mouseHoverCells = false;
-
 bool isDrawHmirr = false;
 bool isDrawVmirr = false;
 bool isFloodFill = false;
 bool isColorRepl = false;
 bool isDrawing = true;
-// gestione stato load & save file
 bool isOverLib = false;
 bool isDebug = false;
 
 // base colors palette 
 Color baseColors[MAX_COLORS_COUNT] = {
     (Color){   0,   0,   0,   0 },  // Transparent ()
-    (Color){ 250, 250, 250, 255 },  // White (Leggermente spento)
+    (Color){ 250, 250, 250, 255 },  // White 
     (Color){ 252, 235,  58, 255 },  // Yellow 
     (Color){ 232, 194,  51, 255 },  // Gold
     (Color){ 247, 137,  27, 255 },  // Orange Mc
@@ -105,7 +103,7 @@ Color baseColors[MAX_COLORS_COUNT] = {
     (Color){ 188, 201, 207, 255 },  // Light Gray
     (Color){ 114, 131, 135, 255 },  // Gray
     (Color){  61,  82,  92, 255 },  // Dark Gray
-    (Color){  18,  22,  26, 255 }   // Black (Meno assoluto)
+    (Color){   0,   0,   0, 255 }   // Black
 };
 
 // Color baseColors[MAX_COLORS_COUNT] = {
@@ -136,7 +134,7 @@ Color baseColors[MAX_COLORS_COUNT] = {
 // };
 
 Color colors[MAX_COLORS_COUNT];
-Color selectedColor = (Color){10,15,20,255 }; // Black
+Color selectedColor = (Color){0,0,0,255 }; // Black
 Color currentColor = (Color){0,0,0,0}; // Transparent
 
 // Define colorsRecs data
@@ -202,363 +200,40 @@ typedef struct {
     bool hasRedo;
 } EditorState;
 
-EditorState editor; // 
+EditorState editor;
 
 //----------------------------------------------------------------------------------
-// Functions
+// Functions definitions
 //----------------------------------------------------------------------------------
-// azzera matrice colore
-void resetMatrix(void)
-{
-    for (int row = 0; row < numRows; row++)
-        for (int col = 0; col < numCols; col++)
-            editor.current[row][col] = BLANK; // (Color){col*32,row*32,128,255};
-}
 
-void copyMatrix(EditorState *state)
-{
-    // for(int i=0; i<N; i++)
-    //     for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
-    memcpy(state->mirror, state->current, sizeof(state->current));
-}
+void initMatrix(void);
+void copyMatrix(EditorState *state);
 
-// Salva lo stato corrente nell'Undo prima di una modifica
-void SaveUndoState(EditorState *state) {
-    // Copia la matrice corrente nel buffer di undo
-    memcpy(state->undoBuffer, state->current, sizeof(state->current));
-    state->hasUndo = true;
-    
-    // Una nuova azione cancella la possibilità di fare Redo
-    state->hasRedo = false; 
-}
+void SaveUndoState(EditorState *state);
+void PerformUndo(EditorState *state);
+void PerformRedo(EditorState *state);
 
-// Esegue l'Undo (Annulla)
-void PerformUndo(EditorState *state) {
-    if (!state->hasUndo) return;
+bool AreColorsEqualThreshold(Color c1, Color c2, int threshold);
+bool AreColorsEqual(Color c1, Color c2) ;
 
-    // Salva lo stato current in redo
-    memcpy(state->redoBuffer, state->current, sizeof(state->current));
-    state->hasRedo = true;
+Color GetReadableTextColor(Color bgColor);
+Color GetDynamicPastel(Color baseColor, float pastelFactor);
 
-    // da undo a current
-    memcpy(state->current, state->undoBuffer, sizeof(state->current));
-    
-    // reset undo level
-    state->hasUndo = false;
-}
+void showSimilColors(Color color);
+void replaceColor(Color old, Color new);
+void floodFill(int row, int col, Color oldColor, Color newColor);
 
-// Esegue il Redo (Ripristina)
-void PerformRedo(EditorState *state) {
-    if (!state->hasRedo) return;
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
 
-    // cuurent in undo
-    memcpy(state->undoBuffer, state->current, sizeof(state->current));
-    state->hasUndo = true;
+void drawSpriteGrid(Color border);
+void drawSprite();
+void drawSpriteThumbnal (void);
 
-    // da redo a current
-    memcpy(state->current, state->redoBuffer, sizeof(state->current));
-
-    // reset redo level
-    state->hasRedo = false;
-}
-
-// Funzione per trasformare dinamicamente un colore in pastello/contrastato
-Color GetDynamicPastel(Color baseColor, float pastelFactor) {
-    // pastelFactor deve essere normalizzato tra 0.0f e 1.0f
-    float factor = pastelFactor / 255.0f;
-    
-    // Per effetto pastello,mix tra colore base e il bianco (255)
-    // Più il fattore è alto, più ci avviciniamo al bianco, riducendo il contrasto.
-    Color result;
-    result.r = (unsigned char)(baseColor.r + (255 - baseColor.r) * factor);
-    result.g = (unsigned char)(baseColor.g + (255 - baseColor.g) * factor);
-    result.b = (unsigned char)(baseColor.b + (255 - baseColor.b) * factor);
-    result.a = baseColor.a; // Mantieni l'alpha originale
-    
-    return result;
-}
-
-bool AreColorsEqualThreshold(Color c1, Color c2, int threshold) 
-{
-    return (abs(c1.r - c2.r) <= threshold) &&
-           (abs(c1.g - c2.g) <= threshold) &&
-           (abs(c1.b - c2.b) <= threshold) &&
-           (c1.a == c2.a); // Alpha deve essere identico
-}
-
-// Funzione  per confrontare due colori
-bool AreColorsEqual(Color c1, Color c2) 
-{
-    // return (c1.r == c2.r) && 
-    //        (c1.g == c2.g) && 
-    //        (c1.b == c2.b) && 
-    //        (c1.a == c2.a);
-
-    //
-    return *(uint32_t*)&c1 == *(uint32_t*)&c2;
-    // raylib ha gia cmq la funzione ColorIsEqual
-}
-
-// Restituisce un colore leggibile (BIANCO o NERO) in contrasto al colore di sfondo
-Color GetReadableTextColor(Color bgColor) {
-    
-    // intercetta colori con trasparenza quasi a zero (che visivamente si fa fatica a distinguere)
-    if (bgColor.a <= 24) return BLACK;
-
-    // Formula della luminanza percepita dall'occhio umano
-    float luminance = 0.299f * bgColor.r + 0.587f * bgColor.g + 0.114f * bgColor.b;
-    return (luminance > 127.5f) ? BLACK : WHITE;
-}
-
-// trova i colori uguali nella matrice e mostra una "X" all'interno della "cella" (KEY_D)
-void showSimilColors(Color color)
-{
-    Color textColor = GetReadableTextColor(color);
-    for (int row = 0; row < numRows; row++)
-        for (int col = 0; col < numCols; col++) 
-            if (AreColorsEqual(editor.current[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
-}
-
-void replaceColor(Color old, Color new)
-{
-    for (int row = 0; row < numRows; row++) 
-        for (int col = 0; col < numCols; col++) 
-             if (ColorIsEqual(editor.current[row][col],old)) editor.current[row][col] = new;
-}
-
-void floodFill(int row, int col, Color oldColor, Color newColor)
-{
-    int checkRow; /* The positions we're checking currently */
-    int checkCol;
-    struct /* vectors for checking adjacent cells */
-    {
-        int dx;
-        int dy;
-    }   adjacent[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
-
-    if(!ColorIsEqual(oldColor,newColor))
-    {
-        editor.current[row][col] = newColor;
-        for(int i = 0; i < 4; i++)
-        {
-            checkRow = row + adjacent[i].dx;
-            checkCol = col + adjacent[i].dy;
-            if((checkRow < numRows) && (checkCol < numCols)) /* within window boundaries */
-            {
-                if((checkRow >= 0) && (checkCol >= 0))
-                {
-                    if(ColorIsEqual(editor.current[checkRow][checkCol],oldColor))
-                    {
-                        editor.current[checkRow][checkCol] = newColor;
-                        floodFill(checkRow, checkCol, oldColor, newColor);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Funzione che aggiorna lo stato delle pressione di un tasto
-// e restituisce true se l'azione deve essere eseguita
-bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
-    // Se il tasto passato non è premuto, non fare nulla
-    if (!IsKeyDown(key)) {
-        // Se era il tasto che stavamo tracciando, resettiamo lo stato
-        if (repeater->currentKey == key) {
-            repeater->currentKey = 0;
-            repeater->timer = 0.0f;
-            repeater->isRepeating = false;
-        }
-        return false;
-    }
-
-    // Se un nuovo tasto viene premuto (o cambiamo direzione), resettiamo il timer sul nuovo tasto
-    if (repeater->currentKey != key) {
-        repeater->currentKey = key;
-        repeater->timer = 0.0f;
-        repeater->isRepeating = false;
-        return true; // Ritorna true immediatamente per il primo click (reattività)
-    }
-
-    // Se stiamo continuando a tenere premuto lo stesso tasto
-    repeater->timer += deltaTime;
-
-    if (!repeater->isRepeating) {
-        // ritardo iniziale
-        if (repeater->timer >= repeater->firstDelay) {
-            repeater->timer = 0.0f;
-            repeater->isRepeating = true;
-            return true;
-        }
-    } else {
-        // ripetizione continua e rate
-        if (repeater->timer >= repeater->repeatRate) {
-            repeater->timer -= repeater->repeatRate;
-            return true;
-        }
-    }
-    return false;
-}
-
-// Draw grid lines 
-void drawGridLines(Color border)
-{
-        for (int row = 0; row < numRows; row+=1) // horizontal lines
-            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, border);
-        for (int col = 0; col < numCols; col+=1) //vertical lines
-            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, border);
-        //DrawRectangleLinesEx(drawingArea,1,border);
-}
-
-void drawSprite()
-{    
-            for (int row = 0; row < numRows; row++)
-                {
-                    for (int col = 0; col < numCols; col++)
-                    {
-                        // disegna colore sfondo cella
-                        // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
-                        DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), 
-                          cellSize, 
-                          cellSize }, 
-                          editor.current[row][col]);
-                    }
-                }   
-}
-
-void drawThumbnail (void)
-{
-    // cornice e sfondo miniatura
-        DrawRectangleLines(miniaturePos.x-2, miniaturePos.y-2 , 4+(numCols*miniatureScale), 4+(numRows*miniatureScale), BORDER_COLOR);
-        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureScale,numRows*miniatureScale, GRID_BG_COLOR);
-        //miniatura
-        for (int row = 0; row < numRows; row++)
-            for (int col = 0; col < numCols; ++col) DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, editor.current[row][col]);
-}
-
-int compareFiles(const void *a, const void *b) {
-    const char *path_a = (const char *)a;
-    const char *path_b = (const char *)b;
-
-    // estrapola nome del file dalla path completo, usando raylib
-    const char *filename_a = GetFileName(path_a);
-    const char *filename_b = GetFileName(path_b);
-    
-    // Confronto case sensitive...A <> a
-    //return strcmp(filename_a, filename_b);
-    
-    // Confronto case insensitive A = a
-    return strcasecmp(filename_a, filename_b);
-}
-
-int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count)
-{
-    // Controllo numero files
-    if (count >= MAX_FILES) return count;
-
-    // controllo percorso se esiste o meno...
-    if (!DirectoryExists(path)) {
-        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
-        exit(1);
-    }   
-
-    DIR *dir = opendir(path);
-    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
-
-    struct dirent *entry;
-
-    // Controllo sul limite ad ogni iterazione
-    while ((entry = readdir(dir)) != NULL) {
-        if (count >= MAX_FILES) break; 
-
-        const char *name = entry->d_name;
-
-        // Salta "." e ".."
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
-
-        // MAX_NAME lunghezza massima del path+filename
-        char fullpath[MAX_NAME];
-        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
-
-        struct stat st;
-        if (stat(fullpath, &st) == -1) continue;
-
-        // Se directory procedi con ricorsione
-        if (S_ISDIR(st.st_mode)) {
-            count = loadFilesRecursive(fullpath, files, count);
-        }
-        // Se è un file controlla l'estensione
-        else if (S_ISREG(st.st_mode)) {
-            const char *ext = strrchr(name, '.');
-
-            if (ext && strcmp(ext, FILTER_PNG) == 0) {
-                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
-                if (written >= 0 && written < MAX_NAME) {
-                    count++;
-                }
-            }
-        }
-    }
-    closedir(dir);
-    return count;
-}
-
-void loadPngToGrid(const char *filename) {
-    // 1. Inizializza TUTTA la matrice a trasparente (cancella lo sporco precedente)
-    resetMatrix();
-
-    Image img = LoadImage(filename);
-    
-    // Sicurezza: controlla se l'immagine è stata caricata correttamente
-    if (img.data != NULL) {
-        
-        // 3. Determina i limiti massimi per non andare fuori dai bordi della matrice
-        int maxWidth = (img.width > numCols) ? numCols : img.width;
-        int maxHeight = (img.height > numRows) ? numRows : img.height;
-
-        // 4. Copia i pixel dall'immagine alla matrice solo fino alle dimensioni effettive
-        for (int y = 0; y < maxHeight; y++) {
-            for (int x = 0; x < maxWidth; x++) {
-                // GetImageColor estrae il colore RGBA corretto indipendentemente dal formato nativo del PNG
-                editor.current[y][x] = GetImageColor(img, x, y);
-            }
-        }
-        UnloadImage(img);
-        // 3. resetta lo stato undo
-        editor.hasUndo = false;
-    }
-}
-
-void saveGridToPNG(const char *filename) {
-    // Crea l'immagine 32x32 temporanea in RAM
-    Image img = GenImageColor(numCols, numRows, BLANK);
-
-    // Trasferisci i dati dall'array bidimensionale ai pixel del PNG
-    for (int y = 0; y < numRows; y++) 
-    {
-        for (int x = 0; x < numCols; x++) 
-        {
-            Color indiceColore = editor.current[y][x];
-            ImageDrawPixel(&img, x, y, indiceColore);
-        }
-    }
-    // Esportiamo l'immagine a 32x32 pixel pixel-perfect in formato .PNG
-    if (ExportImage(img, fName)) TraceLog(LOG_INFO, "file salvato con successo!");
-    else TraceLog(LOG_ERROR, "Errore durante il salvataggio del file.");
-
-    UnloadImage(img);
-
-    // aggiorna files list
-    fileCount = loadFilesRecursive(".", files,0);
-        // setta variabile di visualizzazione libreria in base al numero di files presenti...
-        if (fileCount<maxRows) visibleRows = fileCount;
-        else visibleRows=maxRows;
-        centerRow = visibleRows / 2;
-    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
-
-    // 3. resetta lo stato undo
-    editor.hasUndo = false;
-}
+int compareFiles(const void *a, const void *b);
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count);
+void loadPngToGrid(const char *filename); 
+void saveGridToPNG(const char *filename);
+void loadLibrary (void);
 
 int main (int argc, char *argv[])
 {
@@ -592,13 +267,7 @@ int main (int argc, char *argv[])
     camera.zoom     = 1.0f;      // magnification, i.e fov or zoom
 
 // load file list and set file library variables
-    fileCount = loadFilesRecursive(".", files,0); // carica files .png
-    // setta variabile di visualizzazione libreria in base al numero di files presenti...
-        if (fileCount<maxRows) visibleRows = fileCount;
-        else visibleRows=maxRows;
-        centerRow = visibleRows / 2;
-    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
-
+    loadLibrary();
 
 // Definisci un Rectangle con la poszione dei rettangoli della color palette
     int x=0;
@@ -634,7 +303,7 @@ int main (int argc, char *argv[])
     editor.hasRedo = false;
     
     //reset matrice sprite e copia di backup
-    resetMatrix();
+    initMatrix();
 
     // set FPS
     SetTargetFPS(60);
@@ -725,7 +394,6 @@ while (!WindowShouldClose())
                 }
         } else SetMouseCursor(0); //restore os cursor visibility outside matrix
 
-
         // ---------------------------------------------------------------------
         // some keybinding action to test functionality
         //----------------------------------------------------------------------
@@ -736,27 +404,29 @@ while (!WindowShouldClose())
             else if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
                     if (IsKeyPressed(KEY_Z)) PerformUndo(&editor);
                     if (IsKeyPressed(KEY_R)) PerformRedo(&editor);
+                    if (IsKeyPressed(KEY_X)) {
+                        FileRemove(fName); // cancella file
+                        loadLibrary (); // aggiorna libreria
+                        initMatrix(); // "nuova" matrice pulita
+                        strcpy(fName,"default.png"); // default file name nuovo
+                    }
                 }
 
-            else if (IsKeyPressed(KEY_S)) saveGridToPNG(fName);
-            else if (IsKeyPressed(KEY_D)) isDebug = !isDebug;
-            else if (IsKeyPressed(KEY_L)) {
-                    // aggiorna files list
-                    fileCount = loadFilesRecursive(".", files,0);
-                        // setta variabile di visualizzazione libreria in base al numero di files presenti...
-                        if (fileCount<maxRows) visibleRows = fileCount;
-                        else visibleRows=maxRows;
-                        centerRow = visibleRows / 2;
-                    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+            else if (IsKeyPressed(KEY_S)) {
+                saveGridToPNG(fName);
+                loadLibrary ();
             }
+
+            else if (IsKeyPressed(KEY_D)) isDebug = !isDebug;
+            else if (IsKeyPressed(KEY_L)) loadLibrary();
             else if (btnGrid) showGrid = !showGrid;
             else if (btnNew) {
-                    resetMatrix();
+                    initMatrix();
                     strcpy(fName,"default.png");
             }
             else if (btnClear) {
                     SaveUndoState(&editor);
-                    resetMatrix();
+                    initMatrix();
                 }
 
             else if (btnShtDx) // shift bin array right by 1
@@ -929,7 +599,7 @@ while (!WindowShouldClose())
                        1, BORDER_COLOR);
             }
         // grid over sprite (if want grid below sprite, just  move line  up)
-        else  drawGridLines(GRID_COLOR);
+        else  drawSpriteGrid(GRID_COLOR);
         
 
         EndMode2D();
@@ -952,7 +622,7 @@ while (!WindowShouldClose())
         //----------------------------------------------------------------------
         // draw sprite miniature and colors info
         //----------------------------------------------------------------------
-        drawThumbnail();
+        drawSpriteThumbnal();
 
 
         //----------------------------------------------------------------------
@@ -978,19 +648,18 @@ while (!WindowShouldClose())
         // draw current color under mouse cursor
         DrawRectangle(colorsInfoPos.x, colorsInfoPos.y, 23,23,currentColor);
         DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y, 23,23,GRID_COLOR);
+        DrawTextEx(boldfont, TextFormat("x: %02i, y: %02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},boldfont.baseSize,-1,BLACK);
         DrawTextEx(font,TextFormat("rgba(%i, %i, %i, %i)",currentColor.r, currentColor.g,currentColor.b,currentColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 28},font.baseSize,-1,FG_COLOR);
         
         DrawLine(colorsInfoPos.x,colorsInfoPos.y+52,colorsInfoPos.x+128,colorsInfoPos.y+52,GRID_COLOR);
 
-        // Draw x,y for current cell, zoom value
-        DrawTextEx(boldfont, TextFormat("x: %02i, y: %02i",px,py),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+4},boldfont.baseSize,-1,BLACK);
-        DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
-        DrawTextEx(boldfont, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
-
         // draw selected color
-        DrawRectangle(colorsInfoPos.x+104, colorsInfoPos.y + 60, 23, 23, selectedColor);
-        DrawRectangleLines(colorsInfoPos.x+104, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
+        DrawRectangle(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, selectedColor);
+        DrawRectangleLines(colorsInfoPos.x, colorsInfoPos.y + 60, 23, 23, GRID_COLOR);
+        DrawTextEx(boldfont, TextFormat("x1: %02i, y1: %02i",px1,py1),(Vector2){colorsInfoPos.x+32, colorsInfoPos.y+64},boldfont.baseSize,-1,BLACK);
         DrawTextEx(font,TextFormat("rgba(%i, %i, %i, %i)",selectedColor.r, selectedColor.g,selectedColor.b,selectedColor.a),(Vector2){colorsInfoPos.x,colorsInfoPos.y + 88},font.baseSize,-1,FG_COLOR);
+
+        DrawTextEx(boldfont, TextFormat("Zoom: %.f%%",camera.zoom*100),(Vector2){miniaturePos.x+12, miniaturePos.y+102},boldfont.baseSize,-1,BLACK);
 
         // -----------------------------------------------------------------
         //  print file list / library 
@@ -1111,4 +780,342 @@ while (!WindowShouldClose())
     UnloadFont(boldfont);
     CloseWindow();
     return 0;
+}
+
+//-------------------------------------------------------------------------------
+// Functions implementation
+//-------------------------------------------------------------------------------
+void loadLibrary (void) {
+    fileCount = loadFilesRecursive(".", files,0); // carica files .png
+    // setta variabile di visualizzazione libreria in base al numero di files presenti...
+        if (fileCount<maxRows) visibleRows = fileCount;
+        else visibleRows=maxRows;
+        centerRow = visibleRows / 2;
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+}
+
+void saveGridToPNG(const char *filename) {
+    // Crea l'immagine 32x32 temporanea in RAM
+    Image img = GenImageColor(numCols, numRows, BLANK);
+
+    // Trasferisci i dati dall'array bidimensionale ai pixel del PNG
+    for (int y = 0; y < numRows; y++) 
+    {
+        for (int x = 0; x < numCols; x++) 
+        {
+            Color indiceColore = editor.current[y][x];
+            ImageDrawPixel(&img, x, y, indiceColore);
+        }
+    }
+    // Esportiamo l'immagine a 32x32 pixel pixel-perfect in formato .PNG
+    if (ExportImage(img, fName)) TraceLog(LOG_INFO, "file salvato con successo!");
+    else TraceLog(LOG_ERROR, "Errore durante il salvataggio del file.");
+
+    UnloadImage(img);
+
+    // 3. resetta lo stato undo
+    editor.hasUndo = false;
+}
+
+void loadPngToGrid(const char *filename) {
+    // 1. Inizializza la matrice a trasparente
+    initMatrix();
+
+    Image img = LoadImage(filename);
+    
+    // controlla se l'immagine è stata caricata correttamente
+    if (img.data != NULL) {
+        
+        // Determina i limiti massimi per non andare fuori dai bordi della matrice
+        int maxWidth = (img.width > numCols) ? numCols : img.width;
+        int maxHeight = (img.height > numRows) ? numRows : img.height;
+
+        // Copia i pixel dall'immagine alla matrice solo fino alle dimensioni effettive
+        for (int y = 0; y < maxHeight; y++) {
+            for (int x = 0; x < maxWidth; x++) {
+                // GetImageColor estrae il colore RGBA corretto indipendentemente dal formato nativo del PNG
+                editor.current[y][x] = GetImageColor(img, x, y);
+            }
+        }
+        UnloadImage(img);
+        // resetta lo stato undo
+        editor.hasUndo = false;
+    }
+}
+
+int compareFiles(const void *a, const void *b) {
+    const char *path_a = (const char *)a;
+    const char *path_b = (const char *)b;
+
+    // estrapola nome del file dalla path completo, usando raylib
+    const char *filename_a = GetFileName(path_a);
+    const char *filename_b = GetFileName(path_b);
+    
+    // Confronto case sensitive...A <> a
+    //return strcmp(filename_a, filename_b);
+    
+    // Confronto case insensitive A = a
+    return strcasecmp(filename_a, filename_b);
+}
+
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count) {
+    // Controllo numero files
+    if (count >= MAX_FILES) return count;
+
+    // controllo percorso se esiste o meno...
+    if (!DirectoryExists(path)) {
+        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
+        exit(1);
+    }   
+
+    DIR *dir = opendir(path);
+    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
+
+    struct dirent *entry;
+
+    // Controllo sul limite ad ogni iterazione
+    while ((entry = readdir(dir)) != NULL) {
+        if (count >= MAX_FILES) break; 
+
+        const char *name = entry->d_name;
+
+        // Salta "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+        // MAX_NAME lunghezza massima del path+filename
+        char fullpath[MAX_NAME];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // Se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) {
+            count = loadFilesRecursive(fullpath, files, count);
+        }
+        // Se è un file controlla l'estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && strcmp(ext, FILTER_PNG) == 0) {
+                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) {
+                    count++;
+                }
+            }
+        }
+    }
+    closedir(dir);
+    return count;
+}
+
+// Draw sprite grid
+void drawSpriteGrid(Color border) {
+        for (int row = 0; row < numRows; row++) // horizontal lines
+            DrawLineEx((Vector2){spriteGridPos.x, spriteGridPos.y + (row * cellSize)},(Vector2){spriteGridPos.x + (numCols* cellSize), spriteGridPos.y + (row * cellSize)},1, border);
+        for (int col = 0; col < numCols; col++) //vertical lines
+            DrawLineEx((Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y}, (Vector2){spriteGridPos.x + (col * cellSize), spriteGridPos.y + (numRows*cellSize)},1, border);
+}
+
+void drawSprite() {
+    // disegna sptite
+    // se si cambia disegno qui, cambiare anche cursore nella sezione BeginDrawing
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++)
+            DrawRectangleRec((Rectangle){(spriteGridPos.x + (cellSize * col)) , (spriteGridPos.y + (cellSize * row)), cellSize, cellSize}, editor.current[row][col]);
+}
+
+void drawSpriteThumbnal (void) {
+    // cornice e sfondo miniatura
+        DrawRectangleLines(miniaturePos.x-2, miniaturePos.y-2 , 4+(numCols*miniatureScale), 4+(numRows*miniatureScale), BORDER_COLOR);
+        DrawRectangle(miniaturePos.x,miniaturePos.y,numCols*miniatureScale,numRows*miniatureScale, GRID_BG_COLOR);
+        //miniatura
+        for (int row = 0; row < numRows; row++)
+            for (int col = 0; col < numCols; ++col) 
+                DrawRectangle(miniaturePos.x + (miniatureScale * col), miniaturePos.y + (miniatureScale*row) ,miniatureScale,miniatureScale, editor.current[row][col]);
+}
+
+// Funzione che aggiorna lo stato delle pressione di un tasto
+// e restituisce true se l'azione deve essere eseguita
+bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
+    // Se il tasto passato non è premuto, non fare nulla
+    if (!IsKeyDown(key)) {
+        // Se era il tasto che stavamo tracciando, resettiamo lo stato
+        if (repeater->currentKey == key) {
+            repeater->currentKey = 0;
+            repeater->timer = 0.0f;
+            repeater->isRepeating = false;
+        }
+        return false;
+    }
+
+    // Se un nuovo tasto viene premuto (o cambiamo direzione), resettiamo il timer sul nuovo tasto
+    if (repeater->currentKey != key) {
+        repeater->currentKey = key;
+        repeater->timer = 0.0f;
+        repeater->isRepeating = false;
+        return true; // Ritorna true immediatamente per il primo click (reattività)
+    }
+
+    // Se stiamo continuando a tenere premuto lo stesso tasto
+    repeater->timer += deltaTime;
+
+    if (!repeater->isRepeating) {
+        // ritardo iniziale
+        if (repeater->timer >= repeater->firstDelay) {
+            repeater->timer = 0.0f;
+            repeater->isRepeating = true;
+            return true;
+        }
+    } else {
+        // ripetizione continua e rate
+        if (repeater->timer >= repeater->repeatRate) {
+            repeater->timer -= repeater->repeatRate;
+            return true;
+        }
+    }
+    return false;
+}
+void initMatrix(void) {
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++)
+            editor.current[row][col] = BLANK; // (Color){col*32,row*32,128,255};
+}
+
+void copyMatrix(EditorState *state) {
+    // for(int i=0; i<N; i++)
+    //     for(int j=0; j<M; j++) dst[(M*i)+j] = src[(M*i)+j];
+    memcpy(state->mirror, state->current, sizeof(state->current));
+}
+
+// Salva lo stato corrente nell'Undo prima di una modifica
+void SaveUndoState(EditorState *state) {
+    // Copia la matrice corrente nel buffer di undo
+    memcpy(state->undoBuffer, state->current, sizeof(state->current));
+    state->hasUndo = true;
+    
+    // Una nuova azione cancella la possibilità di fare Redo
+    state->hasRedo = false; 
+}
+
+// Esegue l'Undo (Annulla)
+void PerformUndo(EditorState *state) {
+    if (!state->hasUndo) return;
+
+    // Salva lo stato current in redo
+    memcpy(state->redoBuffer, state->current, sizeof(state->current));
+    state->hasRedo = true;
+
+    // da undo a current
+    memcpy(state->current, state->undoBuffer, sizeof(state->current));
+    
+    // reset undo level
+    state->hasUndo = false;
+}
+
+// Esegue il Redo (Ripristina)
+void PerformRedo(EditorState *state) {
+    if (!state->hasRedo) return;
+
+    // cuurent in undo
+    memcpy(state->undoBuffer, state->current, sizeof(state->current));
+    state->hasUndo = true;
+
+    // da redo a current
+    memcpy(state->current, state->redoBuffer, sizeof(state->current));
+
+    // reset redo level
+    state->hasRedo = false;
+}
+
+// Funzione per trasformare dinamicamente un colore in pastello/contrastato
+Color GetDynamicPastel(Color baseColor, float pastelFactor) {
+    // pastelFactor deve essere normalizzato tra 0.0f e 1.0f
+    float factor = pastelFactor / 255.0f;
+    
+    // Per effetto pastello,mix tra colore base e il bianco (255)
+    // Più il fattore è alto, più ci avviciniamo al bianco, riducendo il contrasto.
+    Color result;
+    result.r = (unsigned char)(baseColor.r + (255 - baseColor.r) * factor);
+    result.g = (unsigned char)(baseColor.g + (255 - baseColor.g) * factor);
+    result.b = (unsigned char)(baseColor.b + (255 - baseColor.b) * factor);
+    result.a = baseColor.a; // Mantieni l'alpha originale
+    
+    return result;
+}
+
+// Funzione  per confrontare due colori con tolleranza
+bool AreColorsEqualThreshold(Color c1, Color c2, int threshold) {
+    return (abs(c1.r - c2.r) <= threshold) &&
+           (abs(c1.g - c2.g) <= threshold) &&
+           (abs(c1.b - c2.b) <= threshold) &&
+           (c1.a == c2.a); // canale alpha rimane invariato
+}
+
+// Funzione  per confrontare due colori precisi
+bool AreColorsEqual(Color c1, Color c2) {
+    // return (c1.r == c2.r) && 
+    //        (c1.g == c2.g) && 
+    //        (c1.b == c2.b) && 
+    //        (c1.a == c2.a);
+
+    //
+    return *(uint32_t*)&c1 == *(uint32_t*)&c2;
+    // raylib ha gia cmq la funzione ColorIsEqual
+}
+
+// Restituisce un colore leggibile (BIANCO o NERO) in contrasto al colore di sfondo
+Color GetReadableTextColor(Color bgColor) {
+    
+    // intercetta colori con trasparenza quasi a zero (che visivamente si fa fatica a distinguere)
+    if (bgColor.a <= 24) return BLACK;
+
+    // Formula della luminanza percepita dall'occhio umano
+    float luminance = 0.299f * bgColor.r + 0.587f * bgColor.g + 0.114f * bgColor.b;
+    return (luminance > 127.5f) ? BLACK : WHITE;
+}
+
+// trova i colori uguali nella matrice e mostra una "X" all'interno della "cella" (KEY_D)
+void showSimilColors(Color color) {
+    Color textColor = GetReadableTextColor(color);
+    for (int row = 0; row < numRows; row++)
+        for (int col = 0; col < numCols; col++) 
+            if (AreColorsEqual(editor.current[row][col], color)) DrawText("#", 6 + (spriteGridPos.x + cellSize*col), 6 + (spriteGridPos.y + cellSize*row),10, textColor);
+}
+
+void replaceColor(Color old, Color new) {
+    for (int row = 0; row < numRows; row++) 
+        for (int col = 0; col < numCols; col++) 
+             if (ColorIsEqual(editor.current[row][col],old)) editor.current[row][col] = new;
+}
+
+void floodFill(int row, int col, Color oldColor, Color newColor) {
+    int checkRow; /* The positions we're checking currently */
+    int checkCol;
+    struct /* vectors for checking adjacent cells */
+    {
+        int dx;
+        int dy;
+    }   adjacent[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+
+    if(!ColorIsEqual(oldColor,newColor))
+    {
+        editor.current[row][col] = newColor;
+        for(int i = 0; i < 4; i++)
+        {
+            checkRow = row + adjacent[i].dx;
+            checkCol = col + adjacent[i].dy;
+            if((checkRow < numRows) && (checkCol < numCols)) /* within window boundaries */
+            {
+                if((checkRow >= 0) && (checkCol >= 0))
+                {
+                    if(ColorIsEqual(editor.current[checkRow][checkCol],oldColor))
+                    {
+                        editor.current[checkRow][checkCol] = newColor;
+                        floodFill(checkRow, checkCol, oldColor, newColor);
+                    }
+                }
+            }
+        }
+    }
 }

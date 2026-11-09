@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Sunlight World Map"
 #define TOOL_SHORT_NAME         "sunclock"
 #define TOOL_COMMENT            "Simple but modern sun day/night world map"
-#define TOOL_VERSION            "1.8.4"
+#define TOOL_VERSION            "1.8.5"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -64,7 +64,7 @@ Rectangle worldMap = {
     };
 
 Rectangle infoBar = {0,540,1080,32};
-Rectangle cityPanel = {56,416,194,72};
+Rectangle cityPanel = {70,380,170,90};
 GeoCoords currentClick = { 0.0f, 0.0f };
 char tempBuffer[64] = { 0 };
 
@@ -764,19 +764,21 @@ while (!WindowShouldClose()) {
         // Draw Cities point
         if (showCities) {
             for (int i = 0; i < numCities; i++) {
-                    Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
-                    Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, bigCities[i].color );
-             
-                    if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f)) {
-                        DrawRectangleRounded(cityPanel,0.16f,24, RAYWHITE);
-                        DrawTextEx(titleFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)titleFont.baseSize,0,bigCities[i].color);
-                        DrawTextEx(textFont,TextFormat("Longitudine: %.2f", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)textFont.baseSize,0,BLACK);
-                        DrawTextEx(textFont,TextFormat("Latitudine : %.2f", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)textFont.baseSize,0,BLACK);
+                Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
+                Vector2 cityPos = MapGeoToPixel(RAD(bigCities[i].lon), RAD(bigCities[i].lat), worldMap.width, worldMap.height);
+                DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ cityPos.x, cityPos.y, 16, 16 },  cityOrigin, 0.0f, bigCities[i].color );
+         
+                if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f)) {
+                    DrawRectangleRounded(cityPanel,0.16f,24, RAYWHITE);
+                    DrawTextEx(titleFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)titleFont.baseSize,0,bigCities[i].color);
+                    DrawTextEx(textFont,TextFormat("Longitudine: %.2f°", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)textFont.baseSize,0,BLACK);
+                    DrawTextEx(textFont,TextFormat("Latitudine : %.2f°", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)textFont.baseSize,0,BLACK);
 
-                        struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
-                        strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
-                        DrawTextEx(textFont, TextFormat("%s UTC%+.1lf", tempBuffer, bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)textFont.baseSize,0,BLACK);
+                    struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
+                    strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
+                    DrawTextEx(textFont, TextFormat("%s", tempBuffer),(Vector2){cityPanel.x +4 , cityPanel.y+52}, (float)textFont.baseSize,0,BLACK);
+                    DrawTextEx(textFont, TextFormat("Fuso orario: UTC%+.2lg", bigCities[i].utcOffset),(Vector2){cityPanel.x +4 , cityPanel.y+68}, (float)textFont.baseSize,0,BLACK);
+
                     }
                }
         }
