@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "0.1.0"
+#define TOOL_VERSION            "0.5.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -17,6 +17,11 @@
 #include <time.h>
 #include <stdio.h>
 #include "fit_convert.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -26,16 +31,15 @@
 #define GARMIN_TIME_OFFSET 631065600
 
 // window size (16:9)
-const int screenWidth = 1096;
+const int screenWidth = 1104;
 const int screenHeight = 736;
 
 Rectangle mapArea = { 8,8,540,720};
 Rectangle dataArea = { 548,8,540,360};
-Rectangle filesArea = { 548,368,540,360};
+Rectangle libraryPos = { 556,370,540,358};
 
 const int fntSize = 16;
 char buffer[64];
-char fName[512] = { '\0' };
 bool showMinimap = false;
 
 float minZoomX;
@@ -63,6 +67,8 @@ float scaleY;
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
 // some funs
 #define TRACK_COLOR CLITERAL(Color){ 247, 120, 16, 255}
+#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255}
+#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
 #define BORDER_COLOR CLITERAL(Color){ 20, 20,25, 255} 
 
 // Key repeat structure
@@ -87,7 +93,30 @@ typedef struct {
 
 size_t numRecord;
 size_t numPointRec;
+Vector2 puntiPixel[4096];
 tracciaGps puntiGps[32768];
+
+// library & files management
+size_t fileCount;
+#define MAX_FILES 4096
+#define MAX_NAME 1024
+#define FILTER_EXT      ".fit"
+char files[MAX_FILES][MAX_NAME];
+char fName[MAX_NAME] = "";
+int selectedIndex = 0;
+int rowHeight = 21;
+int visibleRows;
+int maxRows = 17;
+int centerRow;
+int scrollOffset = 0;     // primo file visualizzato
+bool isTrackLoaded = false;
+
+// barra path su Linux oppure su WIN
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
 
 void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float *outMinZoom);
 void calcMinimap (Texture2D mapTexture);
@@ -95,6 +124,10 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
 Vector2 GpsToPixel(double lat, double lon, Texture2D tex);
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size);
 int decodeFit(char* fileName);
+
+void loadLibrary (void);
+int compareFiles(const void *a, const void *b);
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count);
 
 int main (int argc, char *argv[])
 {
@@ -124,17 +157,11 @@ int main (int argc, char *argv[])
     float minZoom = 1.0f;
     ResetCameraView(&cam, mapTexture, mapArea, &minZoom);
 
-    // leggi file traccia
-    decodeFit("data/14_Agosto_2026.fit");
+// load file list and set file library variables
+    loadLibrary();
 
-
-    printf("Record totali: %d, record registrati: %d\n",numRecord, numPointRec );
-
-    // Array di supporto per salvare i pixel convertiti
-    Vector2 puntiPixel[numPointRec];
-    for (int i = 1; i < numPointRec; i++) {
-        puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
-    }
+// tutta la parte di carimento punti, dati della traccia selezionata
+//  e' nella parte update
 
     //generate mini-map
     calcMinimap(mapTexture);
@@ -163,7 +190,6 @@ while (!WindowShouldClose())
 // Update
 //----------------------------------------------------------------------------------
 
-		// get frame time
 		float deltaTime = GetFrameTime();
         float speed = 150.0f /  cam.zoom;
 
@@ -196,18 +222,19 @@ while (!WindowShouldClose())
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 cam.target = Vector2Add(cam.target, Vector2Scale(delta, 1.0f / cam.zoom));
             }
+        
+            //-------------------------------------------------------------------
+            // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
+            //-------------------------------------------------------------------
+            if (cam.zoom >= minZoom)
+            {
+                if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) cam.target.y -= speed;
+                if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime))cam.target.y += speed;
+                if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime))cam.target.x -= speed;
+                if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime)) cam.target.x += speed;
+            }
         }
 
-        //-------------------------------------------------------------------
-        // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
-        //-------------------------------------------------------------------
-        if (cam.zoom >= minZoom)
-        {
-            if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) cam.target.y -= speed;
-            if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime))cam.target.y += speed;
-            if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime))cam.target.x -= speed;
-            if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime)) cam.target.x += speed;
-        }
 
         // Controllo dei limiti usando i bordi reali di mapArea sullo schermo
         Vector2 topLeft = GetScreenToWorld2D((Vector2){ mapArea.x, mapArea.y }, cam);
@@ -224,6 +251,45 @@ while (!WindowShouldClose())
         } else if (bottomRight.y > (float)mapTexture.height) {
             cam.target.y -= (bottomRight.y - (float)mapTexture.height);
         }
+
+
+                //---------------------------------------------------------------------
+                //  file LIbrary management
+                //----------------------------------------------------------------------
+                // Scroll con tastiera per sopstarsi tra i files (solo se si è con il mouse sulla zona della libreria)
+                 if (CheckCollisionPointRec(thisPos, libraryPos)) {
+                    if (fileCount >= visibleRows) 
+                    {
+                        selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
+
+                        if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
+                        if (IsKeyPressed(KEY_END)) selectedIndex = fileCount -1;
+
+                        // tasti con il repeat rate attivo -----------------------------
+                        if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime)) selectedIndex++;
+                        if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) selectedIndex--;
+                        if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) selectedIndex += 9;
+                        if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
+                        // -------------------------------------------------------------
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+                            if (selectedIndex >= 0 && selectedIndex < fileCount) {
+                                strcpy(fName,files[selectedIndex]);
+                                decodeFit (fName);
+
+                                    printf("%s\n",fName );
+                                    printf("Record totali: %d, record registrati: %d\n",numRecord, numPointRec );
+                                // Array di supporto per salvare i pixel convertiti
+                                puntiPixel[numPointRec];
+                                for (int i = 1; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
+
+                            }
+                        }
+                            // checks
+                            if (selectedIndex < 0) selectedIndex=0;
+                            if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
+
+                    }
+                }
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
@@ -234,11 +300,6 @@ while (!WindowShouldClose())
 		BeginDrawing();
             ClearBackground(BG_COLOR);
             DrawRectangleRec((Rectangle){mapArea.x - 1, mapArea.y - 1, mapArea.width + 2, mapArea.height + 2}, BORDER_COLOR);
-
-            DrawRectangleRec((Rectangle){dataArea.x - 1, dataArea.y - 1, dataArea.width + 2, dataArea.height + 2}, RED);
-
-            DrawRectangleRec((Rectangle){filesArea.x - 1, filesArea.y - 1, filesArea.width + 2, filesArea.height + 2}, SKYBLUE);
-
 
             BeginScissorMode(mapArea.x, mapArea.y, mapArea.width, mapArea.height);
     		    BeginMode2D(cam);
@@ -269,6 +330,36 @@ while (!WindowShouldClose())
             snprintf(buffer, sizeof(buffer), "Zoom: %02.f%%", cam.zoom*100);
             DrawTextEx(textFont,buffer,(Vector2){screenWidth-100, screenHeight-24},(float)textFont.baseSize,0,BLACK);
 
+
+        // -----------------------------------------------------------------
+        //  print file list / library 
+        //------------------------------------------------------------------
+        DrawRectangleRec(libraryPos,GRID_BG_COLOR);
+        DrawRectangleLinesEx(libraryPos,1,GRID_COLOR);
+
+            scrollOffset = selectedIndex - centerRow;
+            if (scrollOffset < 0) scrollOffset = 0;
+            int maxOffset = fileCount - visibleRows;
+            if (maxOffset < 0) maxOffset = 0;
+            if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+
+                for (int i = 0; i < visibleRows; ++i) {
+
+                    if (i!=0) DrawLine(libraryPos.x+1, libraryPos.y + (1+i*rowHeight), libraryPos.x + libraryPos.width-1, libraryPos.y +(1+i*rowHeight),GRID_COLOR);
+
+                    int fileIndex = scrollOffset + i;
+                    if (fileIndex > fileCount) break;
+
+                    if (fileIndex == selectedIndex) DrawRectangle(libraryPos.x+1,libraryPos.y +(i*rowHeight) +1 ,libraryPos.width-2,rowHeight-1, ON_COLOR);
+                        DrawText(TextFormat("%04i",fileIndex + 1),libraryPos.x + 6, libraryPos.y +(i*rowHeight)+6,10,FG_COLOR);
+                        // print truncate too long filenames (max. 88 chars)
+                        const char *fileNameTrunc = TextSubtext(files[fileIndex],0,124); 
+                        DrawText(TextFormat("%s",fileNameTrunc), libraryPos.x+38, libraryPos.y +(i*rowHeight)+6,10,BLACK);
+                    
+                    }   
+            //vertical divider between index and filename 
+            DrawLine(libraryPos.x+34,libraryPos.y,libraryPos.x+34,libraryPos.y + libraryPos.height,GRID_COLOR);
+        
 
 
 
@@ -406,6 +497,9 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     pixelPos.y = (1.0f - ((lat - minLat) / (maxLat - minLat))) * tex.height;
     return pixelPos;
 }
+
+
+
 
 // Funzione di supporto per convertire il timestamp FIT in una stringa leggibile
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size) 
@@ -625,4 +719,79 @@ int decodeFit(char* fileName) {
    }
    fclose(file);
    return 0;
+}
+
+void loadLibrary (void) {
+    fileCount = loadFilesRecursive(".", files,0); // carica files .png
+    // setta variabile di visualizzazione libreria in base al numero di files presenti...
+        if (fileCount<maxRows) visibleRows = fileCount;
+        else visibleRows=maxRows;
+        centerRow = visibleRows / 2;
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+}
+
+int compareFiles(const void *a, const void *b) {
+    const char *path_a = (const char *)a;
+    const char *path_b = (const char *)b;
+
+    // estrapola nome del file dalla path completo, usando raylib
+    const char *filename_a = GetFileName(path_a);
+    const char *filename_b = GetFileName(path_b);
+    
+    // Confronto case sensitive...A <> a
+    //return strcmp(filename_a, filename_b);
+    
+    // Confronto case insensitive A = a
+    return strcasecmp(filename_a, filename_b);
+}
+
+int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count) {
+    // Controllo numero files
+    if (count >= MAX_FILES) return count;
+
+    // controllo percorso se esiste o meno...
+    if (!DirectoryExists(path)) {
+        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
+        exit(1);
+    }   
+
+    DIR *dir = opendir(path);
+    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
+
+    struct dirent *entry;
+
+    // Controllo sul limite ad ogni iterazione
+    while ((entry = readdir(dir)) != NULL) {
+        if (count >= MAX_FILES) break; 
+
+        const char *name = entry->d_name;
+
+        // Salta "." e ".."
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
+
+        // MAX_NAME lunghezza massima del path+filename
+        char fullpath[MAX_NAME];
+        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
+
+        struct stat st;
+        if (stat(fullpath, &st) == -1) continue;
+
+        // Se directory procedi con ricorsione
+        if (S_ISDIR(st.st_mode)) {
+            count = loadFilesRecursive(fullpath, files, count);
+        }
+        // Se è un file controlla l'estensione
+        else if (S_ISREG(st.st_mode)) {
+            const char *ext = strrchr(name, '.');
+
+            if (ext && strcmp(ext, FILTER_EXT) == 0) {
+                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
+                if (written >= 0 && written < MAX_NAME) {
+                    count++;
+                }
+            }
+        }
+    }
+    closedir(dir);
+    return count;
 }

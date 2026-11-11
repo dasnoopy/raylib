@@ -25,5 +25,7 @@ fit_product.o: include/fit_product.c include/fit_config.h include/fit_include.h
 	$(CC) $(CFLAGS) -c include/fit_product.c -o fit_product.o
 
 clean:
-	rm -f fitview *.o
+	rm -f *.o
+
+# rm -f fitview *.o
 
