@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "0.5.0"
+#define TOOL_VERSION            "0.6.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -118,7 +118,7 @@ bool isTrackLoaded = false;
 #define SEPARATOR "/"
 #endif
 
-void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float *outMinZoom);
+void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom);
 void calcMinimap (Texture2D mapTexture);
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
 Vector2 GpsToPixel(double lat, double lon, Texture2D tex);
@@ -154,8 +154,8 @@ int main (int argc, char *argv[])
 
     // setup initial camera settings
     Camera2D cam = { 0 };
-    float minZoom = 1.0f;
-    ResetCameraView(&cam, mapTexture, mapArea, &minZoom);
+    //float minZoom = 1.0f;
+    ResetCameraView(&cam, mapTexture, mapArea, 0.0f, &minZoom);
 
 // load file list and set file library variables
     loadLibrary();
@@ -200,9 +200,9 @@ while (!WindowShouldClose())
 
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
 
-        if (IsKeyPressed(KEY_X)) ResetCameraView(&cam, mapTexture, mapArea, &minZoom);
-
-
+        if (IsKeyPressed(KEY_X)) ResetCameraView(&cam, mapTexture, mapArea, 0.0f, &minZoom);
+        
+        if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapArea, 1.0f, &minZoom);    
                       
         // Applica zoom e pan solo se il mouse è dentro mapArea
         if (CheckCollisionPointRec(thisPos, mapArea)) {
@@ -278,9 +278,10 @@ while (!WindowShouldClose())
 
                                     printf("%s\n",fName );
                                     printf("Record totali: %d, record registrati: %d\n",numRecord, numPointRec );
+                                    isTrackLoaded = true;
                                 // Array di supporto per salvare i pixel convertiti
                                 puntiPixel[numPointRec];
-                                for (int i = 1; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
+                                for (int i = 0; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
 
                             }
                         }
@@ -305,30 +306,31 @@ while (!WindowShouldClose())
     		    BeginMode2D(cam);
                     DrawTexture(mapTexture,0,0, WHITE);
 
-                    // 2. Disegno le linee rosse di unione tra i punti
-                    // Usiamo uno spessore proporzionale allo zoom per non farla sparire o diventare enorme
-                    // float spessoreLinea = 4.0f / cam.zoom; 
-                    // if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
+                    if (isTrackLoaded) {
+                        // 2. Disegno le linee rosse di unione tra i punti
+                        // Usiamo uno spessore proporzionale allo zoom per non farla sparire o diventare enorme
+                        float spessoreLinea = 4.0f / cam.zoom; 
+                        if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
 
-                    // for (int i = 0; i < numPointRec - 1; i++) {
-                    //     DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, YELLOW);
-                    // }
+                        for (int i = 1; i < numPointRec - 1; i++) {
+                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, MAROON);
+                        }
 
-                    // 3. Disegno i nodi/punti del percorso
-                    float raggioPunto = 2.0f / cam.zoom;
-                    if (raggioPunto < 2.0f) raggioPunto = 2.0f;
+                        // // 3. Disegno i nodi/punti del percorso
+                        // float raggioPunto = 2.0f / cam.zoom;
+                        // if (raggioPunto < 2.0f) raggioPunto = 2.0f;
 
-                    for (int i = 1; i < numPointRec; i++) {
-                        DrawCircleV(puntiPixel[i], raggioPunto, Fade (YELLOW,0.50f));
+                        // for (int i = 1; i < numPointRec; i++) {
+                        //     DrawCircleV(puntiPixel[i], raggioPunto, Fade (YELLOW,0.50f));
+                        // }
                     }
-
 
                 EndMode2D();
 		    EndScissorMode();	      
 
 
             snprintf(buffer, sizeof(buffer), "Zoom: %02.f%%", cam.zoom*100);
-            DrawTextEx(textFont,buffer,(Vector2){screenWidth-100, screenHeight-24},(float)textFont.baseSize,0,BLACK);
+            DrawTextEx(textFont,buffer,(Vector2){screenWidth-100, 24},(float)textFont.baseSize,0,BLACK);
 
 
         // -----------------------------------------------------------------
@@ -399,15 +401,22 @@ while (!WindowShouldClose())
     return 0;
 }
 
-// Resetta lo zoom al minimo e centra la mappa dentro mapArea
-void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float *outMinZoom)
+
+// Resetta lo zoom al valore targetZoom e centra la mappa dentro area
+void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom)
 {
+    if (cam == NULL || mapTexture.width <= 0 || mapTexture.height <= 0) return;
+
     float minZoomX = area.width / (float)mapTexture.width;
     float minZoomY = area.height / (float)mapTexture.height;
-    *outMinZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY;
+    float minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY;
 
-    cam->zoom = *outMinZoom;
+    if (outMinZoom != NULL) *outMinZoom = minZoom;
+
+    // Se passi un valore <= 0.0f, usa automaticamente minZoom come fallback
+    cam->zoom = (targetZoom > 0.0f) ? targetZoom : minZoom;
     cam->rotation = 0.0f;
+
     // Allinea il centro dell'area sullo schermo con il centro della texture
     cam->offset = (Vector2){ area.x + area.width * 0.5f, area.y + area.height * 0.5f };
     cam->target = (Vector2){ mapTexture.width * 0.5f, mapTexture.height * 0.5f };
@@ -485,19 +494,23 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
 // Funzione di conversione (Usa i valori reali della tua mappa di riferimento!)
 Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
 
-    //limiti mappa rilevati da QGIS fornendo come CRS : EPSG:32632 - WGS 84 / UTM zone 32N
+    //1. QGIS / web services google / export map draw on canvas/ dpi 300 o regola / save tiff / spunta salva dati georeferenziati con il file
+    //2. gdalinfo file.tiff e si vedono i limiti lat&lon
     // se si cambia mappa rimettere limiti corretti..file tif lavorato con QGIS
-    const double minLon = 10.4718750634184126;
-    const double maxLon = 11.3286799975360282;
-    const double minLat = 45.190817673602801;
-    const double maxLat = 45.9565365392151151;
+    // I valori forniti contengono già le coordinate geografiche espresse in gradi, minuti e secondi (DMS) 
+    //vanno convertiti nel formato standard Gradi Decimali (LAT / LON)
+    
+    // Bounding box geografico (WGS84 / EPSG:4326)
+    const double minLon = 10.46546111; // Ovest (Left)
+    const double maxLon = 11.36574722; // Est (Right)
+    const double minLat = 45.15818611; // Sud (Bottom)
+    const double maxLat = 45.91795000; // Nord (Top)
 
     Vector2 pixelPos = { 0 };
     pixelPos.x = ((lon - minLon) / (maxLon - minLon)) * tex.width;
     pixelPos.y = (1.0f - ((lat - minLat) / (maxLat - minLat))) * tex.height;
     return pixelPos;
 }
-
 
 
 
@@ -674,9 +687,9 @@ int decodeFit(char* fileName) {
                               printf("\n");
                            break;
                       }
-                     default:
+                      default:
                          //printf("Unknown\n");
-                        break;
+                      break;
                    }
                    break;
                 }
