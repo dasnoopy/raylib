@@ -771,8 +771,9 @@ while (!WindowShouldClose()) {
                 if (CheckCollisionPointCircle(GetMousePosition(), cityPos, 4.0f)) {
                     DrawRectangleRounded(cityPanel,0.16f,24, RAYWHITE);
                     DrawTextEx(titleFont,bigCities[i].name,(Vector2){cityPanel.x + 4, cityPanel.y +4 },(float)titleFont.baseSize,0,bigCities[i].color);
-                    DrawTextEx(textFont,TextFormat("Longitudine: %.2f°", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)textFont.baseSize,0,BLACK);
-                    DrawTextEx(textFont,TextFormat("Latitudine : %.2f°", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)textFont.baseSize,0,BLACK);
+                    DrawTextEx(textFont,TextFormat("Latitudine : %.2f°", bigCities[i].lat),(Vector2){cityPanel.x + 4, cityPanel.y + 20 },(float)textFont.baseSize,0,BLACK);
+
+                    DrawTextEx(textFont,TextFormat("Longitudine: %.2f°", bigCities[i].lon),(Vector2){cityPanel.x + 4, cityPanel.y + 36 },(float)textFont.baseSize,0,BLACK);
 
                     struct tm c_time = getCityTime(&bigCities[i],simulatedTime);
                     strftime(tempBuffer, sizeof(tempBuffer), "%a, %d %b %Y %H:%M", &c_time);
@@ -782,13 +783,6 @@ while (!WindowShouldClose()) {
                     }
                }
         }
-
-		//  traiettoria annuale del sole
-    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
-
-    	// "disegno" centrato del sole con una icona personalizzata
-        Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
-        DrawTexturePro(sunIcon, (Rectangle){ 0, 0, sunIcon.width, sunIcon.height }, (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, sunOrigin, 0.0f, WHITE );
 
 
         // LUNA : --------------------------------------------------------------
@@ -815,6 +809,16 @@ while (!WindowShouldClose()) {
 
         // Disegna il pezzo di texture ritagliato
         DrawTexturePro(moonSpritesheet, sourceRec, destRec, moonOrigin, 0.0f, WHITE);
+
+		//  traiettoria annuale del sole
+    	DrawLineStrip(eclipticPath, PATH_RESOLUTION, MAROON);
+
+    	// "disegno" centrato del sole con una icona personalizzata
+        Vector2 sunOrigin = { sunIcon.width / 2.0f, sunIcon.height / 2.0f };
+        DrawTexturePro(sunIcon, (Rectangle){ 0, 0, sunIcon.width, sunIcon.height }, (Rectangle){ sunPixelPos.x, sunPixelPos.y, 32, 32 }, sunOrigin, 0.0f, WHITE );
+
+
+
     EndScissorMode();
 
 
@@ -834,17 +838,17 @@ while (!WindowShouldClose()) {
 
 
 		// mostra LON,LAT su posizione cursore mouse
-        DrawTextEx(textFont, TextFormat("Pos. Lon: %.2f°, Lat:%.2f°", currentClick.lon, currentClick.lat), (Vector2){infoBar.x + 175, infoBar.y+6},(float)textFont.baseSize,-1,GRAY);
+        DrawTextEx(textFont, TextFormat("Pos. Lat: %.2f°, Lon:%.2f°", currentClick.lat, currentClick.lon), (Vector2){infoBar.x + 175, infoBar.y+6},(float)textFont.baseSize,-1,GRAY);
 
         // info Moon
-        DrawTextEx(textFont, TextFormat("Luna: Lon:%.2f°, Lat:%.2f° | %s %.1f%%", moon.longitude, moon.latitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)textFont.baseSize,-1, WHITE);
+        DrawTextEx(textFont, TextFormat("Luna: Lat:%.2f°, Lon:%.2f° | %s %.1f%%", moon.latitude, moon.longitude,moon.phaseName, moonLightPerc * 100.f),(Vector2){infoBar.x +360, infoBar.y +6},(float)textFont.baseSize,-1, WHITE);
 
         //DrawText(TextFormat("Luna -> Lon: %.2f° | Lat: %.2f° (%s)", moon.longitude , moon.latitude, testoStagione), infoBar.x+470,infoBar.y+10,10, GRAY);
         //DrawText(TextFormat("%.2f%c | ", fabs(moon.longitude), moon.longitude >= 0 ? 'E' : 'W'), infoBar.x +930, infoBar.y +10, 10, GREEN);
         //DrawText(TextFormat("%.2f%c", fabs(moon.latitude), moon.latitude >= 0 ? 'N' : 'S'), infoBar.x +980, infoBar.y +10, 10, GREEN);
 
 		// sun position e periodo anno
-		DrawTextEx(textFont, TextFormat("Sole: Lon:%.2f°, Lat:%.2f° | %s", currentLonDeg, currentLatDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)textFont.baseSize,-1, GRAY);
+		DrawTextEx(textFont, TextFormat("Sole: Lat:%.2f°, Lon:%.2f° | %s", currentLatDeg, currentLonDeg, testoStagione),(Vector2){infoBar.x+680,infoBar.y+6},(float)textFont.baseSize,-1, GRAY);
 
 		//statusbar with some info
 		DrawText(TextFormat("%s", TOOL_SHORT_NAME), 990, infoBar.y + 10, 10, RAYWHITE); 
