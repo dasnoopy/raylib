@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "0.6.0"
+#define TOOL_VERSION            "0.9.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -36,7 +36,7 @@ const int screenHeight = 736;
 
 Rectangle mapArea = { 8,8,540,720};
 Rectangle dataArea = { 548,8,540,360};
-Rectangle libraryPos = { 556,370,540,358};
+Rectangle libraryPos = { 556,286,540,442};
 
 const int fntSize = 16;
 char buffer[64];
@@ -80,7 +80,7 @@ typedef struct {
     float repeatRate;    // Intervallo di ripetizione 
 } KeyRepeater;
 
-// Struttura per le coordinate geografiche reali
+// Struttura per le coordinate geografiche di tutti i punti che registro
 typedef struct {
     int record;
     char* time;
@@ -89,12 +89,30 @@ typedef struct {
     double alt;
     double dist;
     double speed;
-} tracciaGps;
+} gpsPoints;
+
+typedef struct {
+    char data_inizio[64];
+    char data_fine[64];
+    double minTot;
+    double minMov;
+    double disTot;
+    double avgSpd;
+    double maxSpd;
+    double altPos;
+    double altNeg;
+    double calorie;
+    double avgTemp;
+    double maxTemp;
+    double altAvg;
+    double altMax;
+} trackData;
 
 size_t numRecord;
 size_t numPointRec;
 Vector2 puntiPixel[4096];
-tracciaGps puntiGps[32768];
+gpsPoints puntiGps[32768];
+trackData infoTraccia;
 
 // library & files management
 size_t fileCount;
@@ -106,7 +124,7 @@ char fName[MAX_NAME] = "";
 int selectedIndex = 0;
 int rowHeight = 21;
 int visibleRows;
-int maxRows = 17;
+int maxRows = 21;
 int centerRow;
 int scrollOffset = 0;     // primo file visualizzato
 bool isTrackLoaded = false;
@@ -127,6 +145,7 @@ int decodeFit(char* fileName);
 
 void loadLibrary (void);
 int compareFiles(const void *a, const void *b);
+int compareFilesByModTime(const void *a, const void *b);
 int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count);
 
 int main (int argc, char *argv[])
@@ -135,8 +154,20 @@ int main (int argc, char *argv[])
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "fitview");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
-    Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,NULL, 0); // all other text
-    Font BoldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,NULL, 0); // all other text
+
+    // carica fonts con tutti i caraatteri da 32 (spazio) a 255 (caratteri estesi europei)
+    int startGlyph = 32;
+    int endGlyph = 255;
+    int glyphCount = endGlyph - startGlyph + 1;
+
+    // Allocachiamo l'array per i codepoints
+    int *codepoints = (int *)malloc(sizeof(int) * glyphCount);
+    for (int i = 0; i < glyphCount; i++) {
+        codepoints[i] = startGlyph + i;
+    }
+
+    Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
+    Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     
       // Caricamento texture (reale o di test)
      // fonte immagine definitiva 
@@ -159,6 +190,7 @@ int main (int argc, char *argv[])
 
 // load file list and set file library variables
     loadLibrary();
+    qsort(files, fileCount, MAX_NAME, compareFilesByModTime);  // ordinamento file
 
 // tutta la parte di carimento punti, dati della traccia selezionata
 //  e' nella parte update
@@ -329,8 +361,56 @@ while (!WindowShouldClose())
 		    EndScissorMode();	      
 
 
+            //  track generaòl data
+
             snprintf(buffer, sizeof(buffer), "Zoom: %02.f%%", cam.zoom*100);
-            DrawTextEx(textFont,buffer,(Vector2){screenWidth-100, 24},(float)textFont.baseSize,0,BLACK);
+            DrawTextEx(textFont,buffer,(Vector2){dataArea.x + 8, 266},(float)textFont.baseSize,0,BLACK);
+            if (isTrackLoaded) {
+
+                DrawTextEx(boldFont,"Inizio sessione:",(Vector2){dataArea.x+8,dataArea.y},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%s",infoTraccia.data_inizio) ,(Vector2){dataArea.x + 260, dataArea.y},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Fine sessione:",(Vector2){dataArea.x+8,dataArea.y + 16},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%s",infoTraccia.data_fine) ,(Vector2){dataArea.x + 260, dataArea.y + 16},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Tempo totale:",(Vector2){dataArea.x+8,dataArea.y + 64},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.2f minuti",infoTraccia.minTot) ,(Vector2){dataArea.x + 260, dataArea.y + 64},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Tempo in movimento:",(Vector2){dataArea.x+8,dataArea.y + 80},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.2f minuti",infoTraccia.minMov) ,(Vector2){dataArea.x + 260, dataArea.y + 80},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Distanza totale:",(Vector2){dataArea.x+8,dataArea.y + 96},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){dataArea.x + 260, dataArea.y + 96},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Velocità media:",(Vector2){dataArea.x+8,dataArea.y + 112},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 112},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Velocità massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 128},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 128},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Dislivello positivo (salita):",(Vector2){dataArea.x+8,dataArea.y + 144},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataArea.x + 260, dataArea.y + 144},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Dislivello negativo (discesa):",(Vector2){dataArea.x+8,dataArea.y + 160},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataArea.x + 260, dataArea.y + 160},(float)textFont.baseSize,0,BLACK);
+                
+                DrawTextEx(boldFont,"Calorie consumate:",(Vector2){dataArea.x+8,dataArea.y + 176},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataArea.x + 260, dataArea.y + 176},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Temperatura media:",(Vector2){dataArea.x+8,dataArea.y + 192},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 192},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Temperatura massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 208},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 208},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Altitudine media:",(Vector2){dataArea.x+8,dataArea.y + 224},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataArea.x + 260, dataArea.y + 224},(float)textFont.baseSize,0,BLACK);
+
+                DrawTextEx(boldFont,"Altitudine massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 240},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataArea.x + 260, dataArea.y + 240},(float)textFont.baseSize,0,BLACK);
+
+            }
+
 
 
         // -----------------------------------------------------------------
@@ -387,15 +467,14 @@ while (!WindowShouldClose())
                 // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
                 DrawRectangle(rectX, rectY, rectW, rectH, Fade(SKYBLUE, 0.25f));
                 DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, SKYBLUE);
-            }
-            //------------------------------------------------------------------
-
+                }
+            
         EndDrawing();
 	}
 
     UnloadRenderTexture(target);
 	UnloadTexture(mapTexture);
-    UnloadFont(BoldFont);
+    UnloadFont(boldFont);
     UnloadFont(textFont);
 	CloseWindow();
     return 0;
@@ -499,12 +578,12 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     // se si cambia mappa rimettere limiti corretti..file tif lavorato con QGIS
     // I valori forniti contengono già le coordinate geografiche espresse in gradi, minuti e secondi (DMS) 
     //vanno convertiti nel formato standard Gradi Decimali (LAT / LON)
-    
+
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
     const double maxLon = 11.36574722; // Est (Right)
     const double minLat = 45.15818611; // Sud (Bottom)
-    const double maxLat = 45.91795000; // Nord (Top)
+    const double maxLat = 45.92095000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx 45.9209xx
 
     Vector2 pixelPos = { 0 };
     pixelPos.x = ((lon - minLon) / (maxLon - minLon)) * tex.width;
@@ -623,7 +702,7 @@ int decodeFit(char* fileName) {
                                 if (record->enhanced_speed != FIT_UINT32_INVALID) vel_kmh = ((double)record->enhanced_speed/ 1000.0) * 3.6;
                                 else if (record->speed != FIT_UINT16_INVALID) vel_kmh = ((double)record->speed / 1000.0) * 3.6;
 
-                                puntiGps[numPointRec] =(tracciaGps) {numRecord, data_ora, lat, lon, altimetro, dist_km, vel_kmh };
+                                puntiGps[numPointRec] =(gpsPoints) {numRecord, data_ora, lat, lon, altimetro, dist_km, vel_kmh };
                                 numPointRec++;
                             }                            
                             numRecord++;
@@ -633,62 +712,25 @@ int decodeFit(char* fileName) {
                       case FIT_MESG_NUM_SESSION:
                       {
                          const FIT_SESSION_MESG *session = (FIT_SESSION_MESG *) mesg;
-                         printf("\n");
-
-                              char data_inizio[64];
-                                  ConvertFitTimestamp(session->start_time, data_inizio, sizeof(data_inizio));
-                                  printf("Inizio sessione              : %s\n", data_inizio);
-                              char data_fine[64];
-                                  ConvertFitTimestamp(session->timestamp, data_fine, sizeof(data_fine));
-                                  printf("Fine sessione                : %s\n", data_fine);
-                              if (session->total_elapsed_time != FIT_UINT32_INVALID) {
-                                  double min = (double)session->total_elapsed_time / 1000.0 / 60.0;
-                                  printf("Tempo totale                 : %.2f minuti\n", min);
-                              }
-                              if (session->total_moving_time != FIT_UINT32_INVALID) {
-                                  double min = (double)session->total_moving_time / 1000.0 / 60.0;
-                                  printf("Tempo in movimento           : %.2f minuti\n", min);
-                              }
-                              if (session->total_distance != FIT_UINT32_INVALID) {
-                                  double dist_tot = (double)session->total_distance / 100.0 / 1000.0;
-                                  printf("Distanza totale              : %.2f km\n", dist_tot);
-                              }
-                              if (session->avg_speed != FIT_UINT16_INVALID) {
-                                  double avg_vel = ((double)session->avg_speed / 1000.0) * 3.6;
-                                  printf("Velocità media               : %.1f km/h\n", avg_vel);
-                              }
-                              if (session->max_speed != FIT_UINT16_INVALID) {
-                                  double max_vel = ((double)session->max_speed / 1000.0) * 3.6;
-                                  printf("Velocità massima             : %.1f km/h\n", max_vel);
-                              }
-                              if (session->total_ascent != FIT_UINT16_INVALID) {
-                                  printf("Dislivello positivo (salita) : %d metri\n", session->total_ascent);
-                              }
-                              if (session->total_descent != FIT_UINT16_INVALID) {
-                                  printf("Dislivello negativo (discesa): %d metri\n", session->total_descent);
-                              }
-                              if (session->total_calories != FIT_UINT16_INVALID) {
-                                  printf("Calorie bruciate             : %d kcal\n", session->total_calories);
-                              }
-                              if (session->avg_temperature != FIT_UINT16_INVALID) {
-                                  printf("Temperatura media            : %d gradi celsius\n", session->avg_temperature);
-                              }
-                              if (session->max_temperature != FIT_UINT16_INVALID) {
-                                  printf("Temperatura massima          : %d gradi celsius\n", session->max_temperature);
-                              }
-                              if (session->avg_altitude!= FIT_UINT16_INVALID) {
-                                  double alt_AVG = ((double)session->avg_altitude/ 5.0) - 500.0;
-                                  printf("Altitudine media             : %.1f metri\n", alt_AVG);
-                              }
-                               if (session->max_altitude!= FIT_UINT16_INVALID) {
-                                  double alt_MAX = ((double)session->max_altitude/ 5.0) - 500.0;
-                                  printf("Altitudine massima           : %.1f metri\n", alt_MAX);
-                              }
-                              printf("\n");
-                           break;
+                            ConvertFitTimestamp(session->start_time, buffer, sizeof(buffer));
+                            strcpy(infoTraccia.data_inizio, buffer);
+                            ConvertFitTimestamp(session->timestamp, buffer, sizeof(buffer));
+                            strcpy(infoTraccia.data_fine, buffer);
+                            if (session->total_elapsed_time != FIT_UINT32_INVALID) infoTraccia.minTot = (double)session->total_elapsed_time / 1000.0 / 60.0;
+                            if (session->total_moving_time != FIT_UINT32_INVALID) infoTraccia.minMov = (double)session->total_moving_time / 1000.0 / 60.0;
+                            if (session->total_distance != FIT_UINT32_INVALID) infoTraccia.disTot = (double)session->total_distance / 100.0 / 1000.0;
+                            if (session->avg_speed != FIT_UINT16_INVALID) infoTraccia.avgSpd = ((double)session->avg_speed / 1000.0) * 3.6;
+                            if (session->max_speed != FIT_UINT16_INVALID) infoTraccia.maxSpd = ((double)session->max_speed / 1000.0) * 3.6;
+                            if (session->total_ascent != FIT_UINT16_INVALID) infoTraccia.altPos = session->total_ascent;
+                            if (session->total_descent != FIT_UINT16_INVALID) infoTraccia.altNeg =session->total_descent;
+                            if (session->total_calories != FIT_UINT16_INVALID) infoTraccia.calorie = session->total_calories;
+                            if (session->avg_temperature != FIT_UINT16_INVALID) infoTraccia.avgTemp = session->avg_temperature;
+                            if (session->max_temperature != FIT_UINT16_INVALID) infoTraccia.maxTemp = session->max_temperature;
+                            if (session->avg_altitude!= FIT_UINT16_INVALID) infoTraccia.altAvg = ((double)session->avg_altitude/ 5.0) - 500.0;
+                            if (session->max_altitude!= FIT_UINT16_INVALID) infoTraccia.altMax = ((double)session->max_altitude/ 5.0) - 500.0;
+                       break;
                       }
                       default:
-                         //printf("Unknown\n");
                       break;
                    }
                    break;
@@ -740,7 +782,7 @@ void loadLibrary (void) {
         if (fileCount<maxRows) visibleRows = fileCount;
         else visibleRows=maxRows;
         centerRow = visibleRows / 2;
-    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+
 }
 
 int compareFiles(const void *a, const void *b) {
@@ -757,6 +799,19 @@ int compareFiles(const void *a, const void *b) {
     // Confronto case insensitive A = a
     return strcasecmp(filename_a, filename_b);
 }
+
+int compareFilesByModTime(const void *a, const void *b) {
+    const char *path_a = (const char *)a;
+    const char *path_b = (const char *)b;
+
+    long time_a = GetFileModTime(path_a);
+    long time_b = GetFileModTime(path_b);
+
+    if (time_a < time_b) return -1;
+    if (time_a > time_b) return 1;
+    return 0;
+}
+
 
 int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count) {
     // Controllo numero files
