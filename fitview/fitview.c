@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "0.9.0"
+#define TOOL_VERSION            "0.9.9"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -39,7 +39,7 @@ Rectangle dataArea = { 548,8,540,360};
 Rectangle libraryPos = { 556,286,540,442};
 
 const int fntSize = 16;
-char buffer[64];
+char tempBuffer[64];
 bool showMinimap = false;
 
 float minZoomX;
@@ -142,6 +142,7 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
 Vector2 GpsToPixel(double lat, double lon, Texture2D tex);
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size);
 int decodeFit(char* fileName);
+void getTimeFromMinute (double mins);
 
 void loadLibrary (void);
 int compareFiles(const void *a, const void *b);
@@ -168,7 +169,9 @@ int main (int argc, char *argv[])
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    
+    Font titleFont = LoadFontEx("fonts/ManropeV5-Bold.otf", 44,codepoints, glyphCount); // all other text
+    Font subTitleFont = LoadFontEx("fonts/ManropeV5-Regular.otf", 32,codepoints, glyphCount); // all other text
+
       // Caricamento texture (reale o di test)
      // fonte immagine definitiva 
      // https://www.esa.int/media/earth-from-space-olympic-view-en-378359
@@ -188,7 +191,7 @@ int main (int argc, char *argv[])
     //float minZoom = 1.0f;
     ResetCameraView(&cam, mapTexture, mapArea, 0.0f, &minZoom);
 
-// load file list and set file library variables
+// load file list and sort by file modification time
     loadLibrary();
     qsort(files, fileCount, MAX_NAME, compareFilesByModTime);  // ordinamento file
 
@@ -231,9 +234,7 @@ while (!WindowShouldClose())
 
 
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
-
         if (IsKeyPressed(KEY_X)) ResetCameraView(&cam, mapTexture, mapArea, 0.0f, &minZoom);
-        
         if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapArea, 1.0f, &minZoom);    
                       
         // Applica zoom e pan solo se il mouse è dentro mapArea
@@ -251,9 +252,7 @@ while (!WindowShouldClose())
                 if (cam.zoom > maxZoom) cam.zoom = maxZoom;
             }
 
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                cam.target = Vector2Add(cam.target, Vector2Scale(delta, 1.0f / cam.zoom));
-            }
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) cam.target = Vector2Add(cam.target, Vector2Scale(delta, 1.0f / cam.zoom));
         
             //-------------------------------------------------------------------
             // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
@@ -267,7 +266,7 @@ while (!WindowShouldClose())
             }
         }
 
-
+        // minimap controllo posizionamento area evidenziata
         // Controllo dei limiti usando i bordi reali di mapArea sullo schermo
         Vector2 topLeft = GetScreenToWorld2D((Vector2){ mapArea.x, mapArea.y }, cam);
         Vector2 bottomRight = GetScreenToWorld2D((Vector2){ mapArea.x + mapArea.width, mapArea.y + mapArea.height }, cam);
@@ -283,6 +282,10 @@ while (!WindowShouldClose())
         } else if (bottomRight.y > (float)mapTexture.height) {
             cam.target.y -= (bottomRight.y - (float)mapTexture.height);
         }
+
+        // Ricalcolo coordinate reali per sincronizzare il rettangolo rosso della mappa
+        topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
+        bottomRight = GetScreenToWorld2D((Vector2){ (float)mapArea.width, (float)mapArea.height}, cam);
 
 
                 //---------------------------------------------------------------------
@@ -356,60 +359,59 @@ while (!WindowShouldClose())
                         //     DrawCircleV(puntiPixel[i], raggioPunto, Fade (YELLOW,0.50f));
                         // }
                     }
-
                 EndMode2D();
 		    EndScissorMode();	      
 
 
             //  track generaòl data
 
-            snprintf(buffer, sizeof(buffer), "Zoom: %02.f%%", cam.zoom*100);
-            DrawTextEx(textFont,buffer,(Vector2){dataArea.x + 8, 266},(float)textFont.baseSize,0,BLACK);
+        DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,FG_COLOR); 
+        DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, GRID_COLOR); 
+        //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+        DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth -60, 32,10,BORDER_COLOR);
+
             if (isTrackLoaded) {
+                getTimeFromMinute(infoTraccia.minMov);
 
-                DrawTextEx(boldFont,"Inizio sessione:",(Vector2){dataArea.x+8,dataArea.y},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%s",infoTraccia.data_inizio) ,(Vector2){dataArea.x + 260, dataArea.y},(float)textFont.baseSize,0,BLACK);
+                //DrawTextEx(boldFont,"Inizio sessione:",(Vector2){dataArea.x+8,dataArea.y},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(titleFont,TextFormat("%s",infoTraccia.data_inizio) ,(Vector2){dataArea.x +8, dataArea.y},(float)titleFont.baseSize,-1,BLACK);
+                DrawLine(dataArea.x+8, dataArea.y+44,dataArea.x+dataArea.width,dataArea.y+44,GRID_COLOR);
 
-                DrawTextEx(boldFont,"Fine sessione:",(Vector2){dataArea.x+8,dataArea.y + 16},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%s",infoTraccia.data_fine) ,(Vector2){dataArea.x + 260, dataArea.y + 16},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(subTitleFont,TextFormat("%.2f km in %s ai %.1f Km/h.",infoTraccia.disTot, tempBuffer, infoTraccia.avgSpd) ,(Vector2){dataArea.x + 8, dataArea.y + 50},(float)subTitleFont.baseSize,0,OFF_COLOR);
 
-                DrawTextEx(boldFont,"Tempo totale:",(Vector2){dataArea.x+8,dataArea.y + 64},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.2f minuti",infoTraccia.minTot) ,(Vector2){dataArea.x + 260, dataArea.y + 64},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Fine sessione:",(Vector2){dataArea.x+8,dataArea.y + 96},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",infoTraccia.data_fine) ,(Vector2){dataArea.x + 260, dataArea.y + 96},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Tempo in movimento:",(Vector2){dataArea.x+8,dataArea.y + 80},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.2f minuti",infoTraccia.minMov) ,(Vector2){dataArea.x + 260, dataArea.y + 80},(float)textFont.baseSize,0,BLACK);
+                getTimeFromMinute(infoTraccia.minTot);
+                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){dataArea.x+8,dataArea.y + 112},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataArea.x + 260, dataArea.y + 112},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Distanza totale:",(Vector2){dataArea.x+8,dataArea.y + 96},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){dataArea.x + 260, dataArea.y + 96},(float)textFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Velocità media:",(Vector2){dataArea.x+8,dataArea.y + 112},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 112},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Velocità massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 128},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 128},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Velocità massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 128},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 128},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){dataArea.x+8,dataArea.y + 144},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataArea.x + 260, dataArea.y + 144},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Dislivello positivo (salita):",(Vector2){dataArea.x+8,dataArea.y + 144},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataArea.x + 260, dataArea.y + 144},(float)textFont.baseSize,0,BLACK);
-
-                DrawTextEx(boldFont,"Dislivello negativo (discesa):",(Vector2){dataArea.x+8,dataArea.y + 160},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataArea.x + 260, dataArea.y + 160},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){dataArea.x+8,dataArea.y + 160},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataArea.x + 260, dataArea.y + 160},(float)boldFont.baseSize,0,BLACK);
                 
-                DrawTextEx(boldFont,"Calorie consumate:",(Vector2){dataArea.x+8,dataArea.y + 176},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataArea.x + 260, dataArea.y + 176},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Calorie consumate:",(Vector2){dataArea.x+8,dataArea.y + 176},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataArea.x + 260, dataArea.y + 176},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Temperatura media:",(Vector2){dataArea.x+8,dataArea.y + 192},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 192},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura media:",(Vector2){dataArea.x+8,dataArea.y + 192},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 192},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Temperatura massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 208},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 208},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 208},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 208},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Altitudine media:",(Vector2){dataArea.x+8,dataArea.y + 224},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataArea.x + 260, dataArea.y + 224},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine media:",(Vector2){dataArea.x+8,dataArea.y + 224},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataArea.x + 260, dataArea.y + 224},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(boldFont,"Altitudine massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 240},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(textFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataArea.x + 260, dataArea.y + 240},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 240},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataArea.x + 260, dataArea.y + 240},(float)boldFont.baseSize,0,BLACK);
 
-            }
+            } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){dataArea.x + 120, (dataArea.y +120)},(float)subTitleFont.baseSize,-1,RED);
 
 
 
@@ -476,6 +478,8 @@ while (!WindowShouldClose())
 	UnloadTexture(mapTexture);
     UnloadFont(boldFont);
     UnloadFont(textFont);
+    UnloadFont(titleFont);
+    UnloadFont(subTitleFont);
 	CloseWindow();
     return 0;
 }
@@ -712,10 +716,10 @@ int decodeFit(char* fileName) {
                       case FIT_MESG_NUM_SESSION:
                       {
                          const FIT_SESSION_MESG *session = (FIT_SESSION_MESG *) mesg;
-                            ConvertFitTimestamp(session->start_time, buffer, sizeof(buffer));
-                            strcpy(infoTraccia.data_inizio, buffer);
-                            ConvertFitTimestamp(session->timestamp, buffer, sizeof(buffer));
-                            strcpy(infoTraccia.data_fine, buffer);
+                            ConvertFitTimestamp(session->start_time, tempBuffer, sizeof(tempBuffer));
+                            strcpy(infoTraccia.data_inizio, tempBuffer);
+                            ConvertFitTimestamp(session->timestamp, tempBuffer, sizeof(tempBuffer));
+                            strcpy(infoTraccia.data_fine, tempBuffer);
                             if (session->total_elapsed_time != FIT_UINT32_INVALID) infoTraccia.minTot = (double)session->total_elapsed_time / 1000.0 / 60.0;
                             if (session->total_moving_time != FIT_UINT32_INVALID) infoTraccia.minMov = (double)session->total_moving_time / 1000.0 / 60.0;
                             if (session->total_distance != FIT_UINT32_INVALID) infoTraccia.disTot = (double)session->total_distance / 100.0 / 1000.0;
@@ -862,4 +866,13 @@ int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int co
     }
     closedir(dir);
     return count;
+}
+
+void getTimeFromMinute (double mins)
+{
+    long totalSec = mins*60;
+    long hours = totalSec / 3600;
+    long minutes = totalSec % 3600 / 60;
+    long seconds = totalSec % 60;
+    snprintf(tempBuffer, sizeof(tempBuffer),"%ld ore %ld min %ld sec",hours,minutes,seconds );
 }
