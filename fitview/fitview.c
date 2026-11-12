@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.2.0"
+#define TOOL_VERSION            "1.2.5"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -37,11 +37,12 @@ const int screenHeight = 736;
 Rectangle mapArea = { 8,8,694,520};
 Rectangle dataArea = { 706,8,380,360};
 Rectangle libraryPos = { 708,288,380,442};
-Rectangle mapAltim = {8,534,694,196};
+Rectangle chartPos = {8,534,694,196};
 
 const int fntSize = 16;
 char tempBuffer[64];
 bool showMinimap = false;
+bool showKM=false;
 
 float minZoomX;
 float minZoomY;
@@ -64,7 +65,7 @@ float scaleY;
 #define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
 #define BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
 // grid and checkerboard
-#define GRID_COLOR CLITERAL(Color){ 155, 160, 163, 255} 
+#define GRID_COLOR CLITERAL(Color){ 180, 185, 185, 255} 
 #define GRID_BG_COLOR CLITERAL(Color){ 236, 241, 241, 255} 
 // some funs
 #define TRACK_COLOR CLITERAL(Color){ 247, 120, 16, 255}
@@ -233,7 +234,7 @@ while (!WindowShouldClose())
         Vector2 delta = Vector2Subtract(prevMousePos, thisPos);
         prevMousePos = thisPos;
 
-
+        if (IsKeyPressed(KEY_K)) showKM = !showKM;
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
         if (IsKeyPressed(KEY_X)) ResetCameraView(&cam, mapTexture, mapArea, 0.0f, &minZoom);
         if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapArea, 1.0f, &minZoom);    
@@ -328,6 +329,60 @@ while (!WindowShouldClose())
 
                     }
                 }
+                    //------------------------------------------
+                    // updates per grafico altimetria
+                    //-----------------------------------------
+                    // 1. Margini allargati a sinistra e in basso per ospitare i numeri degli assi
+                    float margineSinistro = 36.0f;
+                    float margineDestro = 8.0f;
+                    float margineAlto = 8.0f;
+                    float margineBasso = 20.0f;
+
+                    float larghezzaUtile = chartPos.width - margineSinistro - margineDestro;
+                    float altezzaUtile = chartPos.height - margineAlto - margineBasso;
+
+                    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
+
+                    // punto inizale istante 0 ad alteza 0.0f 
+                    //puntiGps[0].alt = 0.0f;
+
+                    // Calcolo altitudine min e max
+                    float minAlt = puntiGps[0].alt;
+                    float maxAlt = puntiGps[0].alt;
+
+                    for (int i = 1; i < numPointRec; i++) {
+                        if (puntiGps[i].alt < minAlt) minAlt = puntiGps[i].alt;
+                        if (puntiGps[i].alt > maxAlt) maxAlt = puntiGps[i].alt;
+                    }
+
+                    float deltaAlt = maxAlt - minAlt;
+                    if (deltaAlt < 1.0f) deltaAlt = 1.0f;
+
+                    float startX = chartPos.x + margineSinistro;
+                    float baseY = chartPos.y + chartPos.height - margineBasso;
+                    float topY = chartPos.y + margineAlto;
+
+                    // --- 2. DISEGNO GRIGLIA ORIZZONTALE (ALTITUDINE - ASSE Y) ---
+                    // Calcola uno step "pulito" (es. 10m, 20m, 50m, 100m, 200m...)
+                    float stepAlt = 10.0f;
+                    if (deltaAlt > 50.0f) stepAlt = 20.0f;
+                    if (deltaAlt > 150.0f) stepAlt = 50.0f;
+                    if (deltaAlt > 400.0f) stepAlt = 100.0f;
+                    if (deltaAlt > 1000.0f) stepAlt = 250.0f;
+                    if (deltaAlt > 2000.0f) stepAlt = 500.0f;
+
+                    // Primo multiplo di stepAlt sopra minAlt
+                    float primaQuota = ceilf(minAlt / stepAlt) * stepAlt;
+
+                    // --- 3. DISEGNO GRIGLIA VERTICALE (DISTANZA - ASSE X) ---
+                    float distMaxKm = distMax; // Cambiaew in (distMax / 1000.0f) se dati sono in metri
+
+                    float stepKm = 1.0f;
+                    if (distMaxKm <= 2.0f) stepKm = 0.5f;
+                    else if (distMaxKm > 10.0f) stepKm = 2.0f;
+                    else if (distMaxKm > 25.0f) stepKm = 5.0f;
+                    else if (distMaxKm > 50.0f) stepKm = 10.0f;
+
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
@@ -343,23 +398,32 @@ while (!WindowShouldClose())
                     DrawTexture(mapTexture,0,0, WHITE);
 
                     if (isTrackLoaded) {
-                        // 2. Disegno le linee rosse di unione tra i punti
+                        // 2Disegna le linee rosse di unione tra i punti
                         // Usiamo uno spessore proporzionale allo zoom per non farla sparire o diventare enorme
                         float spessoreLinea = 4.0f / cam.zoom; 
                         if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
-
                         for (int i = 1; i < numPointRec - 1; i++) {
-                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, MAROON);
+     
+                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, DARKBLUE );
+
+                            if (i % 40 == 0 && showKM) {
+                                snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
+                                Vector2 datePos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, -1);
+                                DrawRectangle(puntiPixel[i].x,puntiPixel[i].y+1 ,datePos.x+2,datePos.y,WHITE);
+                                DrawRectangle(puntiPixel[i].x +1,puntiPixel[i].y+2, datePos.x,datePos.y-2,BLUE);
+                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, -1,WHITE);
+                            }
+
                         }
 
-                        // // 3. Disegno i nodi/punti del percorso
-                        // float raggioPunto = 2.0f / cam.zoom;
+                        // traccia i nodi/punti del percorso
+                        // se i punti si diradano ( discesa oppure andavo veloce)
+                        // piu si va piano (salita?) piu i punti sono ravvicinati...
+                        // DrawCircleC   uso cpu intenso
+                        //  float raggioPunto = 3.0f / cam.zoom;
                         // if (raggioPunto < 2.0f) raggioPunto = 2.0f;
-
-                        // for (int i = 1; i < numPointRec; i++) {
-                        //     DrawCircleV(puntiPixel[i], raggioPunto, Fade (YELLOW,0.50f));
-                        // }
-                    }
+                        // for (int i = 1; i < numPointRec; i++) DrawCircleV(puntiPixel[i], raggioPunto, Fade (RED,0.50f));
+                     }
                 EndMode2D();
 		    EndScissorMode();	      
             // bordo nero attorno alla mappa 
@@ -427,86 +491,41 @@ while (!WindowShouldClose())
 
             } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){dataArea.x + 48, (dataArea.y +120)},(float)subTitleFont.baseSize,-1,RED);
 
-                DrawRectangleRec(mapAltim,GRID_BG_COLOR);
+                DrawRectangleRec(chartPos,GRID_BG_COLOR);
             
                  if (isTrackLoaded && numPointRec > 2) {
-                    // 1. Margini allargati a sinistra e in basso per ospitare i numeri degli assi
-                    float margineSinistro = 42.0f;
-                    float margineDestro = 10.0f;
-                    float margineAlto = 10.0f;
-                    float margineBasso = 20.0f;
-
-                    float larghezzaUtile = mapAltim.width - margineSinistro - margineDestro;
-                    float altezzaUtile = mapAltim.height - margineAlto - margineBasso;
-
-                    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
-
-                    // Calcolo altitudine min e max
-                    float minAlt = puntiGps[0].alt;
-                    float maxAlt = puntiGps[0].alt;
-                    for (int i = 1; i < numPointRec; i++) {
-                        if (puntiGps[i].alt < minAlt) minAlt = puntiGps[i].alt;
-                        if (puntiGps[i].alt > maxAlt) maxAlt = puntiGps[i].alt;
-                    }
-
-                    float deltaAlt = maxAlt - minAlt;
-                    if (deltaAlt < 1.0f) deltaAlt = 1.0f;
-
-                    float startX = mapAltim.x + margineSinistro;
-                    float baseY = mapAltim.y + mapAltim.height - margineBasso;
-                    float topY = mapAltim.y + margineAlto;
-
-                    // --- 2. DISEGNO GRIGLIA ORIZZONTALE (ALTITUDINE - ASSE Y) ---
-                    // Calcola uno step "pulito" (es. 10m, 20m, 50m, 100m, 200m...)
-                    float stepAlt = 10.0f;
-                    if (deltaAlt > 50.0f) stepAlt = 20.0f;
-                    if (deltaAlt > 150.0f) stepAlt = 50.0f;
-                    if (deltaAlt > 400.0f) stepAlt = 100.0f;
-                    if (deltaAlt > 1000.0f) stepAlt = 250.0f;
-
-                    // Primo multiplo di stepAlt sopra minAlt
-                    float primaQuota = ceilf(minAlt / stepAlt) * stepAlt;
-
+                    
                     for (float alt = primaQuota; alt <= maxAlt; alt += stepAlt) {
                         float normY = (alt - minAlt) / deltaAlt;
                         float y = baseY - (normY * altezzaUtile);
 
                         // Linea griglia orizzontale
-                        DrawLineV((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, Fade(LIGHTGRAY, 0.4f));
+                        DrawLineV((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, GRID_COLOR);
                         
                         // Etichetta altitudine a sinistra (es. "450m")
-                        DrawText(TextFormat("%.0fm", alt), (int)(mapAltim.x + 2), (int)(y - 5), 10, GRAY);
+                        DrawText(TextFormat("%.0fm", alt), (int)(chartPos.x + 6), (int)(y - 5), 10, FG_COLOR);
                     }
 
-                    // --- 3. DISEGNO GRIGLIA VERTICALE (DISTANZA - ASSE X) ---
-                    // Nota: Se distMax è in METRI, dividi per 1000.0f per lavorare in KM.
-                    // Se distMax è già in KM, lascia così com'è.
-                    float distMaxKm = distMax; // Cambia in (distMax / 1000.0f) se i tuoi dati sono in metri!
-
-                    float stepKm = 1.0f;
-                    if (distMaxKm <= 2.0f) stepKm = 0.5f;
-                    else if (distMaxKm > 10.0f) stepKm = 2.0f;
-                    else if (distMaxKm > 25.0f) stepKm = 5.0f;
-                    else if (distMaxKm > 60.0f) stepKm = 10.0f;
 
                     for (float km = 0.0f; km <= distMaxKm; km += stepKm) {
                         float normX = km / distMaxKm;
                         float x = startX + (normX * larghezzaUtile);
 
                         // Linea griglia verticale
-                        DrawLineV((Vector2){ x, topY }, (Vector2){ x, baseY }, Fade(LIGHTGRAY, 0.4f));
+                        DrawLineV((Vector2){ x, topY }, (Vector2){ x, baseY }, GRID_COLOR);
 
                         // Etichetta km in basso
                         const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1f", km) : TextFormat("%.0fkm", km);
-                        DrawText(labelKm, (int)(x - 10), (int)(baseY + 5), 10, GRAY);
+                        if ((int)km % 10 == 0) DrawText(labelKm, (int)(x - 10), (int)(baseY + 5), 10, FG_COLOR);
                     }
 
                     // Bordi principali degli assi (Asse Y a sinistra e Asse X in basso)
-                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, GRID_COLOR);
-                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, GRID_COLOR);
+                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, BORDER_COLOR);
+                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, BORDER_COLOR);
 
                     // --- 4. DISEGNO TRACCIA ALTIMETRICA ---
-                    BeginScissorMode((int)startX, (int)topY, (int)larghezzaUtile, (int)altezzaUtile);
+
+                    BeginScissorMode((int)chartPos.x, (int)chartPos.y, (int)chartPos.width, (int)chartPos.height);
 
                     for (int i = 0; i < numPointRec - 1; i++) {
                         float normX1 = puntiGps[i].dist / distMax;
@@ -521,15 +540,17 @@ while (!WindowShouldClose())
                         float x2 = startX + (normX2 * larghezzaUtile);
                         float y2 = baseY - (normY2 * altezzaUtile);
 
-                        DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 3.0f, ON_COLOR);
+                        //DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, ON_COLOR);
+                        //CheckCollisionLines(Vector2 startPos1, Vector2 endPos1, Vector2 startPos2, Vector2 endPos2, Vector2 *collisionPoint
+                        DrawLine (x1,y1,x2,y2,DARKBLUE);
+                        //DrawLine(x1, y1 , x1, baseY  , ON_COLOR); // so si vedrebbe le volte che sono fermo ..perche valore va a zero
+                        //DrawRectangleRec((Rectangle){ x1, y1 , 2, 2  }, ON_COLOR);
                     }
 
                     EndScissorMode();
-                }
-
-
-
-            DrawRectangleLinesEx(mapAltim, 1,GRID_COLOR);
+                } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){chartPos.x + 216, (chartPos.y +88)},(float)subTitleFont.baseSize,-1,RED);
+            // bordo grafico altimetria 
+            DrawRectangleLinesEx(chartPos, 1,BORDER_COLOR);
 
         // -----------------------------------------------------------------
         //  print file list / library 
