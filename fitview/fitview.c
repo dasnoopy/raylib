@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.0.2"
+#define TOOL_VERSION            "1.2.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -38,7 +38,6 @@ Rectangle mapArea = { 8,8,694,520};
 Rectangle dataArea = { 706,8,380,360};
 Rectangle libraryPos = { 708,288,380,442};
 Rectangle mapAltim = {8,534,694,196};
-Vector2 graphOrig = {12,724};
 
 const int fntSize = 16;
 char tempBuffer[64];
@@ -428,15 +427,109 @@ while (!WindowShouldClose())
 
             } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){dataArea.x + 48, (dataArea.y +120)},(float)subTitleFont.baseSize,-1,RED);
 
+                DrawRectangleRec(mapAltim,GRID_BG_COLOR);
             
-            // grafico altimetria
-            DrawRectangleRec(mapAltim, GRID_BG_COLOR);   
+                 if (isTrackLoaded && numPointRec > 2) {
+                    // 1. Margini allargati a sinistra e in basso per ospitare i numeri degli assi
+                    float margineSinistro = 42.0f;
+                    float margineDestro = 10.0f;
+                    float margineAlto = 10.0f;
+                    float margineBasso = 20.0f;
+
+                    float larghezzaUtile = mapAltim.width - margineSinistro - margineDestro;
+                    float altezzaUtile = mapAltim.height - margineAlto - margineBasso;
+
+                    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
+
+                    // Calcolo altitudine min e max
+                    float minAlt = puntiGps[0].alt;
+                    float maxAlt = puntiGps[0].alt;
+                    for (int i = 1; i < numPointRec; i++) {
+                        if (puntiGps[i].alt < minAlt) minAlt = puntiGps[i].alt;
+                        if (puntiGps[i].alt > maxAlt) maxAlt = puntiGps[i].alt;
+                    }
+
+                    float deltaAlt = maxAlt - minAlt;
+                    if (deltaAlt < 1.0f) deltaAlt = 1.0f;
+
+                    float startX = mapAltim.x + margineSinistro;
+                    float baseY = mapAltim.y + mapAltim.height - margineBasso;
+                    float topY = mapAltim.y + margineAlto;
+
+                    // --- 2. DISEGNO GRIGLIA ORIZZONTALE (ALTITUDINE - ASSE Y) ---
+                    // Calcola uno step "pulito" (es. 10m, 20m, 50m, 100m, 200m...)
+                    float stepAlt = 10.0f;
+                    if (deltaAlt > 50.0f) stepAlt = 20.0f;
+                    if (deltaAlt > 150.0f) stepAlt = 50.0f;
+                    if (deltaAlt > 400.0f) stepAlt = 100.0f;
+                    if (deltaAlt > 1000.0f) stepAlt = 250.0f;
+
+                    // Primo multiplo di stepAlt sopra minAlt
+                    float primaQuota = ceilf(minAlt / stepAlt) * stepAlt;
+
+                    for (float alt = primaQuota; alt <= maxAlt; alt += stepAlt) {
+                        float normY = (alt - minAlt) / deltaAlt;
+                        float y = baseY - (normY * altezzaUtile);
+
+                        // Linea griglia orizzontale
+                        DrawLineV((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, Fade(LIGHTGRAY, 0.4f));
+                        
+                        // Etichetta altitudine a sinistra (es. "450m")
+                        DrawText(TextFormat("%.0fm", alt), (int)(mapAltim.x + 2), (int)(y - 5), 10, GRAY);
+                    }
+
+                    // --- 3. DISEGNO GRIGLIA VERTICALE (DISTANZA - ASSE X) ---
+                    // Nota: Se distMax è in METRI, dividi per 1000.0f per lavorare in KM.
+                    // Se distMax è già in KM, lascia così com'è.
+                    float distMaxKm = distMax; // Cambia in (distMax / 1000.0f) se i tuoi dati sono in metri!
+
+                    float stepKm = 1.0f;
+                    if (distMaxKm <= 2.0f) stepKm = 0.5f;
+                    else if (distMaxKm > 10.0f) stepKm = 2.0f;
+                    else if (distMaxKm > 25.0f) stepKm = 5.0f;
+                    else if (distMaxKm > 60.0f) stepKm = 10.0f;
+
+                    for (float km = 0.0f; km <= distMaxKm; km += stepKm) {
+                        float normX = km / distMaxKm;
+                        float x = startX + (normX * larghezzaUtile);
+
+                        // Linea griglia verticale
+                        DrawLineV((Vector2){ x, topY }, (Vector2){ x, baseY }, Fade(LIGHTGRAY, 0.4f));
+
+                        // Etichetta km in basso
+                        const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1f", km) : TextFormat("%.0fkm", km);
+                        DrawText(labelKm, (int)(x - 10), (int)(baseY + 5), 10, GRAY);
+                    }
+
+                    // Bordi principali degli assi (Asse Y a sinistra e Asse X in basso)
+                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, GRID_COLOR);
+                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, GRID_COLOR);
+
+                    // --- 4. DISEGNO TRACCIA ALTIMETRICA ---
+                    BeginScissorMode((int)startX, (int)topY, (int)larghezzaUtile, (int)altezzaUtile);
+
+                    for (int i = 0; i < numPointRec - 1; i++) {
+                        float normX1 = puntiGps[i].dist / distMax;
+                        float normX2 = puntiGps[i + 1].dist / distMax;
+
+                        float normY1 = (puntiGps[i].alt - minAlt) / deltaAlt;
+                        float normY2 = (puntiGps[i + 1].alt - minAlt) / deltaAlt;
+
+                        float x1 = startX + (normX1 * larghezzaUtile);
+                        float y1 = baseY - (normY1 * altezzaUtile);
+
+                        float x2 = startX + (normX2 * larghezzaUtile);
+                        float y2 = baseY - (normY2 * altezzaUtile);
+
+                        DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 3.0f, ON_COLOR);
+                    }
+
+                    EndScissorMode();
+                }
+
+
+
             DrawRectangleLinesEx(mapAltim, 1,GRID_COLOR);
-            if (isTrackLoaded) {
-
-                DrawPixelV(graphOrig,RED);
-
-            }
 
         // -----------------------------------------------------------------
         //  print file list / library 
@@ -664,9 +757,9 @@ int decodeFit(char* fileName) {
     char data_ora[64];
     double lat;
     double lon;
-    double altimetro;
-    double dist_km;
-    double vel_kmh;
+    double alt;
+    double dist;
+    double vel;
 
     while(!feof(file) && (convert_return == FIT_CONVERT_CONTINUE))
     {
@@ -720,16 +813,16 @@ int decodeFit(char* fileName) {
                                       lon = (double)record->position_long * SEMICIRCLES_TO_DEGREES;
                                   }
                                 // 4. Altitudine
-                                if (record->altitude != FIT_UINT16_INVALID) altimetro = ((double)record->altitude / 5.0) - 500.0;
+                                if (record->altitude != FIT_UINT16_INVALID) alt = ((double)record->altitude / 5.0) - 500.0;
                                 
                                 // 5. Distanza percorsa accumulata
-                                if (record->distance != FIT_UINT32_INVALID) dist_km = (double)record->distance / 100.0 / 1000.0;
+                                if (record->distance != FIT_UINT32_INVALID) dist = (double)record->distance / 100.0 / 1000.0;
                                 
                                 // 6. Velocità istantanea
-                                if (record->enhanced_speed != FIT_UINT32_INVALID) vel_kmh = ((double)record->enhanced_speed/ 1000.0) * 3.6;
-                                else if (record->speed != FIT_UINT16_INVALID) vel_kmh = ((double)record->speed / 1000.0) * 3.6;
+                                if (record->enhanced_speed != FIT_UINT32_INVALID) vel = ((double)record->enhanced_speed/ 1000.0) * 3.6;
+                                else if (record->speed != FIT_UINT16_INVALID) vel = ((double)record->speed / 1000.0) * 3.6;
 
-                                puntiGps[numPointRec] =(gpsPoints) {numRecord, data_ora, lat, lon, altimetro, dist_km, vel_kmh };
+                                puntiGps[numPointRec] =(gpsPoints) {numRecord, data_ora, lat, lon, alt, dist, vel };
                                 numPointRec++;
                             }                            
                             numRecord++;
@@ -899,3 +992,4 @@ void getTimeFromMinute (double mins)
     long seconds = totalSec % 60;
     snprintf(tempBuffer, sizeof(tempBuffer),"%ld ore %ld min %ld sec",hours,minutes,seconds );
 }
+
