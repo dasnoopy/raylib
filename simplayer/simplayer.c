@@ -10,7 +10,7 @@
 #define TOOL_NAME               "Simple Music Player"
 #define TOOL_SHORT_NAME         "simplayer"
 #define TOOL_COMMENT            "Simple but modern currMusic player written in C99 using Raylib - Play MP3 and OGG file"
-#define TOOL_VERSION            "3.1.6"
+#define TOOL_VERSION            "3.1.8"
 
 #include <stdio.h>
 #include <raylib.h>
@@ -34,7 +34,7 @@
 #define screenHeight  396
 
 // some custom colors
-const Color accentColor = SKYBLUE;//CLITERAL(Color){136, 192, 208, 255}; 
+const Color accentColor = SKYBLUE;// CLITERAL(Color){12, 161, 166, 255}; Arduino LED matrix editor CYAN
 const Color primaryColor = CLITERAL(Color){253, 255, 255, 255}; 
 const Color secondaryColor = CLITERAL(Color){156, 158, 158, 255};
 const Color borderColor = CLITERAL(Color){50, 70, 70, 255};
@@ -538,7 +538,7 @@ int main (int argc, char *argv[])
 	Rectangle visArea = { 14, 92, screenWidth-28, 208};
 
 	//infoArea e calcolo lunghezza timeProgressbar
-	Rectangle infoArea = {18,312,screenWidth-30,110};
+	Rectangle infoArea = {12,312,screenWidth-30,110};
 	Vector2 timeText = MeasureTextEx(digitFnt, "00:00:00", (float)digitFnt.baseSize, 0);
 
 	// flag area / currMusic file info
@@ -1107,11 +1107,11 @@ while (!WindowShouldClose())
 		
         //volume icon and its percentage value
 
-        for (int i = 0; i < 100; i+=4) DrawLine(12+i,360,12+i,360-(i/4),(i<currVolume*100)?accentColor:borderColor);
+        for (int i = 0; i < 100; i+=4) DrawLine(infoArea.x+i,360,infoArea.x+i,360-(i/4),(i<currVolume*100)?accentColor:borderColor);
 
-		DrawTexture(volumeIcon,infoArea.x+4,infoArea.y,isMute?borderColor:secondaryColor);
-		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0,primaryColor);
-		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+44,infoArea.y+6}, (float)defaultFnt.baseSize,0, borderColor);
+		DrawTexture(volumeIcon,infoArea.x,infoArea.y,isMute?borderColor:secondaryColor);
+		   if (!isMute) DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+40,infoArea.y+6}, (float)defaultFnt.baseSize,0,primaryColor);
+		   else DrawTextEx(defaultFnt,TextFormat("%.f%%",currVolume*100),(Vector2){infoArea.x+40,infoArea.y+6}, (float)defaultFnt.baseSize,0, borderColor);
 		
 		// tempo avanzamento brano centrato orizzontalmente
 		DrawTextEx(digitFnt,curTimeStr,(Vector2){(screenWidth/2)-(timeText.x/2),infoArea.y},(float)digitFnt.baseSize,0, primaryColor);

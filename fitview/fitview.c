@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "0.9.9"
+#define TOOL_VERSION            "1.0.2"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -31,12 +31,14 @@
 #define GARMIN_TIME_OFFSET 631065600
 
 // window size (16:9)
-const int screenWidth = 1104;
+const int screenWidth = 1096;
 const int screenHeight = 736;
 
-Rectangle mapArea = { 8,8,540,720};
-Rectangle dataArea = { 548,8,540,360};
-Rectangle libraryPos = { 556,286,540,442};
+Rectangle mapArea = { 8,8,694,520};
+Rectangle dataArea = { 706,8,380,360};
+Rectangle libraryPos = { 708,288,380,442};
+Rectangle mapAltim = {8,534,694,196};
+Vector2 graphOrig = {12,724};
 
 const int fntSize = 16;
 char tempBuffer[64];
@@ -283,9 +285,10 @@ while (!WindowShouldClose())
             cam.target.y -= (bottomRight.y - (float)mapTexture.height);
         }
 
-        // Ricalcolo coordinate reali per sincronizzare il rettangolo rosso della mappa
+        // Ricalcolo coordinate reali per sincronizzare il rettangolo di evidenziazione della mappa
         topLeft = GetScreenToWorld2D((Vector2){ 0, 0 }, cam);
         bottomRight = GetScreenToWorld2D((Vector2){ (float)mapArea.width, (float)mapArea.height}, cam);
+
 
 
                 //---------------------------------------------------------------------
@@ -335,8 +338,7 @@ while (!WindowShouldClose())
         
 		BeginDrawing();
             ClearBackground(BG_COLOR);
-            DrawRectangleRec((Rectangle){mapArea.x - 1, mapArea.y - 1, mapArea.width + 2, mapArea.height + 2}, BORDER_COLOR);
-
+              
             BeginScissorMode(mapArea.x, mapArea.y, mapArea.width, mapArea.height);
     		    BeginMode2D(cam);
                     DrawTexture(mapTexture,0,0, WHITE);
@@ -361,59 +363,80 @@ while (!WindowShouldClose())
                     }
                 EndMode2D();
 		    EndScissorMode();	      
+            // bordo nero attorno alla mappa 
+            DrawRectangleLinesEx(mapArea, 1,GRID_COLOR);
 
+        // DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,FG_COLOR); 
+        // DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, GRID_COLOR); 
+        // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+        // DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth -60, 32,10,BORDER_COLOR);
 
-            //  track generaòl data
-
-        DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,FG_COLOR); 
-        DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, GRID_COLOR); 
-        //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-        DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth -60, 32,10,BORDER_COLOR);
-
+            // track dataa
             if (isTrackLoaded) {
-                getTimeFromMinute(infoTraccia.minMov);
 
-                //DrawTextEx(boldFont,"Inizio sessione:",(Vector2){dataArea.x+8,dataArea.y},(float)boldFont.baseSize,0,BLACK);
-                DrawTextEx(titleFont,TextFormat("%s",infoTraccia.data_inizio) ,(Vector2){dataArea.x +8, dataArea.y},(float)titleFont.baseSize,-1,BLACK);
+                // dividi la stringa con separatore ogni stringa separata diventa elemento di array..
+                int count=0;
+                char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
+                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){dataArea.x +8, dataArea.y},(float)titleFont.baseSize,-1,BLACK);
                 DrawLine(dataArea.x+8, dataArea.y+44,dataArea.x+dataArea.width,dataArea.y+44,GRID_COLOR);
 
-                DrawTextEx(subTitleFont,TextFormat("%.2f km in %s ai %.1f Km/h.",infoTraccia.disTot, tempBuffer, infoTraccia.avgSpd) ,(Vector2){dataArea.x + 8, dataArea.y + 50},(float)subTitleFont.baseSize,0,OFF_COLOR);
+                DrawTextEx(textFont,"Inizio sessione:",(Vector2){dataArea.x+8,dataArea.y +48},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){dataArea.x + 224, dataArea.y+48},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Fine sessione:",(Vector2){dataArea.x+8,dataArea.y + 96},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",infoTraccia.data_fine) ,(Vector2){dataArea.x + 260, dataArea.y + 96},(float)boldFont.baseSize,0,BLACK);
+                count=0;
+                splitStr = TextSplit(infoTraccia.data_fine, ',' , &count); 
+                DrawTextEx(textFont,"Fine sessione:",(Vector2){dataArea.x+8,dataArea.y + 64},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){dataArea.x + 224, dataArea.y + 64},(float)boldFont.baseSize,0,BLACK);
+
+                getTimeFromMinute(infoTraccia.minMov);
+                DrawTextEx(textFont,"Tempo in movimento:",(Vector2){dataArea.x+8,dataArea.y + 80},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataArea.x + 224, dataArea.y + 80},(float)boldFont.baseSize,0,BLACK);
 
                 getTimeFromMinute(infoTraccia.minTot);
-                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){dataArea.x+8,dataArea.y + 112},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataArea.x + 260, dataArea.y + 112},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){dataArea.x+8,dataArea.y + 96},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataArea.x + 224, dataArea.y + 96},(float)boldFont.baseSize,0,BLACK);
 
+                DrawTextEx(textFont,"Distanza totale:",(Vector2){dataArea.x+8,dataArea.y + 112},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){dataArea.x + 224, dataArea.y + 112},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Velocità massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 128},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataArea.x + 260, dataArea.y + 128},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Velocità media:",(Vector2){dataArea.x+8,dataArea.y + 128},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){dataArea.x + 224, dataArea.y + 128},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){dataArea.x+8,dataArea.y + 144},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataArea.x + 260, dataArea.y + 144},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Velocità massima:",(Vector2){dataArea.x+8,dataArea.y + 144},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataArea.x + 224, dataArea.y + 144},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){dataArea.x+8,dataArea.y + 160},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataArea.x + 260, dataArea.y + 160},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){dataArea.x+8,dataArea.y + 160},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataArea.x + 224, dataArea.y + 160},(float)boldFont.baseSize,0,BLACK);
+
+                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){dataArea.x+8,dataArea.y + 176},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataArea.x + 224, dataArea.y + 176},(float)boldFont.baseSize,0,BLACK);
                 
-                DrawTextEx(textFont,"Calorie consumate:",(Vector2){dataArea.x+8,dataArea.y + 176},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataArea.x + 260, dataArea.y + 176},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Calorie consumate:",(Vector2){dataArea.x+8,dataArea.y + 192},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataArea.x + 224, dataArea.y + 192},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Temperatura media:",(Vector2){dataArea.x+8,dataArea.y + 192},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 192},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura media:",(Vector2){dataArea.x+8,dataArea.y + 208},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){dataArea.x + 224, dataArea.y + 208},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Temperatura massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 208},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){dataArea.x + 260, dataArea.y + 208},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura massima:",(Vector2){dataArea.x+8,dataArea.y + 224},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){dataArea.x + 224, dataArea.y + 224},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Altitudine media:",(Vector2){dataArea.x+8,dataArea.y + 224},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataArea.x + 260, dataArea.y + 224},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine media:",(Vector2){dataArea.x+8,dataArea.y + 240},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataArea.x + 224, dataArea.y + 240},(float)boldFont.baseSize,0,BLACK);
 
-                DrawTextEx(textFont,"Altitudine massima raggiunta:",(Vector2){dataArea.x+8,dataArea.y + 240},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataArea.x + 260, dataArea.y + 240},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine massima:",(Vector2){dataArea.x+8,dataArea.y + 256},(float)textFont.baseSize,0,BLACK);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataArea.x + 224, dataArea.y + 256},(float)boldFont.baseSize,0,BLACK);
 
-            } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){dataArea.x + 120, (dataArea.y +120)},(float)subTitleFont.baseSize,-1,RED);
+            } else DrawTextEx(subTitleFont,"Choose a track to display data!",(Vector2){dataArea.x + 48, (dataArea.y +120)},(float)subTitleFont.baseSize,-1,RED);
 
+            
+            // grafico altimetria
+            DrawRectangleRec(mapAltim, GRID_BG_COLOR);   
+            DrawRectangleLinesEx(mapAltim, 1,GRID_COLOR);
+            if (isTrackLoaded) {
 
+                DrawPixelV(graphOrig,RED);
+
+            }
 
         // -----------------------------------------------------------------
         //  print file list / library 
