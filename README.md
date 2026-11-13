@@ -18,6 +18,15 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 4) Support notes & info in the readMe.txt located in each project folder..(if needed)
 4) run executable and enjoy!
 
+#### fitView ( a .FIT (tested for Bryton 420  file viewer )  
+
+![fitview](https://raw.github.com/dasnoopy/raylib/main/screenshot/fitview.png)
+
+Some usefull resources:
+1) file fit viewer [open source WEBapp](https://www.fitfileviewer.com/);
+2) gpx-studio [open source WEBapp](https://gpx.studio/app#0/0/0);
+3) gpxsee [Linux app](https://gpxsee.org/);
+
 #### SunClock  
 
 ![sunclock](https://raw.github.com/dasnoopy/raylib/main/screenshot/sunclock.png)
