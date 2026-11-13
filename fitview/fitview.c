@@ -176,7 +176,7 @@ int main (int argc, char *argv[])
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
-    Font subTitleFont = LoadFontEx("fonts/ManropeV5-Regular.otf", 32,codepoints, glyphCount); // all other text
+    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 32,codepoints, glyphCount); // all other text
 
       // Caricamento texture (reale o di test)
      // fonte immagine definitiva 
@@ -357,12 +357,12 @@ while (!WindowShouldClose())
                             // disegna traccia
                             DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, RED );
 
-                            // label KM : KEY_K
+                            // disegna label KM : KEY_K
                             if (i % 40 == 0 && showKM) {
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
                                 DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y},0.24f,24,WHITE);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,Fade(BLUE, 0.72f));
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,Fade(ORANGE, 0.72f));
                                 DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
                             }
                         }

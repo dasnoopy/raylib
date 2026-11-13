@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=fitview
+GenericName=fitview
+Type=Application
+Version=1.0
+Comment=A simple viewer and analyzer for .FIT files (e.g.  Bryton Rider 420)
+Path=/home/andrea/Projects/raylib/fitview
+Exec=/home/andrea/Projects/raylib/fitview/fitview
+Icon=/home/andrea/Projects/raylib/fitview/fitview.svg
+Terminal=false
+StartupNotify=false
+X-Desktop-File-Install-Version=0.28
+
