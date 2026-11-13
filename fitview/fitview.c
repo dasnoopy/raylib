@@ -445,7 +445,7 @@ while (!WindowShouldClose())
                 DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,BLACK);
 
                 DrawTextEx(textFont,"Temperatura massima:",(Vector2){datatRect.x+8,datatRect.y + 224},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,BLACK);
 
                 DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){datatRect.x+8,datatRect.y + 240},(float)textFont.baseSize,0,BLACK);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){datatRect.x + 208, datatRect.y + 240},(float)boldFont.baseSize,0,BLACK);
