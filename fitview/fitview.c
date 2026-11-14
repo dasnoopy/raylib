@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.4.6"
+#define TOOL_VERSION            "1.4.8"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -70,16 +70,16 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = (Color){33, 144, 164, 255}, // RED RAYLIB
+    .accentColor = (Color){191, 97, 106, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
-    .bgColor = (Color){218, 227, 227, 255},
+    .bgColor = (Color){252, 252, 252, 255},
     .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){180, 185, 185, 255},
-    .gridBgColor = (Color){239, 246, 246, 255},
+    .gridBgColor = (Color){236, 241, 241, 255},
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){237, 91, 0, 255},
+    .accentColor = (Color){94, 129, 172, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){61, 68, 83, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -271,7 +271,7 @@ while (!WindowShouldClose())
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
-
+            SetMouseCursor(3);
             if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
             if (IsKeyPressed(KEY_X) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
             if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapRect, 1.0f, &minZoom);    
@@ -301,7 +301,7 @@ while (!WindowShouldClose())
                 if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime))cam.target.x -= speed;
                 if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime)) cam.target.x += speed;
             }
-        }
+        } else SetMouseCursor(0); //restore os cursor visibility outside matrix
 
                 // Controllo dei limiti mappa usando i bordi reali di mapRect sullo schermo ( da cambiare anche sotto qui)
                 Vector2 topLeft = GetScreenToWorld2D((Vector2){ mapRect.x, mapRect.y }, cam);
@@ -392,8 +392,8 @@ while (!WindowShouldClose())
                             if (i % 40 == 0 && showKM) {
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y},0.24f,24,currentTheme.gridBgColor);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,currentTheme.bgColor);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,isDarkMode?BLACK:WHITE);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,currentTheme.gridBgColor);
                                 DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,currentTheme.fgColor);
                             }
                         }
@@ -467,10 +467,10 @@ while (!WindowShouldClose())
                 DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){datatRect.x + 208, datatRect.y + 192},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 DrawTextEx(textFont,"Temperatura media:",(Vector2){datatRect.x+8,datatRect.y + 208},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 DrawTextEx(textFont,"Temperatura massima:",(Vector2){datatRect.x+8,datatRect.y + 224},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){datatRect.x+8,datatRect.y + 240},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){datatRect.x + 208, datatRect.y + 240},(float)boldFont.baseSize,0,currentTheme.fgColor);
@@ -670,12 +670,15 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
     const double maxLon = 11.36574722; // Est (Right)
-    const double minLat = 45.15918611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1581xx
+    const double minLat = 45.15868611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
     const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
 
+    double normX = (lon - minLon) / (maxLon - minLon);
+    double normY = (lat - minLat) /(maxLat - minLat);
+
     Vector2 pixelPos = { 0 };
-    pixelPos.x = ((lon - minLon) / (maxLon - minLon)) * tex.width;
-    pixelPos.y = (1.0f - ((lat - minLat) / (maxLat - minLat))) * tex.height;
+    pixelPos.x = (float)( normX * tex.width);
+    pixelPos.y = (float)((1.0 - normY) * tex.height);
     return pixelPos;
 }
 
