@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.4.0"
+#define TOOL_VERSION            "1.4.5"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -22,7 +22,6 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
 
 #define _CRT_SECURE_NO_WARNINGS
 // Costante per convertire i semicerchi in gradi decimali
@@ -50,7 +49,6 @@ float minZoom;
 const float stepZoom = 0.20f;
 const float maxZoom = 5.0f;
 
-
 //mimimap variables
 const float maxMapSize = 172.0f; 
 float miniMapX;
@@ -62,16 +60,35 @@ float aspectRatio;
 float scaleX;
 float scaleY;
 
-// ARDUINO Matrix tool colors (light)
-#define FG_COLOR CLITERAL(Color){ 55, 65, 70, 255}
-#define BG_COLOR CLITERAL(Color){ 218, 227, 227, 255} 
-// grid and checkerboard
-#define GRID_COLOR CLITERAL(Color){ 180, 185, 185, 255} 
-#define GRID_BG_COLOR CLITERAL(Color){ 239, 246, 246, 255} 
-// some funs
-#define ON_COLOR CLITERAL(Color){ 12, 161, 166, 255} // SKYBLUE
-#define OFF_COLOR CLITERAL(Color){ 242, 103, 39,255}
-#define BORDER_COLOR CLITERAL(Color){ 20, 20,25, 255} 
+typedef struct {
+    Color accentColor;
+    Color fgColor;
+    Color bgColor;
+    Color borderColor;
+    Color gridColor;
+    Color gridBgColor;
+} colorTheme;
+
+static const colorTheme lightTheme = {
+    .accentColor = MAROON, //(Color){190, 33, 55, 255}, // RED RAYLIB
+    .fgColor = (Color){55, 65, 70, 255},
+    .bgColor = (Color){218, 227, 227, 255},
+    .borderColor = (Color){20, 20,25, 255},
+    .gridColor = (Color){180, 185, 185, 255},
+    .gridBgColor = (Color){239, 246, 246, 255},
+};
+
+static const colorTheme darkTheme = {
+    .accentColor = SKYBLUE, //(Color){64, 148, 225, 255},
+    .fgColor = (Color){235, 238, 244, 255},
+    .bgColor = (Color){61, 68, 83, 255},
+    .borderColor = (Color){69, 77, 94, 255},
+    .gridColor = (Color){77, 87, 106, 255},
+    .gridBgColor = (Color){50, 55, 66, 255},
+};
+
+bool isDarkMode = true;
+colorTheme currentTheme;
 
 // Key repeat structure
 typedef struct {
@@ -145,13 +162,13 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex);
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size);
 int decodeFit(char* fileName);
 void getTimeFromMinute (double mins);
-
 void loadLibrary (void);
 int compareFiles(const void *a, const void *b);
 int compareFilesByModTime(const void *a, const void *b);
 int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count);
-
 void drawChart(RenderTexture2D target);
+void ApplyTheme(colorTheme *currentTheme, bool darkMode); 
+Color GetReadableTextColor(Color bgColor);
 
 int main (int argc, char *argv[])
 {
@@ -175,8 +192,8 @@ int main (int argc, char *argv[])
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
-    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 32,codepoints, glyphCount); // all other text
+    Font titleFont = LoadFontEx("fonts/UnDotumBold.ttf", 40,codepoints, glyphCount); // all other text
+    Font subTitleFont = LoadFontEx("fonts/UnDotum.ttf", 32,codepoints, glyphCount); // all other text
 
       // Caricamento texture (reale o di test)
      // fonte immagine definitiva 
@@ -197,6 +214,8 @@ int main (int argc, char *argv[])
     Camera2D cam = { 0 };
     float minZoom = 1.0f;
     ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
+    // apply color theme
+    ApplyTheme(&currentTheme, isDarkMode);
 
 // load file list and sort by file modification time
     loadLibrary();
@@ -240,16 +259,22 @@ while (!WindowShouldClose())
         prevMousePos = thisPos;
 
 
+        if (IsKeyPressed(KEY_T)) {
+            isDarkMode = !isDarkMode;
+            // Applica tema colori
+            ApplyTheme(&currentTheme, isDarkMode);
+            // aggiorna grafico perche viene disegnato solo quando viene caricato file .fit 
+            drawChart(targetChart);
+        }
+
+        if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
+
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
 
-
-        if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
-        if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
-        if (IsKeyPressed(KEY_X) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
-        if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapRect, 1.0f, &minZoom);    
-                      
-
+            if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
+            if (IsKeyPressed(KEY_X) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
+            if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapRect, 1.0f, &minZoom);    
 
             float wheel = GetMouseWheelMove();
             if (wheel != 0.0f) {
@@ -342,11 +367,11 @@ while (!WindowShouldClose())
 //----------------------------------------------------------------------------------
         
         BeginTextureMode(target);
-            ClearBackground(BG_COLOR);
+            ClearBackground(currentTheme.bgColor);
         EndTextureMode();
 		
          BeginDrawing();
-            ClearBackground(BG_COLOR);
+            ClearBackground(currentTheme.bgColor);
 
             // -----------------------------------------------------------------
             // disegna traccia sulla mappa
@@ -361,15 +386,15 @@ while (!WindowShouldClose())
                         if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
                         for (int i = 1; i < numPointRec - 1; i++) {
                             // disegna traccia
-                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, RED );
+                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
 
                             // disegna label KM : KEY_K
                             if (i % 40 == 0 && showKM) {
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
                                 DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y},0.24f,24,WHITE);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,Fade(ORANGE, 0.72f));
-                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,Fade(currentTheme.accentColor, 0.50f));
+                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,currentTheme.fgColor);
                             }
                         }
                     // bandierine
@@ -384,100 +409,100 @@ while (!WindowShouldClose())
 		    EndScissorMode();	      
 
             // bordo attorno alla mappa 
-            DrawRectangleLinesEx(mapRect, 1,GRID_COLOR);
+            DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
 
-            // DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,FG_COLOR); 
-            // DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, GRID_COLOR); 
+            // DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,currentTheme.fgColor); 
+            // DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, currentTheme.gridColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,RED);
+            DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,currentTheme.accentColor);
 
             // -----------------------------------------------------------------
             // informazioni traccia
             //------------------------------------------------------------------
-            DrawRectangleRec(datatRect, BG_COLOR);
-            DrawRectangleRec((Rectangle){datatRect.x + 4, datatRect.y +44 ,datatRect.width-8,datatRect.height-48},GRID_BG_COLOR);
-            DrawRectangleLinesEx(datatRect, 1,GRID_COLOR);
+            DrawRectangleRec(datatRect, currentTheme.bgColor);
+            DrawRectangleRec((Rectangle){datatRect.x + 4, datatRect.y +44 ,datatRect.width-8,datatRect.height-48},currentTheme.gridBgColor);
+            DrawRectangleLinesEx(datatRect, 1,currentTheme.gridColor);
             if (isTrackLoaded) {
 
                 // dividi la stringa con separatore ogni stringa separata diventa elemento di array..
                 int count=0;
                 char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
-                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y +2},(float)titleFont.baseSize,-1,BLACK);
+                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y + 4},(float)titleFont.baseSize,0,currentTheme.accentColor);
 
 
-                DrawTextEx(textFont,"Inizio sessione:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Inizio sessione:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 count=0;
                 splitStr = TextSplit(infoTraccia.data_fine, ',' , &count); 
-                DrawTextEx(textFont,"Fine sessione:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Fine sessione:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 getTimeFromMinute(infoTraccia.minMov);
-                DrawTextEx(textFont,"Tempo in movimento:",(Vector2){datatRect.x+8,datatRect.y + 80},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 80},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(textFont,"Tempo in movimento:",(Vector2){datatRect.x+8,datatRect.y + 80},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 80},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 getTimeFromMinute(infoTraccia.minTot);
-                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){datatRect.x+8,datatRect.y + 96},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 96},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){datatRect.x+8,datatRect.y + 96},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 96},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Distanza totale:",(Vector2){datatRect.x+8,datatRect.y + 112},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){datatRect.x + 208, datatRect.y + 112},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(textFont,"Distanza totale:",(Vector2){datatRect.x+8,datatRect.y + 112},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){datatRect.x + 208, datatRect.y + 112},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Velocità media:",(Vector2){datatRect.x+8,datatRect.y + 128},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 128},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(textFont,"Velocità media:",(Vector2){datatRect.x+8,datatRect.y + 128},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 128},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Velocità massima:",(Vector2){datatRect.x+8,datatRect.y + 144},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 144},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Velocità massima:",(Vector2){datatRect.x+8,datatRect.y + 144},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 144},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){datatRect.x+8,datatRect.y + 160},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){datatRect.x + 208, datatRect.y + 160},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){datatRect.x+8,datatRect.y + 160},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){datatRect.x + 208, datatRect.y + 160},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){datatRect.x+8,datatRect.y + 176},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){datatRect.x + 208, datatRect.y + 176},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){datatRect.x+8,datatRect.y + 176},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){datatRect.x + 208, datatRect.y + 176},(float)boldFont.baseSize,0,currentTheme.fgColor);
                 
-                DrawTextEx(textFont,"Calorie consumate:",(Vector2){datatRect.x+8,datatRect.y + 192},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){datatRect.x + 208, datatRect.y + 192},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Calorie consumate:",(Vector2){datatRect.x+8,datatRect.y + 192},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){datatRect.x + 208, datatRect.y + 192},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Temperatura media:",(Vector2){datatRect.x+8,datatRect.y + 208},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura media:",(Vector2){datatRect.x+8,datatRect.y + 208},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Temperatura massima:",(Vector2){datatRect.x+8,datatRect.y + 224},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Temperatura massima:",(Vector2){datatRect.x+8,datatRect.y + 224},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f°C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){datatRect.x+8,datatRect.y + 240},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){datatRect.x + 208, datatRect.y + 240},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){datatRect.x+8,datatRect.y + 240},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){datatRect.x + 208, datatRect.y + 240},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine media:",(Vector2){datatRect.x+8,datatRect.y + 256},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){datatRect.x + 208, datatRect.y + 256},(float)boldFont.baseSize,0,BLACK);
+                DrawTextEx(textFont,"Altitudine media:",(Vector2){datatRect.x+8,datatRect.y + 256},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){datatRect.x + 208, datatRect.y + 256},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,BLACK);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,RED);
+                DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-            } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){datatRect.x + 12, (datatRect.y + 8)},(float)subTitleFont.baseSize,-1,OFF_COLOR);
+            } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){datatRect.x + 12, (datatRect.y + 6)},(float)subTitleFont.baseSize,-1,currentTheme.accentColor);
 
 
             // -----------------------------------------------------------------
             // Grafico altimetria
             //------------------------------------------------------------------
 
-            DrawRectangleRec(chartRect,GRID_BG_COLOR);
-            DrawRectangleLinesEx(chartRect, 1,GRID_COLOR);
+            DrawRectangleRec(chartRect,currentTheme.gridBgColor);
+            DrawRectangleLinesEx(chartRect, 1,currentTheme.gridColor);
 
             BeginScissorMode(chartRect.x, chartRect.y, chartRect.width, chartRect.height);
                 if (isTrackLoaded) {
                     Rectangle sourceRec = { 0.0f, 0.0f, (float)targetChart.texture.width, - (float)targetChart.texture.height };
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
-                } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){chartRect.x + 216, (chartRect.y +88)},(float)subTitleFont.baseSize,-1,OFF_COLOR);
+                } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){chartRect.x + 216, (chartRect.y +88)},(float)subTitleFont.baseSize,-1,currentTheme.accentColor);
             EndScissorMode();
 
             // -----------------------------------------------------------------
             //  file list / library 
             //------------------------------------------------------------------
-            DrawRectangleRec(filesRect,GRID_BG_COLOR);
-            DrawRectangleLinesEx(filesRect,1,GRID_COLOR);
+            DrawRectangleRec(filesRect,currentTheme.gridBgColor);
+            DrawRectangleLinesEx(filesRect,1,currentTheme.gridColor);
 
                 scrollOffset = selectedIndex - centerRow;
                 if (scrollOffset < 0) scrollOffset = 0;
@@ -487,20 +512,19 @@ while (!WindowShouldClose())
 
                     for (int i = 0; i < visibleRows; ++i) {
 
-                        if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight), filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),GRID_COLOR);
+                        if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight), filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),currentTheme.gridColor);
 
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > fileCount) break;
 
-                        if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, MAROON);
-                            DrawText(TextFormat("%04i",fileIndex + 1),filesRect.x + 6, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)? WHITE:BLACK );
+                        if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
+                            DrawText(TextFormat("%04i",fileIndex + 1),filesRect.x + 6, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
                             // print truncate too long filenames (max. 88 chars)
                             const char *fileNameTrunc = TextSubtext(files[fileIndex],0,124); 
-                            DrawText(TextFormat("%s",fileNameTrunc), filesRect.x+38, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)? WHITE:BLACK );
-                        
+                            DrawText(TextFormat("%s",fileNameTrunc), filesRect.x+38, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
                         }   
                 //vertical divider between index and filename 
-                DrawLine(filesRect.x+34,filesRect.y,filesRect.x+34,filesRect.y + filesRect.height,GRID_COLOR);
+                DrawLine(filesRect.x+34,filesRect.y,filesRect.x+34,filesRect.y + filesRect.height,currentTheme.gridColor);
             
 
             // -----------------------------------------------------------------
@@ -508,7 +532,7 @@ while (!WindowShouldClose())
             //------------------------------------------------------------------
             if (showMinimap) {
                 // bordo minimap
-                DrawRectangleRec((Rectangle){miniMapX - 1, miniMapY - 1, miniMapWidth + 2, miniMapHeight + 2}, BORDER_COLOR);
+                DrawRectangleRec((Rectangle){miniMapX - 1, miniMapY - 1, miniMapWidth + 2, miniMapHeight + 2}, currentTheme.borderColor);
                 
                 // Disegno della mini-map
                 DrawTexturePro(
@@ -525,8 +549,8 @@ while (!WindowShouldClose())
                 float rectH = (bottomRight.y - topLeft.y) * scaleY;
 
                 // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
-                DrawRectangleRec((Rectangle){rectX, rectY, rectW, rectH}, Fade(RED, 0.25f));
-                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, RED);
+                DrawRectangleRec((Rectangle){rectX, rectY, rectW, rectH}, Fade(currentTheme.accentColor, 0.25f));
+                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, currentTheme.accentColor);
                 }
             
         EndDrawing();
@@ -646,8 +670,8 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
     const double maxLon = 11.36574722; // Est (Right)
-    const double minLat = 45.15818611; // Sud (Bottom)
-    const double maxLat = 45.92095000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx 45.9209xx
+    const double minLat = 45.15918611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1581xx
+    const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
 
     Vector2 pixelPos = { 0 };
     pixelPos.x = ((lon - minLon) / (maxLon - minLon)) * tex.width;
@@ -744,9 +768,9 @@ int decodeFit(char* fileName) {
                       {
                         // il fit registra un record ogni secondo.. sono anche troppi per la risoluzione 
                         //  qui posso cambiare ogni quanti secondi "registrare" un record 60 = 1 min , 120 = 2 minuti etc etc
-
                         // registra 4 record al minuto invece di 60...(la cpu e gnome ringraziano!!!)
-                            if (numRecord % 15 == 0) { 
+                        
+                            if (numRecord % 12 == 0) { 
                                  const FIT_RECORD_MESG *record = (FIT_RECORD_MESG *) mesg;
                                  // 1. Data e Ora Leggibile
                                   ConvertFitTimestamp(record->timestamp, data_ora, sizeof(data_ora));
@@ -1006,10 +1030,10 @@ void drawChart(RenderTexture2D target) {
                         float y = baseY - (normY * altezzaUtile);
 
                         // Linea griglia orizzontale
-                        DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1,1,GRID_COLOR);
+                        DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1,1,currentTheme.gridColor);
                         
                         // Etichetta altitudine a sinistra (es. "450m")
-                        if (fmod (alt, stepAlt) == 0) DrawText(TextFormat("%.0fm", alt),(int)(margineSinistro - 28), (int)(y - 5), 10, FG_COLOR);
+                        if (fmod (alt, stepAlt) == 0) DrawText(TextFormat("%.0fm", alt),(int)(margineSinistro - 28), (int)(y - 5), 10, currentTheme.fgColor);
                     }
 
 
@@ -1018,21 +1042,21 @@ void drawChart(RenderTexture2D target) {
                         float x = startX + (normX * larghezzaUtile);
 
                         // Linea griglia verticale
-                        DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1,1,GRID_COLOR);
+                        DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1,1,currentTheme.gridColor);
 
                         // Etichetta km in basso
                         const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1f", km) : TextFormat("%.0fkm", km);
-                        if ((int)km % 10 == 0) DrawText(labelKm, (int)(x - 12), (int)(baseY + 4), 10, FG_COLOR);
+                        if ((int)km % 10 == 0) DrawText(labelKm, (int)(x - 12), (int)(baseY + 4), 10, currentTheme.fgColor);
                     }
 
                     // Bordi principali degli assi (Asse Y a sinistra e Asse X in basso)
-                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, BORDER_COLOR);
-                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, BORDER_COLOR);
+                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, currentTheme.borderColor);
+                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, currentTheme.borderColor);
 
                     // --- 4. DISEGNO TRACCIA ALTIMETRICA ---
                     // Colore semi-trasparente per l'area sotto la curva
                     
-                    Color fillCol = Fade(RED, 0.32f);
+                    Color fillCol = Fade(currentTheme.accentColor, 0.50f);
 
                     for (int i = 0; i < numPointRec - 1; i++) {
                         float normX1 = puntiGps[i].dist / distMax;
@@ -1059,8 +1083,24 @@ void drawChart(RenderTexture2D target) {
                         DrawTriangle(tLeft, bLeft, tRight, fillCol);
                         DrawTriangle(tRight, bLeft, bRight, fillCol);
 
-                        //DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, RED);
-                         DrawLineV((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, RED);
+                        //DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, currentTheme.accentColor);
+                         DrawLineV((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, currentTheme.accentColor);
                     }
     EndTextureMode();
+}
+
+void ApplyTheme(colorTheme *currentTheme, bool darkMode) {
+    if (darkMode) *currentTheme = darkTheme;
+    else *currentTheme = lightTheme;
+}
+
+// Restituisce un colore leggibile (BIANCO o NERO) in contrasto al colore di sfondo
+Color GetReadableTextColor(Color bgColor) {
+    
+    // intercetta colori con trasparenza quasi a zero (che visivamente si fa fatica a distinguere)
+    if (bgColor.a <= 24) return BLACK;
+
+    // Formula della luminanza percepita dall'occhio umano
+    float luminance = 0.299f * bgColor.r + 0.587f * bgColor.g + 0.114f * bgColor.b;
+    return (luminance > 127.5f) ? BLACK : WHITE;
 }
