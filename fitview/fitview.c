@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.4.5"
+#define TOOL_VERSION            "1.4.6"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -70,19 +70,19 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = MAROON, //(Color){190, 33, 55, 255}, // RED RAYLIB
+    .accentColor = (Color){33, 144, 164, 255}, // RED RAYLIB
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
-    .borderColor = (Color){20, 20,25, 255},
+    .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){180, 185, 185, 255},
     .gridBgColor = (Color){239, 246, 246, 255},
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = SKYBLUE, //(Color){64, 148, 225, 255},
-    .fgColor = (Color){235, 238, 244, 255},
+    .accentColor = (Color){237, 91, 0, 255},
+    .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){61, 68, 83, 255},
-    .borderColor = (Color){69, 77, 94, 255},
+    .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){77, 87, 106, 255},
     .gridBgColor = (Color){50, 55, 66, 255},
 };
@@ -392,8 +392,8 @@ while (!WindowShouldClose())
                             if (i % 40 == 0 && showKM) {
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y},0.24f,24,WHITE);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,Fade(currentTheme.accentColor, 0.50f));
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y},0.24f,24,currentTheme.gridBgColor);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-2},0.24f,24,currentTheme.bgColor);
                                 DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,currentTheme.fgColor);
                             }
                         }
@@ -966,128 +966,134 @@ void getTimeFromMinute (double mins)
 
 void drawChart(RenderTexture2D target) {
 
-                    if (numPointRec < 2) return; // controlla numero minimo di punti ... non si sa mai!
+    if (numPointRec < 2) return;
 
-                    //------------------------------------------
-                    // updates per grafico altimetria
-                    //-----------------------------------------
-                    // 1. Margini allargati a sinistra e in basso per ospitare i numeri degli assi
-                    float margineSinistro = 36.0f;
-                    float margineDestro = 8.0f;
-                    float margineAlto = 10.0f;
-                    float margineBasso = 18.0f;
+    // 1. Margini
+    float margineSinistro = 38.0f;
+    float margineDestro   = 10.0f;
+    float margineAlto     = 12.0f;
+    float margineBasso    = 18.0f;
 
-                    float larghezzaUtile = chartRect.width - margineSinistro - margineDestro;
-                    float altezzaUtile = chartRect.height - margineAlto - margineBasso;
+    float larghezzaUtile = chartRect.width - margineSinistro - margineDestro;
+    float altezzaUtile   = chartRect.height - margineAlto - margineBasso;
 
-                    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
+    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
 
-                    // punto inizale istante 0 ad alteza 0.0f 
-                    //puntiGps[0].alt = 0.0f;
+    // 2. Calcolo altitudine con base fissa a 0.0f
+    float minAlt = 0.0f;
+    float rawMaxAlt = 0.0f;
 
-                    // Calcolo altitudine min e max
-                    float minAlt = puntiGps[0].alt;
-                    float maxAlt = puntiGps[0].alt;
+    for (int i = 0; i < numPointRec; i++) {
+        if (puntiGps[i].alt > rawMaxAlt) rawMaxAlt = puntiGps[i].alt;
+    }
 
-                    for (int i = 1; i < numPointRec; i++) {
-                        if (puntiGps[i].alt < minAlt) minAlt = puntiGps[i].alt;
-                        if (puntiGps[i].alt > maxAlt) maxAlt = puntiGps[i].alt;
-                    }
+    if (rawMaxAlt < 10.0f) rawMaxAlt = 10.0f; // Altezza minima del grafico per tracce piatte
 
-                    float deltaAlt = maxAlt - minAlt;
-                    if (deltaAlt < 1.0f) deltaAlt = 1.0f;
+    // Calcolo step griglia altitudine (Asse Y)
+    float stepAlt = 10.0f;
+    if (rawMaxAlt > 2000.0f) stepAlt = 500.0f;
+    else if (rawMaxAlt > 1000.0f) stepAlt = 250.0f;
+    else if (rawMaxAlt > 400.0f)  stepAlt = 100.0f;
+    else if (rawMaxAlt > 150.0f)  stepAlt = 50.0f;
+    else if (rawMaxAlt > 50.0f)   stepAlt = 20.0f;
 
-                    float startX = margineSinistro;
-                    float baseY =  chartRect.height - margineBasso;
-                    float topY =  margineAlto;
+    // Arrotonda maxAlt al multiplo superiore di stepAlt (evita che il picco tocchi il bordo alto)
+    float maxAlt = ceilf(rawMaxAlt / stepAlt) * stepAlt;
+    float deltaAlt = maxAlt - minAlt;
 
-                    // --- 2. DISEGNO GRIGLIA ORIZZONTALE (ALTITUDINE - ASSE Y) ---
-                    // Calcola uno step "pulito" (es. 10m, 20m, 50m, 100m, 200m...)
-                    float stepAlt = 10.0f;
-                    if (deltaAlt > 50.0f) stepAlt = 20.0f;
-                    if (deltaAlt > 150.0f) stepAlt = 50.0f;
-                    if (deltaAlt > 400.0f) stepAlt = 100.0f;
-                    if (deltaAlt > 1000.0f) stepAlt = 250.0f;
-                    if (deltaAlt > 2000.0f) stepAlt = 500.0f;
+    float startX = margineSinistro;
+    float baseY  = chartRect.height - margineBasso;
+    float topY   = margineAlto;
 
-                    // Primo multiplo di stepAlt sopra minAlt
-                    float primaQuota = ceilf(minAlt / stepAlt) * stepAlt;
+    // 3. Calcolo step griglia distanza (Asse X) in ordine decrescente corretto
+    float distMaxKm = distMax; // Dividi per 1000.0f se distMax è in metri
 
-                    // --- 3. DISEGNO GRIGLIA VERTICALE (DISTANZA - ASSE X) ---
-                    float distMaxKm = distMax; // Cambiaew in (distMax / 1000.0f) se dati sono in metri
+    float stepKm = 1.0f;
+    if (distMaxKm > 50.0f)      stepKm = 5.0f;
+    else if (distMaxKm > 25.0f) stepKm = 2.0f;
+    else if (distMaxKm > 10.0f) stepKm = 1.0f;
+    else if (distMaxKm <= 2.0f) stepKm = 0.5f;
 
-                    float stepKm = 1.0f;
-                    if (distMaxKm <= 2.0f) stepKm = 0.5f;
-                    else if (distMaxKm > 10.0f) stepKm = 2.0f;
-                    else if (distMaxKm > 25.0f) stepKm = 5.0f;
-                    else if (distMaxKm > 50.0f) stepKm = 10.0f;
+    // Intervallo ogni quante linee verticali stampare il testo dei km (evita sovrapposizioni)
+    float labelStepKm = stepKm * 2.0f;
+    if (distMaxKm <= 2.0f) labelStepKm = 0.5f;
 
-            BeginTextureMode(target);
-                ClearBackground(BLANK); // Pulisce la texture rendendola trasparente
+    BeginTextureMode(target);
+        ClearBackground(BLANK);
 
-                for (float alt = primaQuota; alt <= maxAlt; alt += stepAlt/2) {
-                        float normY = (alt - minAlt) / deltaAlt;
-                        float y = baseY - (normY * altezzaUtile);
+        // --- GRIGLIA ORIZZONTALE (ALTITUDINE) ---
+        for (float alt = 0.0f; alt <= maxAlt + 0.1f; alt += stepAlt / 2.0f) {
+            float normY = (alt - minAlt) / deltaAlt;
+            float y = baseY - (normY * altezzaUtile);
 
-                        // Linea griglia orizzontale
-                        DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1,1,currentTheme.gridColor);
-                        
-                        // Etichetta altitudine a sinistra (es. "450m")
-                        if (fmod (alt, stepAlt) == 0) DrawText(TextFormat("%.0fm", alt),(int)(margineSinistro - 28), (int)(y - 5), 10, currentTheme.fgColor);
-                    }
+            if (alt > 0.0f) {
+                DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1, 1, currentTheme.gridColor);
+            }
 
+            // Stampa etichetta sui multipli interi di stepAlt, allineata a destra verso l'asse Y
+            if (fmodf(alt, stepAlt) < 0.1f) {
+                const char *labelAlt = TextFormat("%.0fm", alt);
+                int textW = MeasureText(labelAlt, 10);
+                DrawText(labelAlt, (int)(startX - textW - 4), (int)(y - 5), 10, currentTheme.fgColor);
+            }
+        }
 
-                    for (float km = 0.0f; km <= distMaxKm; km += stepKm) {
-                        float normX = km / distMaxKm;
-                        float x = startX + (normX * larghezzaUtile);
+        // --- GRIGLIA VERTICALE (DISTANZA) ---
+        for (float km = 0.0f; km <= distMaxKm + 0.01f; km += stepKm) {
+            float normX = km / distMaxKm;
+            float x = startX + (normX * larghezzaUtile);
 
-                        // Linea griglia verticale
-                        DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1,1,currentTheme.gridColor);
+            if (km > 0.0f) {
+                DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1, 1, currentTheme.gridColor);
+            }
 
-                        // Etichetta km in basso
-                        const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1f", km) : TextFormat("%.0fkm", km);
-                        if ((int)km % 10 == 0) DrawText(labelKm, (int)(x - 12), (int)(baseY + 4), 10, currentTheme.fgColor);
-                    }
+            // Stampa etichetta Km in modo proporzionale alla distanza totale
+            if (fmodf(km, labelStepKm) < 0.05f) {
+                const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1fkm", km) : TextFormat("%.0fkm", km);
+                int textW = MeasureText(labelKm, 10);
+                // Centra il testo sulla linea verticale (tranne lo 0km che parte dall'asse)
+                int textX = (km == 0.0f) ? (int)x : (int)(x - textW / 2);
+                DrawText(labelKm, textX, (int)(baseY + 4), 10, currentTheme.fgColor);
+            }
+        }
 
-                    // Bordi principali degli assi (Asse Y a sinistra e Asse X in basso)
-                    DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, currentTheme.borderColor);
-                    DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, currentTheme.borderColor);
+        // Bordi principali degli assi
+        DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, currentTheme.borderColor);
+        DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, currentTheme.borderColor);
 
-                    // --- 4. DISEGNO TRACCIA ALTIMETRICA ---
-                    // Colore semi-trasparente per l'area sotto la curva
-                    
-                    Color fillCol = Fade(currentTheme.accentColor, 0.50f);
+        // --- DISEGNO TRACCIA ALTIMETRICA ---
+        Color fillCol = Fade(currentTheme.accentColor, 0.50f);
 
-                    for (int i = 0; i < numPointRec - 1; i++) {
-                        float normX1 = puntiGps[i].dist / distMax;
-                        float normX2 = puntiGps[i + 1].dist / distMax;
+        for (int i = 0; i < numPointRec - 1; i++) {
+            float alt1 = (puntiGps[i].alt < 0.0f) ? 0.0f : puntiGps[i].alt;
+            float alt2 = (puntiGps[i + 1].alt < 0.0f) ? 0.0f : puntiGps[i + 1].alt;
 
-                        float normY1 = (puntiGps[i].alt - minAlt) / deltaAlt;
-                        float normY2 = (puntiGps[i + 1].alt - minAlt) / deltaAlt;
+            float normX1 = puntiGps[i].dist / distMax;
+            float normX2 = puntiGps[i + 1].dist / distMax;
 
-                        float x1 = startX + (normX1 * larghezzaUtile);
-                        float y1 = baseY - (normY1 * altezzaUtile);
+            float normY1 = (alt1 - minAlt) / deltaAlt;
+            float normY2 = (alt2 - minAlt) / deltaAlt;
 
-                        float x2 = startX + (normX2 * larghezzaUtile);
-                        float y2 = baseY - (normY2 * altezzaUtile);
+            float x1 = startX + (normX1 * larghezzaUtile);
+            float y1 = baseY - (normY1 * altezzaUtile);
 
+            float x2 = startX + (normX2 * larghezzaUtile);
+            float y2 = baseY - (normY2 * altezzaUtile);
 
-                        // riempimento grafico
-                            // Definizione dei 4 vertici del trapezio
-                        Vector2 tLeft     = { x1, y1 };
-                        Vector2 tRight    = { x2, y2 };
-                        Vector2 bLeft  = { x1, baseY };
-                        Vector2 bRight = { x2, baseY };
+            Vector2 tLeft  = { x1, y1 };
+            Vector2 tRight = { x2, y2 };
+            Vector2 bLeft  = { x1, baseY };
+            Vector2 bRight = { x2, baseY };
 
-                        // Riempimento con 2 triangoli in senso antiorario (CCW)
-                        DrawTriangle(tLeft, bLeft, tRight, fillCol);
-                        DrawTriangle(tRight, bLeft, bRight, fillCol);
+            DrawTriangle(tLeft, bLeft, tRight, fillCol);
+            DrawTriangle(tRight, bLeft, bRight, fillCol);
 
-                        //DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, currentTheme.accentColor);
-                         DrawLineV((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, currentTheme.accentColor);
-                    }
+            DrawLineV((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, currentTheme.accentColor);
+        }
+
     EndTextureMode();
 }
+
 
 void ApplyTheme(colorTheme *currentTheme, bool darkMode) {
     if (darkMode) *currentTheme = darkTheme;
