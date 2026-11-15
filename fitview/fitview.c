@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.4.8"
+#define TOOL_VERSION            "1.4.9"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -70,21 +70,21 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = (Color){191, 97, 106, 255}, 
+    .accentColor = (Color){0, 120, 240, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
-    .bgColor = (Color){252, 252, 252, 255},
+    .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){180, 185, 185, 255},
-    .gridBgColor = (Color){236, 241, 241, 255},
+    .gridBgColor = (Color){239, 246, 246, 255},
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){94, 129, 172, 255},
+    .accentColor = (Color){191, 97, 106, 255},
     .fgColor = (Color){216, 222, 233, 255},
-    .bgColor = (Color){61, 68, 83, 255},
+    .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){77, 87, 106, 255},
-    .gridBgColor = (Color){50, 55, 66, 255},
+    .gridBgColor = (Color){561, 68, 83, 255},
 };
 
 bool isDarkMode = true;
@@ -192,8 +192,8 @@ int main (int argc, char *argv[])
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font titleFont = LoadFontEx("fonts/UnDotumBold.ttf", 40,codepoints, glyphCount); // all other text
-    Font subTitleFont = LoadFontEx("fonts/UnDotum.ttf", 32,codepoints, glyphCount); // all other text
+    Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
+    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 32,codepoints, glyphCount); // all other text
 
       // Caricamento texture (reale o di test)
      // fonte immagine definitiva 
@@ -392,9 +392,9 @@ while (!WindowShouldClose())
                             if (i % 40 == 0 && showKM) {
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,isDarkMode?BLACK:WHITE);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,currentTheme.gridBgColor);
-                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,currentTheme.fgColor);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,WHITE);
+                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,Fade(BLUE, 0.72f));
+                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
                             }
                         }
                     // bandierine
@@ -420,16 +420,17 @@ while (!WindowShouldClose())
             // -----------------------------------------------------------------
             // informazioni traccia
             //------------------------------------------------------------------
-            DrawRectangleRec(datatRect, currentTheme.bgColor);
-            DrawRectangleRec((Rectangle){datatRect.x + 4, datatRect.y +44 ,datatRect.width-8,datatRect.height-48},currentTheme.gridBgColor);
+            DrawRectangleRec(datatRect, currentTheme.gridBgColor);
             DrawRectangleLinesEx(datatRect, 1,currentTheme.gridColor);
+            DrawLine(datatRect.x, datatRect.y +44 ,datatRect.x + datatRect.width,datatRect.y +44,currentTheme.gridColor);
+
             if (isTrackLoaded) {
 
                 // dividi la stringa con separatore ogni stringa separata diventa elemento di array..
                 int count=0;
                 char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
-                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y + 4},(float)titleFont.baseSize,0,currentTheme.accentColor);
+                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y + 4},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
 
                 DrawTextEx(textFont,"Inizio sessione:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
@@ -481,7 +482,7 @@ while (!WindowShouldClose())
                 DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-            } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){datatRect.x + 12, (datatRect.y + 6)},(float)subTitleFont.baseSize,-1,currentTheme.accentColor);
+            } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){datatRect.x + 12, (datatRect.y + 6)},(float)subTitleFont.baseSize,-1,currentTheme.fgColor);
 
 
             // -----------------------------------------------------------------
@@ -495,12 +496,12 @@ while (!WindowShouldClose())
                 if (isTrackLoaded) {
                     Rectangle sourceRec = { 0.0f, 0.0f, (float)targetChart.texture.width, - (float)targetChart.texture.height };
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
-                } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){chartRect.x + 216, (chartRect.y +88)},(float)subTitleFont.baseSize,-1,currentTheme.accentColor);
+                } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){chartRect.x + 216, (chartRect.y +88)},(float)subTitleFont.baseSize,-1,currentTheme.fgColor);
             EndScissorMode();
 
             // -----------------------------------------------------------------
             //  file list / library 
-            //------------------------------------------------------------------
+            //------------------------------------------------------------------q
             DrawRectangleRec(filesRect,currentTheme.gridBgColor);
             DrawRectangleLinesEx(filesRect,1,currentTheme.gridColor);
 
