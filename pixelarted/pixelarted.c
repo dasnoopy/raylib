@@ -268,6 +268,7 @@ int main (int argc, char *argv[])
 
 // load file list and set file library variables
     loadLibrary();
+    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
 
 // Definisci un Rectangle con la poszione dei rettangoli della color palette
     int x=0;
@@ -401,24 +402,30 @@ while (!WindowShouldClose())
         {
             if (btnQuit || IsKeyPressed(KEY_Q)) break;
             
-            else if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
-                    if (IsKeyPressed(KEY_Z)) PerformUndo(&editor);
-                    if (IsKeyPressed(KEY_R)) PerformRedo(&editor);
-                    if (IsKeyPressed(KEY_X)) {
-                        FileRemove(fName); // cancella file
-                        loadLibrary (); // aggiorna libreria
-                        initMatrix(); // "nuova" matrice pulita
-                        strcpy(fName,"default.png"); // default file name nuovo
-                    }
+            // CTRL+KEY
+            if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
+                if (IsKeyPressed(KEY_Z)) PerformUndo(&editor);
+                if (IsKeyPressed(KEY_R)) PerformRedo(&editor);
+                if (IsKeyPressed(KEY_X)) {
+                    FileRemove(fName); // cancella file
+                    loadLibrary (); // aggiorna libreria
+                    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+                    initMatrix(); // "nuova" matrice pulita
+                    strcpy(fName,"default.png"); // default file name nuovo
                 }
+            }
 
             else if (IsKeyPressed(KEY_S)) {
                 saveGridToPNG(fName);
                 loadLibrary ();
+                qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
             }
 
             else if (IsKeyPressed(KEY_D)) isDebug = !isDebug;
-            else if (IsKeyPressed(KEY_L)) loadLibrary();
+            else if (IsKeyPressed(KEY_L)) {
+                loadLibrary();
+                qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
+                }
             else if (btnGrid) showGrid = !showGrid;
             else if (btnNew) {
                     initMatrix();
@@ -520,7 +527,7 @@ while (!WindowShouldClose())
                 //  file LIbrary management
                 //----------------------------------------------------------------------
                 isOverLib = CheckCollisionPointRec(mousePos, libraryPos); 
-                // Scroll con tastiera per sopstarsi tra i files (solo se si e' fuori dalla zona di editing)
+                // Scroll con tastiera per spstarsi tra i files (quando con il mouse sulla libreria)
                  if (isOverLib) {
                     if (fileCount >= visibleRows) 
                     {
@@ -775,6 +782,7 @@ while (!WindowShouldClose())
 
         EndDrawing();
     }
+    
     UnloadRenderTexture(target);
     UnloadFont(font);
     UnloadFont(boldfont);
@@ -791,7 +799,6 @@ void loadLibrary (void) {
         if (fileCount<maxRows) visibleRows = fileCount;
         else visibleRows=maxRows;
         centerRow = visibleRows / 2;
-    qsort(files, fileCount, MAX_NAME, compareFiles);  // ordinamento file
 }
 
 void saveGridToPNG(const char *filename) {

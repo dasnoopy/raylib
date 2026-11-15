@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.4.9"
+#define TOOL_VERSION            "1.5.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -268,6 +268,10 @@ while (!WindowShouldClose())
         }
 
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
+        if (IsKeyPressed(KEY_L)) {
+            loadLibrary();
+            qsort(files, fileCount, MAX_NAME, compareFilesByModTime);  // ordinamento file
+        }
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
@@ -384,19 +388,21 @@ while (!WindowShouldClose())
                     if (isTrackLoaded) {
                         float spessoreLinea = 4.0f / cam.zoom; 
                         if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
-                        for (int i = 1; i < numPointRec - 1; i++) {
-                            // disegna traccia
-                            DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
 
+                        // prima disegna traccia e dopo le label : due for separati per evitare glitch grafici
+                        for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
+                        
+                        if (showKM) {
+                        for (int i = 1; i < numPointRec - 1; i+=40) {
                             // disegna label KM : KEY_K
-                            if (i % 40 == 0 && showKM) {
-                                snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
-                                Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,WHITE);
-                                DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,Fade(BLUE, 0.72f));
-                                DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
+                            snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
+                            Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
+                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,WHITE);
+                            DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,Fade(BLUE, 0.72f));
+                            DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
                             }
                         }
+
                     // bandierine
                     Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
                     Vector2 startPos = puntiPixel[1];
