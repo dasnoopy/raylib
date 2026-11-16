@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "Pixel Art Editor"
 #define TOOL_SHORT_NAME         "PixelArtEd"
-#define TOOL_VERSION            "3.4.0"
+#define TOOL_VERSION            "3.4.2"
 
 #include <stdio.h>
 #include <time.h>
@@ -556,6 +556,24 @@ while (!WindowShouldClose())
                     }
                 }
         }       
+
+        // Draw toolbar and messages
+        int btnWidth = 32;
+        int btnHeight = 32;
+        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+        // define button style
+        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
+        GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
+        GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
+        GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
+        // define TOGGLE style
+        GuiSetStyle(TOGGLE, TEXT_COLOR_NORMAL,0x000000FF);
+        GuiSetStyle(TOGGLE, BASE_COLOR_NORMAL,0xECF1F1FF);
+        GuiSetStyle(TOGGLE, TEXT_COLOR_PRESSED,0x000000FF);
+        GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
+
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
@@ -701,24 +719,6 @@ while (!WindowShouldClose())
         //------------------------------------------------------------------            
         GuiLabel((Rectangle){ keyinfoPos.x+2, keyinfoPos.y -20, 160, 20 }, "Work file: ['S'] to save.");
         if (GuiTextBox((Rectangle){ keyinfoPos.x, keyinfoPos.y, 160, 28 }, fName, 256, fnameEditMode)) fnameEditMode = !fnameEditMode;
-
-
-        // Draw toolbar and messages
-        int btnWidth = 32;
-        int btnHeight = 32;
-        GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
-        // define button style
-        GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,0x000000FF);
-        GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,0xECF1F1FF);
-        GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,0x000000FF);
-        GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,0xECF1F1FF);
-        GuiSetStyle(BUTTON, TEXT_COLOR_PRESSED,0x000000FF);
-        GuiSetStyle(BUTTON, BASE_COLOR_PRESSED,0x0CA1A6FF);
-        // define TOGGLE style
-        GuiSetStyle(TOGGLE, TEXT_COLOR_NORMAL,0x000000FF);
-        GuiSetStyle(TOGGLE, BASE_COLOR_NORMAL,0xECF1F1FF);
-        GuiSetStyle(TOGGLE, TEXT_COLOR_PRESSED,0x000000FF);
-        GuiSetStyle(TOGGLE, BASE_COLOR_PRESSED,0x0CA1A6FF);
 
         //btnGrid = GuiButton((Rectangle){toolbarPos.x, toolbarPos.y, btnWidth, btnHeight }, "#50#");
         GuiToggle((Rectangle){ toolbarPos.x, toolbarPos.y , 32, 32 }, "#97#", &showGrid);

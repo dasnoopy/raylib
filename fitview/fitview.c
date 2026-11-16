@@ -84,7 +84,7 @@ static const colorTheme darkTheme = {
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){76, 86, 106, 255},
     .gridColor = (Color){77, 87, 106, 255},
-    .gridBgColor = (Color){561, 68, 83, 255},
+    .gridBgColor = (Color){61, 68, 83, 255},
 };
 
 bool isDarkMode = true;
@@ -195,9 +195,7 @@ int main (int argc, char *argv[])
     Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
     Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 32,codepoints, glyphCount); // all other text
 
-      // Caricamento texture (reale o di test)
-     // fonte immagine definitiva 
-     // https://www.esa.int/media/earth-from-space-olympic-view-en-378359
+    // Caricamento mappa ( creare TIFF con QGIS)
     Texture2D mapTexture;
     if (FileExists("assets/map.png")) {
         mapTexture = LoadTexture("assets/map.png");
@@ -421,7 +419,7 @@ while (!WindowShouldClose())
             // DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,currentTheme.fgColor); 
             // DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, currentTheme.gridColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,currentTheme.accentColor);
+            DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
             // -----------------------------------------------------------------
             // informazioni traccia
@@ -677,7 +675,7 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
     const double maxLon = 11.36574722; // Est (Right)
-    const double minLat = 45.15868611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
+    const double minLat = 45.15918611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
     const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
 
     double normX = (lon - minLon) / (maxLon - minLon);
