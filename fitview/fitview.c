@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.5.0"
+#define TOOL_VERSION            "1.6.5"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -20,8 +20,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <dirent.h>
-#include <sys/stat.h>
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
 
 #define _CRT_SECURE_NO_WARNINGS
 // Costante per convertire i semicerchi in gradi decimali
@@ -35,7 +36,7 @@ const int screenHeight = 736;
 
 Rectangle datatRect = { 8,8,340,295};     // top/left
 Rectangle mapRect = { 354,8.0,734,520};  // top/right
-Rectangle filesRect = { 8,309,340,421}; // bottom/left
+Rectangle filesRect = { 8,343,340,358}; // bottom/left
 Rectangle chartRect = {354,534,734,196};  // bottom/right
 
 const int fntSize = 16;
@@ -134,26 +135,46 @@ gpsPoints puntiGps[32768]; // see above
 trackData infoTraccia;
 
 // library & files management
-size_t fileCount;
-#define MAX_FILES 4096
+
+#define MAX_FILES 2048
 #define MAX_NAME 1024
 #define FILTER_EXT      ".fit"
-char files[MAX_FILES][MAX_NAME];
+
+// Struttura per memorizzare i metadati di ogni file senza rileggere il disco
+typedef struct {
+    char path[MAX_NAME];
+    int year;
+    int month; // 1 - 12
+} fileEntry;
+
+static fileEntry allFiles[MAX_FILES];
+static int totalFilesCount = 0;
+
+// Array che contiene gli indici dei soli file che passano il filtro
+static int filteredIndices[MAX_FILES];
+static int filteredCount = 0;
+
+
 char fName[MAX_NAME] = "";
 int selectedIndex = 0;
 int rowHeight = 21;
 int visibleRows;
-int maxRows = 20;
+int maxRows = 17;
 int centerRow;
 int scrollOffset = 0;     // primo file visualizzato
 bool isTrackLoaded = false;
 
-// barra path su Linux oppure su WIN
-#ifdef _WIN32
-#define SEPARATOR "\\"
-#else
-#define SEPARATOR "/"
-#endif
+// Variabili di stato per gli spinner
+int selectedMonth;
+int selectedYear;
+bool filterEnabled = false;
+
+// Tabella di conversione da 1-12 a nome del mese (indice 0 = Gennaio)
+const char *mesi[] = {
+    "Tutti i mesi", "Gennaio", "Febbraio", "Marzo", "Aprile",
+    "Maggio", "Giugno", "Luglio", "Agosto",
+    "Settembre", "Ottobre", "Novembre", "Dicembre"
+};
 
 void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom);
 void calcMinimap (Texture2D mapTexture);
@@ -165,10 +186,12 @@ void getTimeFromMinute (double mins);
 void loadLibrary (void);
 int compareFiles(const void *a, const void *b);
 int compareFilesByModTime(const void *a, const void *b);
-int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count);
+int loadFilesRecursive(const char *path);
+void applyDateFilter(bool enableFilter, int targetYear, int targetMonth);
 void drawChart(RenderTexture2D target);
 void ApplyTheme(colorTheme *currentTheme, bool darkMode); 
 Color GetReadableTextColor(Color bgColor);
+void FormattaTimestamp(long modTime, char *buffer, size_t bufferSize);
 
 int main (int argc, char *argv[])
 {
@@ -193,7 +216,7 @@ int main (int argc, char *argv[])
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
-    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 32,codepoints, glyphCount); // all other text
+    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
 
     // Caricamento mappa ( creare TIFF con QGIS)
     Texture2D mapTexture;
@@ -217,10 +240,7 @@ int main (int argc, char *argv[])
 
 // load file list and sort by file modification time
     loadLibrary();
-    qsort(files, fileCount, MAX_NAME, compareFilesByModTime);  // ordinamento file
-
-// tutta la parte di carimento punti, dati della traccia selezionata
-//  e' nella parte update
+    qsort(allFiles, totalFilesCount, sizeof(fileEntry), compareFilesByModTime);  // ordinamento file
 
     //generate mini-map
     calcMinimap(mapTexture);
@@ -236,9 +256,30 @@ int main (int argc, char *argv[])
 
     Vector2 prevMousePos = GetMousePosition();
 
+    // GuiStyle common settings
+    GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
+    GuiSetStyle(DEFAULT, TEXT_SPACING, 2);
+    GuiSetStyle(VALUEBOX, SPINNER_BUTTON_SPACING, -1);
+    GuiSetStyle(VALUEBOX, SPINNER_BUTTON_WIDTH, 20);
+
+    // rileva mese e anno correnti da impostare come valore dei due GuiSpinner
+    // usati nel filtro dei file
+    time_t now = time (NULL);
+    struct tm *t = localtime(&now);
+    selectedMonth = t->tm_mon + 1; // current month
+    selectedYear = t->tm_year + 1900; // current year
+
+    // Applica il filtro iniziale in base a bool filterEnable...
+    applyDateFilter(filterEnabled, selectedYear, selectedMonth);
+
+    // Array di puntatori ai nomi files filtrati
+    const char *displayNames[MAX_FILES];
+
     // fai riapparire finestra dopo caricamento iniziale
     // set FPS
     SetTargetFPS(60);
+    //EnableEventWaiting(); //  per app statiche : verificare se porta benefici cmq dipende dalla app
+                          // questa praticamente non va quasi mai niente...
     ClearWindowState(FLAG_WINDOW_HIDDEN);
 
 // Main game loop
@@ -266,9 +307,9 @@ while (!WindowShouldClose())
         }
 
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
-        if (IsKeyPressed(KEY_L)) {
+        if (IsKeyPressed(KEY_U)) {
             loadLibrary();
-            qsort(files, fileCount, MAX_NAME, compareFilesByModTime);  // ordinamento file
+            qsort(allFiles, totalFilesCount, sizeof(fileEntry), compareFilesByModTime);  // ordinamento file
         }
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
@@ -330,12 +371,12 @@ while (!WindowShouldClose())
                 //----------------------------------------------------------------------
                 // Scroll con tastiera per sopstarsi tra i files (solo se si è con il mouse sulla zona della libreria)
                  if (CheckCollisionPointRec(thisPos, filesRect)) {
-                    if (fileCount >= visibleRows) 
+                    if (filteredCount >= visibleRows) 
                     {
                         selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
 
                         if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
-                        if (IsKeyPressed(KEY_END)) selectedIndex = fileCount -1;
+                        if (IsKeyPressed(KEY_END)) selectedIndex = filteredCount -1;
 
                         // tasti con il repeat rate attivo -----------------------------
                         if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime)) selectedIndex++;
@@ -344,8 +385,10 @@ while (!WindowShouldClose())
                         if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
                         // -------------------------------------------------------------
                         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
-                            if (selectedIndex >= 0 && selectedIndex < fileCount) {
-                                strcpy(fName,files[selectedIndex]);
+
+                            if (filteredCount > 0 && selectedIndex >= 0 && selectedIndex < filteredCount) {
+                                int realIndex = filteredIndices[selectedIndex];
+                                strcpy(fName,allFiles[realIndex].path);
 
                                 // decodifica il file .FIT
                                 decodeFit (fName);
@@ -360,9 +403,33 @@ while (!WindowShouldClose())
                         }
                             // checks
                             if (selectedIndex < 0) selectedIndex=0;
-                            if (selectedIndex > fileCount-1) selectedIndex=fileCount-1;
+                            if (selectedIndex > filteredCount -1) selectedIndex = filteredCount-1;
                     }
                 }
+
+    // color GuyStyle e setting mese / anno correnti
+        GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.bgColor));
+
+        GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme.gridColor));
+        GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL,   ColorToInt(currentTheme.gridBgColor));
+        GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL,   ColorToInt(currentTheme.fgColor));
+
+        GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.gridColor));
+        GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));
+        GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColor));
+
+        GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, ColorToInt(currentTheme.gridColor));
+        GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   ColorToInt(currentTheme.gridBgColor));
+        GuiSetStyle(DEFAULT, TEXT_COLOR_PRESSED,   ColorToInt(currentTheme.fgColor));
+
+        GuiSetStyle(DEFAULT, BORDER_COLOR_DISABLED, ColorToInt(currentTheme.gridColor));
+        GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
+        GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
+
+        // Salva i valori precedenti per capire se l'utente ha cambiato filtro
+        bool prevFilter = filterEnabled;
+        int prevYear = selectedYear;
+        int prevMonth = selectedMonth;
 
 //----------------------------------------------------------------------------------
 // Draw
@@ -391,7 +458,7 @@ while (!WindowShouldClose())
                         for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
                         
                         if (showKM) {
-                        for (int i = 1; i < numPointRec - 1; i+=40) {
+                        for (int i = 0; i < numPointRec - 1; i+=40) {
                             // disegna label KM : KEY_K
                             snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                             Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
@@ -434,7 +501,7 @@ while (!WindowShouldClose())
                 int count=0;
                 char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
-                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y + 4},(float)titleFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
 
                 DrawTextEx(textFont,"Inizio sessione:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
@@ -486,7 +553,7 @@ while (!WindowShouldClose())
                 DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-            } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){datatRect.x + 12, (datatRect.y + 6)},(float)subTitleFont.baseSize,-1,currentTheme.fgColor);
+            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){datatRect.x + 16, (datatRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
 
 
             // -----------------------------------------------------------------
@@ -500,8 +567,39 @@ while (!WindowShouldClose())
                 if (isTrackLoaded) {
                     Rectangle sourceRec = { 0.0f, 0.0f, (float)targetChart.texture.width, - (float)targetChart.texture.height };
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
-                } else DrawTextEx(subTitleFont,"Choose a file to display data!",(Vector2){chartRect.x + 216, (chartRect.y +88)},(float)subTitleFont.baseSize,-1,currentTheme.fgColor);
+                } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 240, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
             EndScissorMode();
+
+
+            // -----------------------------------------------------------------
+            // filtro x files list
+            //----------------------------------------------------------------
+
+            // la ricerca va fatta una sola volta
+            GuiCheckBox((Rectangle){ 10, 314, 20, 20 }, "Filtro ", &filterEnabled);
+            if (!filterEnabled) GuiDisable();
+
+
+            GuiSpinner((Rectangle){ 126, 312, 72, 24 }, "Mese ", &selectedMonth, 0, 12, 0);
+            GuiSpinner((Rectangle){ 242, 312, 104, 24 }, "Anno ", &selectedYear, 2020, 2040, 0);
+            GuiEnable();            
+
+            // Se un controllo è cambiato, ricalcola gli indici filtrati (istantaneo!)
+            if (prevFilter != filterEnabled || prevYear != selectedYear || prevMonth != selectedMonth) {
+                applyDateFilter(filterEnabled, selectedYear, selectedMonth);
+            // setta variabile di visualizzazione libreria in base al numero di files presenti...
+                selectedIndex = 0;
+                if (filteredCount<maxRows) visibleRows = filteredCount;
+                else visibleRows=maxRows;
+                centerRow = visibleRows / 2;
+            }
+
+            //  list files filtrati ---
+            for (int i = 0; i < filteredCount; i++) {
+                int realIndex = filteredIndices[i];
+                displayNames[i] = allFiles[realIndex].path;
+            }
+
 
             // -----------------------------------------------------------------
             //  file list / library 
@@ -511,7 +609,7 @@ while (!WindowShouldClose())
 
                 scrollOffset = selectedIndex - centerRow;
                 if (scrollOffset < 0) scrollOffset = 0;
-                int maxOffset = fileCount - visibleRows;
+                int maxOffset = filteredCount - visibleRows;
                 if (maxOffset < 0) maxOffset = 0;
                 if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 
@@ -520,18 +618,26 @@ while (!WindowShouldClose())
                         if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight), filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),currentTheme.gridColor);
 
                         int fileIndex = scrollOffset + i;
-                        if (fileIndex > fileCount) break;
+                        if (fileIndex > filteredCount) break;
 
                         if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
-                            DrawText(TextFormat("%04i",fileIndex + 1),filesRect.x + 6, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            DrawText(TextFormat("%04i",fileIndex + 1),filesRect.x + 8, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+
                             // print truncate too long filenames (max. 88 chars)
-                            const char *fileNameTrunc = TextSubtext(files[fileIndex],0,124); 
-                            DrawText(TextFormat("%s",fileNameTrunc), filesRect.x+38, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            const char *fileNameTrunc = TextSubtext(displayNames[fileIndex],0,124); 
+                            DrawText(TextFormat("%s",fileNameTrunc), filesRect.x+48, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
                         }   
                 //vertical divider between index and filename 
-                DrawLine(filesRect.x+34,filesRect.y,filesRect.x+34,filesRect.y + filesRect.height,currentTheme.gridColor);
+                DrawLine(filesRect.x+40,filesRect.y,filesRect.x+40,filesRect.y + filesRect.height,currentTheme.gridColor);
             
-
+            // -----------------------------------------------------------------
+            //  STATUS BAR
+            //------------------------------------------------------------------
+                 char infoText[MAX_NAME + 64];
+                if (filterEnabled) snprintf(infoText, sizeof(infoText), "Filtro attivo: %s %04d, %d files presenti.", mesi[selectedMonth], selectedYear, filteredCount);
+                else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
+                GuiStatusBar((Rectangle){ 8, screenHeight-30, filesRect.width, 24 }, infoText);
+ 
             // -----------------------------------------------------------------
             //  MINIMAP
             //------------------------------------------------------------------
@@ -876,9 +982,10 @@ int decodeFit(char* fileName) {
 }
 
 void loadLibrary (void) {
-    fileCount = loadFilesRecursive(".", files,0); // carica files .png
+    // Carica tutti i file dalla cartella desiderata
+    totalFilesCount = loadFilesRecursive("."); // carica files .fit
     // setta variabile di visualizzazione libreria in base al numero di files presenti...
-        if (fileCount<maxRows) visibleRows = fileCount;
+        if (totalFilesCount<maxRows) visibleRows = totalFilesCount;
         else visibleRows=maxRows;
         centerRow = visibleRows / 2;
 
@@ -912,56 +1019,60 @@ int compareFilesByModTime(const void *a, const void *b) {
 }
 
 
-int loadFilesRecursive(const char *path, char files[MAX_FILES][MAX_NAME], int count) {
-    // Controllo numero files
-    if (count >= MAX_FILES) return count;
-
-    // controllo percorso se esiste o meno...
+// Carica i file e ne estrae subito anno e mese
+int loadFilesRecursive(const char *path) {
     if (!DirectoryExists(path)) {
-        TraceLog(LOG_ERROR, "Failed to locate: %s directory; exit program!", path);
-        exit(1);
-    }   
+        TraceLog(LOG_ERROR, "Directory non trovata: %s", path);
+        return 0;
+    }
 
-    DIR *dir = opendir(path);
-    if (!dir) return count; //...nel caso opendir fallisca per permessi negati
+    FilePathList list = LoadDirectoryFilesEx(path, FILTER_EXT, true);
+    int count = 0;
 
-    struct dirent *entry;
+    for (unsigned int i = 0; i < list.count && count < MAX_FILES; i++) {
+        int written = snprintf(allFiles[count].path, MAX_NAME, "%s", list.paths[i]);
+        if (written >= 0 && written < MAX_NAME) {
+            // Ottiene il timestamp di modifica del file tramite raylib
+            long modTime = GetFileModTime(allFiles[count].path);
+            time_t t = (time_t)modTime;
+            struct tm *tm_info = localtime(&t);
 
-    // Controllo sul limite ad ogni iterazione
-    while ((entry = readdir(dir)) != NULL) {
-        if (count >= MAX_FILES) break; 
-
-        const char *name = entry->d_name;
-
-        // Salta "." e ".."
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
-
-        // MAX_NAME lunghezza massima del path+filename
-        char fullpath[MAX_NAME];
-        snprintf(fullpath, sizeof(fullpath), "%s%s%s", path, SEPARATOR, name);
-
-        struct stat st;
-        if (stat(fullpath, &st) == -1) continue;
-
-        // Se directory procedi con ricorsione
-        if (S_ISDIR(st.st_mode)) {
-            count = loadFilesRecursive(fullpath, files, count);
+            if (tm_info != NULL) {
+                allFiles[count].year = tm_info->tm_year + 1900;
+                allFiles[count].month = tm_info->tm_mon + 1; // tm_mon parte da 0
+            } else {
+                allFiles[count].year = 0;
+                allFiles[count].month = 0;
+            }
+            count++;
         }
-        // Se è un file controlla l'estensione
-        else if (S_ISREG(st.st_mode)) {
-            const char *ext = strrchr(name, '.');
+    }
 
-            if (ext && strcmp(ext, FILTER_EXT) == 0) {
-                int written = snprintf(files[count], MAX_NAME, "%s", fullpath);
-                if (written >= 0 && written < MAX_NAME) {
-                    count++;
-                }
+    UnloadDirectoryFiles(list);
+    return count;
+}
+
+// Aggiorna l'array filteredIndices in base ai parametri scelti nella UI
+void applyDateFilter(bool enableFilter, int targetYear, int targetMonth) {
+
+    filteredCount = 0;
+
+    for (int i = 0; i < totalFilesCount; i++) {
+        if (!enableFilter) {
+            // Se il filtro è disattivato, includi tutti i file
+            filteredIndices[filteredCount++] = i;
+        } else {
+            // Controlla corrispondenza anno (se targetYear > 0) e mese (se targetMonth > 0)
+            bool matchYear = (targetYear == 0) || (allFiles[i].year == targetYear);
+            bool matchMonth = (targetMonth == 0) || (allFiles[i].month == targetMonth);
+
+            if (matchYear && matchMonth) {
+                filteredIndices[filteredCount++] = i;
             }
         }
     }
-    closedir(dir);
-    return count;
 }
+
 
 void getTimeFromMinute (double mins)
 {
@@ -1117,4 +1228,18 @@ Color GetReadableTextColor(Color bgColor) {
     // Formula della luminanza percepita dall'occhio umano
     float luminance = 0.299f * bgColor.r + 0.587f * bgColor.g + 0.114f * bgColor.b;
     return (luminance > 127.5f) ? BLACK : WHITE;
+}
+
+void FormattaTimestamp(long modTime, char *buffer, size_t bufferSize)
+{
+    if (modTime <= 0) {
+        TextCopy(buffer, "Data non disponibile");
+        return;
+    }
+
+    time_t rawTime = (time_t)modTime;
+    struct tm *timeInfo = localtime(&rawTime);
+
+    if (timeInfo != NULL) strftime(buffer, bufferSize, "%d/%m/%Y %H:%M", timeInfo);
+    else TextCopy(buffer, "Errore conversione");
 }
