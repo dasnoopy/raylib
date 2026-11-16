@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.6.5"
+#define TOOL_VERSION            "1.6.7"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -144,7 +144,8 @@ trackData infoTraccia;
 typedef struct {
     char path[MAX_NAME];
     int year;
-    int month; // 1 - 12
+    int month; // 0 - 12 (0 uso speciale tutti i mesi)
+    int day; // 0-6 lun dom
 } fileEntry;
 
 static fileEntry allFiles[MAX_FILES];
@@ -191,7 +192,6 @@ void applyDateFilter(bool enableFilter, int targetYear, int targetMonth);
 void drawChart(RenderTexture2D target);
 void ApplyTheme(colorTheme *currentTheme, bool darkMode); 
 Color GetReadableTextColor(Color bgColor);
-void FormattaTimestamp(long modTime, char *buffer, size_t bufferSize);
 
 int main (int argc, char *argv[])
 {
@@ -215,7 +215,7 @@ int main (int argc, char *argv[])
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 40,codepoints, glyphCount); // all other text
+    Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 36,codepoints, glyphCount); // all other text
     Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
 
     // Caricamento mappa ( creare TIFF con QGIS)
@@ -307,10 +307,6 @@ while (!WindowShouldClose())
         }
 
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
-        if (IsKeyPressed(KEY_U)) {
-            loadLibrary();
-            qsort(allFiles, totalFilesCount, sizeof(fileEntry), compareFilesByModTime);  // ordinamento file
-        }
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
@@ -497,19 +493,17 @@ while (!WindowShouldClose())
 
             if (isTrackLoaded) {
 
-                // dividi la stringa con separatore ogni stringa separata diventa elemento di array..
+                // dividi la stringa con separatore ogni stringa separata diventa elemento di un array..
                 int count=0;
                 char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
-                DrawTextEx(titleFont,TextFormat("%s",splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(titleFont,TextFormat("%s", splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
-
-                DrawTextEx(textFont,"Inizio sessione:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Ora inizio attività:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                count=0;
                 splitStr = TextSplit(infoTraccia.data_fine, ',' , &count); 
-                DrawTextEx(textFont,"Fine sessione:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Ora fine attività:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 getTimeFromMinute(infoTraccia.minMov);
@@ -808,7 +802,7 @@ void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_
     
     // Usa gmtime se vuoi l'orario UTC, oppure localtime per l'orario del tuo computer
     struct tm* time_info = localtime(&unix_time);
-    strftime(output_str, max_size, "%d %B %Y, %H:%M:%S", time_info);
+    strftime(output_str, max_size, "%A %d %b %Y, %H:%M:%S", time_info);
 }
 
 
@@ -1040,9 +1034,11 @@ int loadFilesRecursive(const char *path) {
             if (tm_info != NULL) {
                 allFiles[count].year = tm_info->tm_year + 1900;
                 allFiles[count].month = tm_info->tm_mon + 1; // tm_mon parte da 0
+                allFiles[count].day = tm_info->tm_wday; 
             } else {
                 allFiles[count].year = 0;
                 allFiles[count].month = 0;
+                allFiles[count].day = 0;
             }
             count++;
         }
@@ -1072,7 +1068,6 @@ void applyDateFilter(bool enableFilter, int targetYear, int targetMonth) {
         }
     }
 }
-
 
 void getTimeFromMinute (double mins)
 {
@@ -1230,16 +1225,3 @@ Color GetReadableTextColor(Color bgColor) {
     return (luminance > 127.5f) ? BLACK : WHITE;
 }
 
-void FormattaTimestamp(long modTime, char *buffer, size_t bufferSize)
-{
-    if (modTime <= 0) {
-        TextCopy(buffer, "Data non disponibile");
-        return;
-    }
-
-    time_t rawTime = (time_t)modTime;
-    struct tm *timeInfo = localtime(&rawTime);
-
-    if (timeInfo != NULL) strftime(buffer, bufferSize, "%d/%m/%Y %H:%M", timeInfo);
-    else TextCopy(buffer, "Errore conversione");
-}
