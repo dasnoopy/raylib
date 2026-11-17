@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT file viewer & analyzer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.0.6"
+#define TOOL_VERSION            "2.0.8"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -72,7 +72,7 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = (Color){0, 120, 240, 255}, 
+    .accentColor = (Color){53, 132, 228, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -81,7 +81,7 @@ static const colorTheme lightTheme = {
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){191, 97, 106, 255},
+    .accentColor = (Color){230, 45, 66, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -202,7 +202,7 @@ void drawChartTooltip(void);
 int main (int argc, char *argv[])
 {
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_MSAA_4X_HINT); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "fitview");
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     
@@ -498,7 +498,7 @@ while (!WindowShouldClose())
 
 
             DrawText(TextFormat("%s", TOOL_NAME), 84, 14,10,currentTheme.fgColor); 
-            DrawText(TextFormat("v%s", TOOL_VERSION),222,14, 10, DARKGRAY); 
+            DrawText(TextFormat("v%s", TOOL_VERSION),222,14, 10, currentTheme.accentColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
@@ -803,6 +803,12 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     const double maxLon = 11.36574722; // Est (Right)
     const double minLat = 45.15988611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
     const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
+
+    // const double minLon = 10.426533; // Ovest (Left)
+    // const double maxLon = 11.353342; // Est (Right)
+    // const double minLat = 45.208650; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
+    // const double maxLat = 45.921619; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
+
 
     double normX = (lon - minLon) / (maxLon - minLon);
     double normY = (lat - minLat) /(maxLat - minLat);
@@ -1256,7 +1262,7 @@ void drawChart(RenderTexture2D target) {
             float x2 = startX + (normX2 * larghezzaUtile);
             float y2 = baseY - (normY2 * altezzaUtile);
 
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(currentTheme.accentColor,0.70f));
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(PURPLE,0.72f));
         }
     }
     EndTextureMode();
@@ -1373,7 +1379,7 @@ void drawChartTooltip(void) {
     float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
     float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
 
-    Color velColor = Fade(currentTheme.accentColor,0.70f);
+    Color velColor = PURPLE;
 
     // 1. Linea verticale guida
     DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
