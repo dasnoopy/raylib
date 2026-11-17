@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT file viewer & analyzer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.0.5"
+#define TOOL_VERSION            "2.0.6"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -1256,7 +1256,7 @@ void drawChart(RenderTexture2D target) {
             float x2 = startX + (normX2 * larghezzaUtile);
             float y2 = baseY - (normY2 * altezzaUtile);
 
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 1.0f, Fade(RED,0.72f));
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(currentTheme.accentColor,0.70f));
         }
     }
     EndTextureMode();
@@ -1373,12 +1373,12 @@ void drawChartTooltip(void) {
     float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
     float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
 
-    Color velColor = RED;
+    Color velColor = Fade(currentTheme.accentColor,0.70f);
 
     // 1. Linea verticale guida
     DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
 
-    // 2. Evidenziatori circolari sulle due curve
+    // 2. disegno punti sulle due curve
     DrawCircleV((Vector2){ px, pyAlt }, 4.0f, currentTheme.accentColor);
     DrawCircleLinesV((Vector2){ px, pyAlt }, 4.5f, currentTheme.borderColor);
 
