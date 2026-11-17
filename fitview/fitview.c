@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.6.8"
+#define TOOL_VERSION            "2.0.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -108,7 +108,7 @@ typedef struct {
     double lon;
     double alt;
     double dist;
-    double speed;
+    double vel;
 } gpsPoints;
 
 typedef struct {
@@ -134,8 +134,12 @@ Vector2 puntiPixel[32768]; // todo : convert to diynamic
 gpsPoints puntiGps[32768]; // see above
 trackData infoTraccia;
 
-// library & files management
+// per tooltip su grafico
+static float chartMaxAlt = 10.0f;
+static float chartMaxVel = 1.0f;
+static int selectedPointIdx = -1;
 
+// library & files management
 #define MAX_FILES 2048
 #define MAX_NAME 1024
 #define FILTER_EXT      ".fit"
@@ -192,6 +196,7 @@ void applyDateFilter(bool enableFilter, int targetYear, int targetMonth);
 void drawChart(RenderTexture2D target);
 void ApplyTheme(colorTheme *currentTheme, bool darkMode); 
 Color GetReadableTextColor(Color bgColor);
+void drawChartTooltip(void);
 
 int main (int argc, char *argv[])
 {
@@ -392,6 +397,7 @@ while (!WindowShouldClose())
                                 // decodifica il file .FIT
                                 decodeFit (fName);
                                 // disegna grafico altimetria
+                                selectedPointIdx = -1;
                                 drawChart(targetChart);
                                 isTrackLoaded = true;
                                 
@@ -461,11 +467,13 @@ while (!WindowShouldClose())
                             // disegna label KM : KEY_K
                             snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                             Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,WHITE);
-                            DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,ORANGE);
+                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y ,labelPos.x,labelPos.y},0.24f,4,WHITE);
+                            DrawRectangleRoundedLinesEx((Rectangle){puntiPixel[i].x,puntiPixel[i].y, labelPos.x,labelPos.y},0.24f,4,1.0f,ORANGE);
                             DrawTextEx(textFont, tempBuffer, puntiPixel[i], (float)textFont.baseSize, 0,BLACK);
                             }
                         }
+
+
 
                     // bandierine
                     Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
@@ -563,10 +571,14 @@ while (!WindowShouldClose())
             BeginScissorMode(chartRect.x, chartRect.y, chartRect.width, chartRect.height);
                 if (isTrackLoaded) {
                     Rectangle sourceRec = { 0.0f, 0.0f, (float)targetChart.texture.width, - (float)targetChart.texture.height };
+                    // disegna texture graafico alt / spped
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
+                     // tooltip interattivo in tempo reale
+                    drawChartTooltip();
                 } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 240, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
             EndScissorMode();
 
+           
 
             // -----------------------------------------------------------------
             // filtro x files list
@@ -1102,12 +1114,15 @@ void drawChart(RenderTexture2D target) {
     // 2. Calcolo altitudine con base fissa a 0.0f
     float minAlt = 0.0f;
     float rawMaxAlt = 0.0f;
+    float rawMaxVel = 0.0f;
 
     for (int i = 0; i < numPointRec; i++) {
         if (puntiGps[i].alt > rawMaxAlt) rawMaxAlt = puntiGps[i].alt;
+        if (puntiGps[i].vel > rawMaxVel) rawMaxVel = puntiGps[i].vel;
     }
 
     if (rawMaxAlt < 10.0f) rawMaxAlt = 10.0f; // Altezza minima del grafico per tracce piatte
+      if (rawMaxVel < 1.0f)  rawMaxVel = 1.0f;
 
     // Calcolo step griglia altitudine (Asse Y)
     float stepAlt = 10.0f;
@@ -1120,6 +1135,13 @@ void drawChart(RenderTexture2D target) {
     // Arrotonda maxAlt al multiplo superiore di stepAlt (evita che il picco tocchi il bordo alto)
     float maxAlt = ceilf(rawMaxAlt / stepAlt) * stepAlt;
     float deltaAlt = maxAlt - minAlt;
+
+   // Margine superiore del 10% sulla velocità così il picco non tocca il bordo alto
+    float maxVel = rawMaxVel * 1.20f;
+
+    // per interattivita / tooltip alt/vel
+    chartMaxAlt = maxAlt;
+    chartMaxVel = maxVel;
 
     float startX = margineSinistro;
     float baseY  = chartRect.height - margineBasso;
@@ -1208,7 +1230,29 @@ void drawChart(RenderTexture2D target) {
             DrawTriangle(tLeft, bLeft, tRight, fillCol);
             DrawTriangle(tRight, bLeft, bRight, fillCol);
 
-            DrawLineV((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, currentTheme.accentColor);
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, currentTheme.accentColor);
+
+        // --- DISEGNO LINEA VELOCITÀ (ASSE FANTASMA, SOLO LINEA) ---
+        for (int i = 0; i < numPointRec - 1; i++) {
+            float vel1 = (puntiGps[i].vel < 0.0f) ? 0.0f : puntiGps[i].vel;
+            float vel2 = (puntiGps[i + 1].vel < 0.0f) ? 0.0f : puntiGps[i + 1].vel;
+
+            float normX1 = puntiGps[i].dist / distMax;
+            float normX2 = puntiGps[i + 1].dist / distMax;
+
+            float normY1 = vel1 / maxVel;
+            float normY2 = vel2 / maxVel;
+
+            float x1 = startX + (normX1 * larghezzaUtile);
+            float y1 = baseY - (normY1 * altezzaUtile);
+
+            float x2 = startX + (normX2 * larghezzaUtile);
+            float y2 = baseY - (normY2 * altezzaUtile);
+
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(MAROON,0.50f));
+        }
+
+
         }
 
     EndTextureMode();
@@ -1231,3 +1275,156 @@ Color GetReadableTextColor(Color bgColor) {
     return (luminance > 127.5f) ? BLACK : WHITE;
 }
 
+void drawChartTooltip(void) {
+    if (numPointRec < 2) {
+        selectedPointIdx = -1;
+        return;
+    }
+
+    // Stessi margini usati in drawChart
+    float margineSinistro = 38.0f;
+    float margineDestro   = 10.0f;
+    float margineAlto     = 12.0f;
+    float margineBasso    = 18.0f;
+
+    Rectangle plotArea = {
+        chartRect.x + margineSinistro,
+        chartRect.y + margineAlto,
+        chartRect.width - margineSinistro - margineDestro,
+        chartRect.height - margineAlto - margineBasso
+    };
+
+    float distMax = (infoTraccia.disTot > 0.0f) ? infoTraccia.disTot : 1.0f;
+    Vector2 mouse = GetMousePosition();
+    Vector2 mouseDelta = GetMouseDelta();
+    bool mouseInPlot = CheckCollisionPointRec(mouse, plotArea);
+
+    // 1. Aggiornamento tramite MOUSE (solo se dentro il grafico e in movimento, o al clic)
+    if (mouseInPlot && (fabsf(mouseDelta.x) > 0.0f || fabsf(mouseDelta.y) > 0.0f || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
+        float normMouseX = (mouse.x - plotArea.x) / plotArea.width;
+        float targetDist = normMouseX * distMax;
+
+        int left = 0;
+        int right = numPointRec - 1;
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            if (puntiGps[mid].dist < targetDist) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        int idx = left;
+        if (idx > 0 && fabsf(puntiGps[idx - 1].dist - targetDist) < fabsf(puntiGps[idx].dist - targetDist)) {
+            idx = idx - 1;
+        }
+        selectedPointIdx = idx;
+    }
+
+    // 2. Aggiornamento tramite TASTIERA (Frecce Sinistra / Destra)
+    if (mouseInPlot && (IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT))) {
+        if (selectedPointIdx < 0) selectedPointIdx = 0;
+        else if (selectedPointIdx < numPointRec - 1) selectedPointIdx++;
+    }
+    if (mouseInPlot && (IsKeyPressed(KEY_LEFT) || IsKeyPressedRepeat(KEY_LEFT))) {
+        if (selectedPointIdx < 0) selectedPointIdx = numPointRec - 1;
+        else if (selectedPointIdx > 0) selectedPointIdx--;
+    }
+
+    // 3. Deselezione con ESC o clic fuori dal grafico
+    if (IsKeyPressed(KEY_ESCAPE) || (!mouseInPlot && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
+        selectedPointIdx = -1;
+    }
+
+    // Se non c'è nessun punto selezionato (o indice fuori range), esci senza disegnare
+    if (selectedPointIdx < 0 || selectedPointIdx >= numPointRec) return;
+
+    int idx = selectedPointIdx;
+
+    // --- CALCOLO PENDENZA SU FINESTRA LOCALE (anti-rumore GPS) ---
+    int iStart = idx;
+    int iEnd   = idx;
+    float minWindowKm = 0.025f;
+
+    while (iStart > 0 && (puntiGps[idx].dist - puntiGps[iStart].dist) < (minWindowKm * 0.5f)) {
+        iStart--;
+    }
+    while (iEnd < numPointRec - 1 && (puntiGps[iEnd].dist - puntiGps[idx].dist) < (minWindowKm * 0.5f)) {
+        iEnd++;
+    }
+
+    float deltaDistM = (puntiGps[iEnd].dist - puntiGps[iStart].dist) * 1000.0f;
+    float deltaAltM  = puntiGps[iEnd].alt - puntiGps[iStart].alt;
+    float pendenza   = (deltaDistM > 0.5f) ? (deltaAltM / deltaDistM) * 100.0f : 0.0f;
+
+    Color slopeColor = currentTheme.fgColor;
+    if (pendenza > 1.0f)       slopeColor = RED;
+    else if (pendenza < -1.0f) slopeColor = GREEN;
+
+    // Coordinate esatte del punto selezionato sullo schermo
+    float alt = (puntiGps[idx].alt < 0.0f) ? 0.0f : puntiGps[idx].alt;
+    float vel = (puntiGps[idx].vel < 0.0f) ? 0.0f : puntiGps[idx].vel;
+
+    float px = plotArea.x + (puntiGps[idx].dist / distMax) * plotArea.width;
+    float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
+    float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
+
+    Color velColor = MAROON;
+
+    // 1. Linea verticale guida
+    DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
+
+    // 2. Evidenziatori circolari sulle due curve
+    DrawCircleV((Vector2){ px, pyAlt }, 4.0f, currentTheme.accentColor);
+    DrawCircleLinesV((Vector2){ px, pyAlt }, 4.5f, currentTheme.bgColor);
+
+    DrawCircleV((Vector2){ px, pyVel }, 4.0f, velColor);
+    DrawCircleLinesV((Vector2){ px, pyVel }, 4.5f, currentTheme.bgColor);
+
+    // 3. Testi e dimensioni del box tooltip
+    const char *txtDist  = TextFormat("Dist: %.2f km", puntiGps[idx].dist);
+    const char *txtAlt   = TextFormat("Quota: %.0f m", alt);
+    const char *txtVel   = TextFormat("Vel: %.1f km/h", vel);
+    const char *txtSlope = TextFormat("Pend: %+.1f%%", pendenza);
+
+    int fontSize = 10;
+    int widths[4] = {
+        MeasureText(txtDist, fontSize),
+        MeasureText(txtAlt, fontSize),
+        MeasureText(txtVel, fontSize),
+        MeasureText(txtSlope, fontSize)
+    };
+
+    int maxW = widths[0];
+    for (int i = 1; i < 4; i++) {
+        if (widths[i] > maxW) maxW = widths[i];
+    }
+
+    float boxW = (float)maxW + 14.0f;
+    float boxH = 56.0f;
+
+    // Posizionamento orizzontale
+    float boxX = px + 10.0f;
+    if (boxX + boxW > plotArea.x + plotArea.width) {
+        boxX = px - boxW - 10.0f;
+    }
+
+    // Posizionamento verticale: segue il mouse se è dentro il grafico, altrimenti segue il punto altimetrico
+    float refY = mouseInPlot ? mouse.y : pyAlt;
+    float boxY = refY - (boxH / 2.0f);
+    if (boxY < plotArea.y) boxY = plotArea.y;
+    if (boxY + boxH > plotArea.y + plotArea.height) boxY = plotArea.y + plotArea.height - boxH;
+
+    Rectangle tooltipRect = { boxX, boxY, boxW, boxH };
+
+    // Disegno sfondo e bordo del tooltip
+    DrawRectangleRounded(tooltipRect, 0.2f, 4, Fade(currentTheme.bgColor, 0.90f));
+    DrawRectangleRoundedLinesEx(tooltipRect, 0.2f, 4, 1.0f, currentTheme.borderColor);
+
+    // Disegno etichette
+    DrawText(txtDist,  (int)(boxX + 7), (int)(boxY + 5),  fontSize, currentTheme.fgColor);
+    DrawText(txtAlt,   (int)(boxX + 7), (int)(boxY + 17), fontSize, currentTheme.accentColor);
+    DrawText(txtVel,   (int)(boxX + 7), (int)(boxY + 29), fontSize, velColor);
+    DrawText(txtSlope, (int)(boxX + 7), (int)(boxY + 41), fontSize, slopeColor);
+}
