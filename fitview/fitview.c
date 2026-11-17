@@ -7,9 +7,9 @@
 *
 ********************************************************************************************/
 
-#define TOOL_NAME               "FIT Viewer"
+#define TOOL_NAME               "FIT file viewer & analyzer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.0.0"
+#define TOOL_VERSION            "2.0.5"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -374,7 +374,7 @@ while (!WindowShouldClose())
                 //---------------------------------------------------------------------
                 //  file LIbrary management
                 //----------------------------------------------------------------------
-                // Scroll con tastiera per sopstarsi tra i files (solo se si è con il mouse sulla zona della libreria)
+                // Scroll con tastiera per spostarsi tra i files (solo se si è con il mouse sulla zona della libreria)
                  if (CheckCollisionPointRec(thisPos, filesRect)) {
                     if (filteredCount >= visibleRows) 
                     {
@@ -458,19 +458,25 @@ while (!WindowShouldClose())
 
                     if (isTrackLoaded) {
                         float spessoreLinea = 4.0f / cam.zoom; 
+                        float diametroPunto = 6.0f / cam.zoom;
                         if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
+                        if (diametroPunto < 3.0f) diametroPunto = 3.0f;
 
                         // prima disegna traccia e dopo le label : due for separati per evitare glitch grafici
                         for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
                         
+                            // punto sulla traccia?
+                            DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, RED);
+                            DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
+                            
                         if (showKM) {
                         for (int i = 0; i < numPointRec - 1; i+=40) {
                             // disegna label KM : KEY_K
                             snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
                             Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y ,labelPos.x,labelPos.y},0.24f,4,WHITE);
-                            DrawRectangleRoundedLinesEx((Rectangle){puntiPixel[i].x,puntiPixel[i].y, labelPos.x,labelPos.y},0.24f,4,1.0f,ORANGE);
-                            DrawTextEx(textFont, tempBuffer, puntiPixel[i], (float)textFont.baseSize, 0,BLACK);
+                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y ,labelPos.x,labelPos.y},0.24f,4,Fade(currentTheme.bgColor, 0.90f));
+                            DrawRectangleRoundedLinesEx((Rectangle){puntiPixel[i].x,puntiPixel[i].y, labelPos.x,labelPos.y},0.24f,4,1.0f,currentTheme.borderColor);
+                            DrawTextEx(textFont, tempBuffer, puntiPixel[i], (float)textFont.baseSize, 0,currentTheme.fgColor);
                             }
                         }
 
@@ -491,8 +497,8 @@ while (!WindowShouldClose())
             DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
 
-            DrawText(TextFormat("%s", TOOL_NAME), 34, 14,10,currentTheme.fgColor); 
-            DrawText(TextFormat("v%s", TOOL_VERSION),96,14, 10, currentTheme.borderColor); 
+            DrawText(TextFormat("%s", TOOL_NAME), 84, 14,10,currentTheme.fgColor); 
+            DrawText(TextFormat("v%s", TOOL_VERSION),222,14, 10, DARKGRAY); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
@@ -586,15 +592,15 @@ while (!WindowShouldClose())
             //----------------------------------------------------------------
 
             // la ricerca va fatta una sola volta
-            GuiCheckBox((Rectangle){ 10, 336, 20, 20 }, "Filtro ", &filterEnabled);
+            GuiCheckBox((Rectangle){ 8, 337, 18, 18 }, "Filtro ", &filterEnabled);
             if (!filterEnabled) {
                  selectedMonth = currentMonth;
                  selectedYear = currentYear;
                  GuiDisable();
             }
 
-            GuiSpinner((Rectangle){ 126, 334, 72, 24 }, "Mese ", &selectedMonth, 0, 12, 0);
-            GuiSpinner((Rectangle){ 242, 334, 104, 24 }, "Anno ", &selectedYear, 2020, 2040, 0);
+            GuiSpinner((Rectangle){ 130, 335, 72, 22 }, "Mese ", &selectedMonth, 0, 12, 0);
+            GuiSpinner((Rectangle){ 244, 335, 104, 22 }, "Anno ", &selectedYear, 2020, 2040, 0);
             GuiEnable();            
 
             // Se un controllo è cambiato, ricalcola gli indici filtrati (istantaneo!)
@@ -1233,7 +1239,7 @@ void drawChart(RenderTexture2D target) {
 
             DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, currentTheme.accentColor);
 
-        // --- DISEGNO LINEA VELOCITÀ (ASSE FANTASMA, SOLO LINEA) ---
+        //  solo linea velocità
         for (int i = 0; i < numPointRec - 1; i++) {
             float vel1 = (puntiGps[i].vel < 0.0f) ? 0.0f : puntiGps[i].vel;
             float vel2 = (puntiGps[i + 1].vel < 0.0f) ? 0.0f : puntiGps[i + 1].vel;
@@ -1250,15 +1256,11 @@ void drawChart(RenderTexture2D target) {
             float x2 = startX + (normX2 * larghezzaUtile);
             float y2 = baseY - (normY2 * altezzaUtile);
 
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(MAROON,0.50f));
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 1.0f, Fade(RED,0.72f));
         }
-
-
-        }
-
+    }
     EndTextureMode();
 }
-
 
 void ApplyTheme(colorTheme *currentTheme, bool darkMode) {
     if (darkMode) *currentTheme = darkTheme;
@@ -1371,17 +1373,17 @@ void drawChartTooltip(void) {
     float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
     float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
 
-    Color velColor = MAROON;
+    Color velColor = RED;
 
     // 1. Linea verticale guida
     DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
 
     // 2. Evidenziatori circolari sulle due curve
     DrawCircleV((Vector2){ px, pyAlt }, 4.0f, currentTheme.accentColor);
-    DrawCircleLinesV((Vector2){ px, pyAlt }, 4.5f, currentTheme.bgColor);
+    DrawCircleLinesV((Vector2){ px, pyAlt }, 4.5f, currentTheme.borderColor);
 
     DrawCircleV((Vector2){ px, pyVel }, 4.0f, velColor);
-    DrawCircleLinesV((Vector2){ px, pyVel }, 4.5f, currentTheme.bgColor);
+    DrawCircleLinesV((Vector2){ px, pyVel }, 4.5f, currentTheme.borderColor);
 
     // 3. Testi e dimensioni del box tooltip
     const char *txtDist  = TextFormat("Dist: %.2f km", puntiGps[idx].dist);
