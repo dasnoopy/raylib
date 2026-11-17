@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT file viewer & analyzer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.0.8"
+#define TOOL_VERSION            "2.1.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -1169,9 +1169,13 @@ void drawChart(RenderTexture2D target) {
     else if (distMaxKm > 10.0f) stepKm = 1.0f;
     else if (distMaxKm <= 2.0f) stepKm = 0.5f;
 
-    // Intervallo ogni quante linee verticali stampare il testo dei km (evita sovrapposizioni)
-    float labelStepKm = stepKm * 2.0f;
-    if (distMaxKm <= 2.0f) labelStepKm = 0.5f;
+  
+    // Ogni quante linee verticali stampare l'etichetta (1 = tutte, 2 = una sì e una no)
+    int labelStepKm = (distMaxKm <= 2.0f) ? 1 : 2;
+
+        // Allocazione array vertici per riempimento (2 vertici per ogni punto GPS)
+    Vector2 *stripPoints = (Vector2 *)MemAlloc(sizeof(Vector2) * numPointRec * 2);
+    if (stripPoints == NULL) return;
 
     BeginTextureMode(target);
         ClearBackground(BLANK);
@@ -1216,36 +1220,29 @@ void drawChart(RenderTexture2D target) {
         DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, currentTheme.borderColor);
         DrawLineV((Vector2){ startX, baseY }, (Vector2){ startX + larghezzaUtile, baseY }, currentTheme.borderColor);
 
-        // --- DISEGNO TRACCIA ALTIMETRICA ---
+       // disegno altimetria---
+        for (int i = 0; i < numPointRec; i++) {
+            float alt = (puntiGps[i].alt < 0.0f) ? 0.0f : puntiGps[i].alt;
+
+            float normX = puntiGps[i].dist / distMax;
+            float normY = (alt - minAlt) / deltaAlt;
+
+            float x = startX + (normX * larghezzaUtile);
+            float y = baseY - (normY * altezzaUtile);
+
+            // Ordine antiorario per TriangleStrip: punto superiore (quota), poi punto inferiore (base)
+            stripPoints[i * 2]     = (Vector2){ x, y };
+            stripPoints[i * 2 + 1] = (Vector2){ x, baseY };
+        }
+
+        // 1. Disegno riempimento in un'unica chiamata
         Color fillCol = Fade(currentTheme.accentColor, 0.50f);
+        DrawTriangleStrip(stripPoints, numPointRec * 2, fillCol);
 
-        for (int i = 0; i < numPointRec - 1; i++) {
-            float alt1 = (puntiGps[i].alt < 0.0f) ? 0.0f : puntiGps[i].alt;
-            float alt2 = (puntiGps[i + 1].alt < 0.0f) ? 0.0f : puntiGps[i + 1].alt;
+        // 2. Disegno linea superiore con spessore 2.0f
+        for (int i = 0; i < numPointRec - 1; i++) DrawLineEx(stripPoints[i * 2], stripPoints[(i + 1) * 2], 2.0f, currentTheme.accentColor);
 
-            float normX1 = puntiGps[i].dist / distMax;
-            float normX2 = puntiGps[i + 1].dist / distMax;
-
-            float normY1 = (alt1 - minAlt) / deltaAlt;
-            float normY2 = (alt2 - minAlt) / deltaAlt;
-
-            float x1 = startX + (normX1 * larghezzaUtile);
-            float y1 = baseY - (normY1 * altezzaUtile);
-
-            float x2 = startX + (normX2 * larghezzaUtile);
-            float y2 = baseY - (normY2 * altezzaUtile);
-
-            Vector2 tLeft  = { x1, y1 };
-            Vector2 tRight = { x2, y2 };
-            Vector2 bLeft  = { x1, baseY };
-            Vector2 bRight = { x2, baseY };
-
-            DrawTriangle(tLeft, bLeft, tRight, fillCol);
-            DrawTriangle(tRight, bLeft, bRight, fillCol);
-
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, currentTheme.accentColor);
-
-        //  solo linea velocità
+        // disegnao velocità
         for (int i = 0; i < numPointRec - 1; i++) {
             float vel1 = (puntiGps[i].vel < 0.0f) ? 0.0f : puntiGps[i].vel;
             float vel2 = (puntiGps[i + 1].vel < 0.0f) ? 0.0f : puntiGps[i + 1].vel;
@@ -1264,8 +1261,9 @@ void drawChart(RenderTexture2D target) {
 
             DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(PURPLE,0.72f));
         }
-    }
+    
     EndTextureMode();
+  MemFree(stripPoints);
 }
 
 void ApplyTheme(colorTheme *currentTheme, bool darkMode) {
@@ -1379,7 +1377,7 @@ void drawChartTooltip(void) {
     float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
     float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
 
-    Color velColor = PURPLE;
+    Color velColor = Fade(PURPLE,0.72f);
 
     // 1. Linea verticale guida
     DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
