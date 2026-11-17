@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT Viewer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "1.6.7"
+#define TOOL_VERSION            "1.6.8"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -43,6 +43,7 @@ const int fntSize = 16;
 char tempBuffer[64];
 bool showMinimap = false;
 bool showKM=false;
+bool isDarkMode = false;
 
 float minZoomX;
 float minZoomY;
@@ -88,7 +89,6 @@ static const colorTheme darkTheme = {
     .gridBgColor = (Color){61, 68, 83, 255},
 };
 
-bool isDarkMode = true;
 colorTheme currentTheme;
 
 // Key repeat structure
@@ -266,8 +266,11 @@ int main (int argc, char *argv[])
     // usati nel filtro dei file
     time_t now = time (NULL);
     struct tm *t = localtime(&now);
-    selectedMonth = t->tm_mon + 1; // current month
-    selectedYear = t->tm_year + 1900; // current year
+    int currentMonth = t->tm_mon + 1; // current month
+    int currentYear = t->tm_year + 1900; // current year
+
+    selectedMonth = currentMonth;
+    selectedYear = currentYear;
 
     // Applica il filtro iniziale in base a bool filterEnable...
     applyDateFilter(filterEnabled, selectedYear, selectedMonth);
@@ -457,10 +460,10 @@ while (!WindowShouldClose())
                         for (int i = 0; i < numPointRec - 1; i+=40) {
                             // disegna label KM : KEY_K
                             snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
-                            Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
+                            Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
                             DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y+1 ,labelPos.x+2,labelPos.y-1},0.24f,24,WHITE);
-                            DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,Fade(BLUE, 0.72f));
-                            DrawTextEx(boldFont, tempBuffer, puntiPixel[i], (float)boldFont.baseSize, 0,WHITE);
+                            DrawRectangleRounded((Rectangle){puntiPixel[i].x +1,puntiPixel[i].y+2, labelPos.x,labelPos.y-3},0.24f,24,ORANGE);
+                            DrawTextEx(textFont, tempBuffer, puntiPixel[i], (float)textFont.baseSize, 0,BLACK);
                             }
                         }
 
@@ -495,14 +498,14 @@ while (!WindowShouldClose())
 
                 // dividi la stringa con separatore ogni stringa separata diventa elemento di un array..
                 int count=0;
-                char **splitStr = TextSplit(infoTraccia.data_inizio, ',' , &count); 
+                char **splitStr = TextSplit(infoTraccia.data_inizio, '-' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
                 DrawTextEx(titleFont,TextFormat("%s", splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
                 DrawTextEx(textFont,"Ora inizio attività:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                splitStr = TextSplit(infoTraccia.data_fine, ',' , &count); 
+                splitStr = TextSplit(infoTraccia.data_fine, '-' , &count); 
                 DrawTextEx(textFont,"Ora fine attività:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
@@ -571,7 +574,11 @@ while (!WindowShouldClose())
 
             // la ricerca va fatta una sola volta
             GuiCheckBox((Rectangle){ 10, 314, 20, 20 }, "Filtro ", &filterEnabled);
-            if (!filterEnabled) GuiDisable();
+            if (!filterEnabled) {
+                 selectedMonth = currentMonth;
+                 selectedYear = currentYear;
+                 GuiDisable();
+            }
 
 
             GuiSpinner((Rectangle){ 126, 312, 72, 24 }, "Mese ", &selectedMonth, 0, 12, 0);
@@ -775,7 +782,7 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
     const double maxLon = 11.36574722; // Est (Right)
-    const double minLat = 45.15918611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
+    const double minLat = 45.15988611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
     const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
 
     double normX = (lon - minLon) / (maxLon - minLon);
@@ -802,9 +809,8 @@ void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_
     
     // Usa gmtime se vuoi l'orario UTC, oppure localtime per l'orario del tuo computer
     struct tm* time_info = localtime(&unix_time);
-    strftime(output_str, max_size, "%A %d %b %Y, %H:%M:%S", time_info);
+    strftime(output_str, max_size, "%a, %d %b %Y-%H:%M:%S", time_info);
 }
-
 
 int decodeFit(char* fileName) {
 
