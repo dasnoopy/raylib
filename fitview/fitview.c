@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT file viewer & analyzer"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.1.0"
+#define TOOL_VERSION            "2.1.3"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -103,7 +103,7 @@ typedef struct {
 // Struttura per le coordinate geografiche di tutti i punti che registro
 typedef struct {
     int record;
-    char* time;
+    char data[64];
     double lat;
     double lon;
     double alt;
@@ -497,8 +497,8 @@ while (!WindowShouldClose())
             DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
 
-            DrawText(TextFormat("%s", TOOL_NAME), 84, 14,10,currentTheme.fgColor); 
-            DrawText(TextFormat("v%s", TOOL_VERSION),222,14, 10, currentTheme.accentColor); 
+            DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
+            DrawText(TextFormat("v%s", TOOL_VERSION),320,14, 10, currentTheme.accentColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
@@ -513,14 +513,14 @@ while (!WindowShouldClose())
 
                 // dividi la stringa con separatore ogni stringa separata diventa elemento di un array..
                 int count=0;
-                char **splitStr = TextSplit(infoTraccia.data_inizio, '-' , &count); 
+                char **splitStr = TextSplit(infoTraccia.data_inizio, '/' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
                 DrawTextEx(titleFont,TextFormat("%s", splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
                 DrawTextEx(textFont,"Ora inizio attività:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                splitStr = TextSplit(infoTraccia.data_fine, '-' , &count); 
+                splitStr = TextSplit(infoTraccia.data_fine, '/' , &count); 
                 DrawTextEx(textFont,"Ora fine attività:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
@@ -585,8 +585,6 @@ while (!WindowShouldClose())
                 } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 240, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
             EndScissorMode();
 
-           
-
             // -----------------------------------------------------------------
             // filtro x files list
             //----------------------------------------------------------------
@@ -616,7 +614,7 @@ while (!WindowShouldClose())
             //  list files filtrati ---
             for (int i = 0; i < filteredCount; i++) {
                 int realIndex = filteredIndices[i];
-                displayNames[i] = allFiles[realIndex].path;
+                displayNames[i] = GetFileName(allFiles[realIndex].path);
             }
 
 
@@ -640,11 +638,11 @@ while (!WindowShouldClose())
                         if (fileIndex > filteredCount) break;
 
                         if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
-                            DrawText(TextFormat("%04i",fileIndex + 1),filesRect.x + 8, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            DrawTextEx(boldFont,TextFormat("%04i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
 
                             // print truncate too long filenames (max. 88 chars)
                             const char *fileNameTrunc = TextSubtext(displayNames[fileIndex],0,124); 
-                            DrawText(TextFormat("%s",fileNameTrunc), filesRect.x+48, filesRect.y +(i*rowHeight)+6,10,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+44, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
                         }   
                 //vertical divider between index and filename 
                 DrawLine(filesRect.x+40,filesRect.y,filesRect.x+40,filesRect.y + filesRect.height,currentTheme.gridColor);
@@ -834,7 +832,7 @@ void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_
     
     // Usa gmtime se vuoi l'orario UTC, oppure localtime per l'orario del tuo computer
     struct tm* time_info = localtime(&unix_time);
-    strftime(output_str, max_size, "%a, %d %b %Y-%H:%M:%S", time_info);
+    strftime(output_str, max_size, "%a, %d %b %Y / %H:%M:%S", time_info);
 }
 
 int decodeFit(char* fileName) {
@@ -912,7 +910,7 @@ int decodeFit(char* fileName) {
                             if (numRecord % 12 == 0) { 
                                  const FIT_RECORD_MESG *record = (FIT_RECORD_MESG *) mesg;
                                  // 1. Data e Ora Leggibile
-                                  ConvertFitTimestamp(record->timestamp, data_ora, sizeof(data_ora));
+                                  ConvertFitTimestamp(record->timestamp, tempBuffer, sizeof(tempBuffer));
 
                                 // 2 & 3. Latitudine e Longitudine
                                   if (record->position_lat != FIT_SINT32_INVALID && record->position_long != FIT_SINT32_INVALID) {
@@ -929,7 +927,15 @@ int decodeFit(char* fileName) {
                                 if (record->enhanced_speed != FIT_UINT32_INVALID) vel = ((double)record->enhanced_speed/ 1000.0) * 3.6;
                                 else if (record->speed != FIT_UINT16_INVALID) vel = ((double)record->speed / 1000.0) * 3.6;
 
-                                puntiGps[numPointRec] =(gpsPoints) {numRecord, data_ora, lat, lon, alt, dist, vel };
+                                // assegnazione valori
+                                puntiGps[numPointRec].record = numRecord;
+                                strcpy( puntiGps[numPointRec].data, tempBuffer);
+                                puntiGps[numPointRec].lat = lat;
+                                puntiGps[numPointRec].lon = lon;
+                                puntiGps[numPointRec].alt = alt;
+                                puntiGps[numPointRec].dist = dist;
+                                puntiGps[numPointRec].vel= vel;
+                                
                                 numPointRec++;
                             }                            
                             numRecord++;
@@ -1181,16 +1187,18 @@ void drawChart(RenderTexture2D target) {
         ClearBackground(BLANK);
 
         // --- GRIGLIA ORIZZONTALE (ALTITUDINE) ---
-        for (float alt = 0.0f; alt <= maxAlt + 0.1f; alt += stepAlt / 2.0f) {
+        float halfStepAlt = stepAlt * 0.5f;
+        int totalStepsY = (int)roundf(maxAlt / halfStepAlt);
+
+        for (int s = 0; s <= totalStepsY; s++) {
+            float alt = s * halfStepAlt;
             float normY = (alt - minAlt) / deltaAlt;
             float y = baseY - (normY * altezzaUtile);
 
-            if (alt > 0.0f) {
-                DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1, 1, currentTheme.gridColor);
-            }
+            if (s > 0) DrawLineDashed((Vector2){ startX, y }, (Vector2){ startX + larghezzaUtile, y }, 1, 1, currentTheme.gridColor);
 
-            // Stampa etichetta sui multipli interi di stepAlt, allineata a destra verso l'asse Y
-            if (fmodf(alt, stepAlt) < 0.1f) {
+            // Stampa etichetta ogni 2 mezzi-step (ovvero sui multipli interi di stepAlt)
+            if (s % 2 == 0) {
                 const char *labelAlt = TextFormat("%.0fm", alt);
                 int textW = MeasureText(labelAlt, 10);
                 DrawText(labelAlt, (int)(startX - textW - 4), (int)(y - 5), 10, currentTheme.fgColor);
@@ -1198,23 +1206,24 @@ void drawChart(RenderTexture2D target) {
         }
 
         // --- GRIGLIA VERTICALE (DISTANZA) ---
-        for (float km = 0.0f; km <= distMaxKm + 0.01f; km += stepKm) {
+        int totalStepsX = (int)floorf(distMaxKm / stepKm);
+
+        for (int s = 0; s <= totalStepsX; s++) {
+            float km = s * stepKm;
             float normX = km / distMaxKm;
             float x = startX + (normX * larghezzaUtile);
 
-            if (km > 0.0f) {
-                DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1, 1, currentTheme.gridColor);
-            }
+            if (s > 0) DrawLineDashed((Vector2){ x, topY }, (Vector2){ x, baseY }, 1, 1, currentTheme.gridColor);
 
-            // Stampa etichetta Km in modo proporzionale alla distanza totale
-            if (fmodf(km, labelStepKm) < 0.05f) {
+            // Stampa etichetta usando il contatore intero
+            if (s % labelStepKm == 0) {
                 const char *labelKm = (stepKm < 1.0f) ? TextFormat("%.1fkm", km) : TextFormat("%.0fkm", km);
                 int textW = MeasureText(labelKm, 10);
-                // Centra il testo sulla linea verticale (tranne lo 0km che parte dall'asse)
-                int textX = (km == 0.0f) ? (int)x : (int)(x - textW / 2);
+                int textX = (s == 0) ? (int)x : (int)(x - textW / 2);
                 DrawText(labelKm, textX, (int)(baseY + 4), 10, currentTheme.fgColor);
             }
         }
+
 
         // Bordi principali degli assi
         DrawLineV((Vector2){ startX, topY }, (Vector2){ startX, baseY }, currentTheme.borderColor);
@@ -1259,7 +1268,7 @@ void drawChart(RenderTexture2D target) {
             float x2 = startX + (normX2 * larghezzaUtile);
             float y2 = baseY - (normY2 * altezzaUtile);
 
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(PURPLE,0.72f));
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(isDarkMode?SKYBLUE:MAROON,0.72f));
         }
     
     EndTextureMode();
@@ -1354,12 +1363,8 @@ void drawChartTooltip(void) {
     int iEnd   = idx;
     float minWindowKm = 0.025f;
 
-    while (iStart > 0 && (puntiGps[idx].dist - puntiGps[iStart].dist) < (minWindowKm * 0.5f)) {
-        iStart--;
-    }
-    while (iEnd < numPointRec - 1 && (puntiGps[iEnd].dist - puntiGps[idx].dist) < (minWindowKm * 0.5f)) {
-        iEnd++;
-    }
+    while (iStart > 0 && (puntiGps[idx].dist - puntiGps[iStart].dist) < (minWindowKm * 0.5f)) iStart--;
+    while (iEnd < numPointRec - 1 && (puntiGps[iEnd].dist - puntiGps[idx].dist) < (minWindowKm * 0.5f)) iEnd++;
 
     float deltaDistM = (puntiGps[iEnd].dist - puntiGps[iStart].dist) * 1000.0f;
     float deltaAltM  = puntiGps[iEnd].alt - puntiGps[iStart].alt;
@@ -1369,53 +1374,58 @@ void drawChartTooltip(void) {
     if (pendenza > 1.0f)       slopeColor = RED;
     else if (pendenza < -1.0f) slopeColor = GREEN;
 
+
+
     // Coordinate esatte del punto selezionato sullo schermo
     float alt = (puntiGps[idx].alt < 0.0f) ? 0.0f : puntiGps[idx].alt;
     float vel = (puntiGps[idx].vel < 0.0f) ? 0.0f : puntiGps[idx].vel;
+    float safeMaxAlt = (chartMaxAlt > 0.001f) ? chartMaxAlt : 1.0f;
+    float safeMaxVel = (chartMaxVel > 0.001f) ? chartMaxVel : 1.0f;
 
     float px = plotArea.x + (puntiGps[idx].dist / distMax) * plotArea.width;
-    float pyAlt = (plotArea.y + plotArea.height) - (alt / chartMaxAlt) * plotArea.height;
-    float pyVel = (plotArea.y + plotArea.height) - (vel / chartMaxVel) * plotArea.height;
+    float pyAlt = (plotArea.y + plotArea.height) - (alt / safeMaxAlt) * plotArea.height;
+    float pyVel = (plotArea.y + plotArea.height) - (vel / safeMaxVel) * plotArea.height;
 
-    Color velColor = Fade(PURPLE,0.72f);
-
-    // 1. Linea verticale guida
+    // Linea verticale guida
     DrawLineV((Vector2){ px, plotArea.y }, (Vector2){ px, plotArea.y + plotArea.height }, Fade(currentTheme.fgColor, 0.5f));
-
-    // 2. disegno punti sulle due curve
+    
+    Color velColor = Fade(isDarkMode?SKYBLUE:MAROON,0.72f);
+    
+    // disegno punti sulle due curve
     DrawCircleV((Vector2){ px, pyAlt }, 4.0f, currentTheme.accentColor);
     DrawCircleLinesV((Vector2){ px, pyAlt }, 4.5f, currentTheme.borderColor);
 
     DrawCircleV((Vector2){ px, pyVel }, 4.0f, velColor);
     DrawCircleLinesV((Vector2){ px, pyVel }, 4.5f, currentTheme.borderColor);
 
-    // 3. Testi e dimensioni del box tooltip
-    const char *txtDist  = TextFormat("Dist: %.2f km", puntiGps[idx].dist);
-    const char *txtAlt   = TextFormat("Quota: %.0f m", alt);
-    const char *txtVel   = TextFormat("Vel: %.1f km/h", vel);
-    const char *txtSlope = TextFormat("Pend: %+.1f%%", pendenza);
+    char txtData[32], txtDist[32], txtAlt[32], txtVel[32], txtSlope[32];
+    snprintf(txtData,  sizeof(txtData),  "%s", puntiGps[idx].data);
+    snprintf(txtDist,  sizeof(txtDist),  "Distanza: %.2f km", puntiGps[idx].dist);
+    snprintf(txtAlt,   sizeof(txtAlt),   "Altitudine: %.0f m", alt);
+    snprintf(txtVel,   sizeof(txtVel),   "Velocità: %.1f km/h", vel);
+    snprintf(txtSlope, sizeof(txtSlope), "Pendenza: %+.1f%%", pendenza);
 
     int fontSize = 10;
-    int widths[4] = {
+    int widths[5] = {
+        MeasureText(txtData, fontSize),
         MeasureText(txtDist, fontSize),
         MeasureText(txtAlt, fontSize),
         MeasureText(txtVel, fontSize),
         MeasureText(txtSlope, fontSize)
     };
 
+    // trova testo piu lungo in px...
     int maxW = widths[0];
-    for (int i = 1; i < 4; i++) {
+    for (int i = 1; i < 5; i++) {
         if (widths[i] > maxW) maxW = widths[i];
     }
 
     float boxW = (float)maxW + 14.0f;
-    float boxH = 56.0f;
+    float boxH = 70.0f;
 
     // Posizionamento orizzontale
     float boxX = px + 10.0f;
-    if (boxX + boxW > plotArea.x + plotArea.width) {
-        boxX = px - boxW - 10.0f;
-    }
+    if (boxX + boxW > plotArea.x + plotArea.width) boxX = px - boxW - 10.0f;
 
     // Posizionamento verticale: segue il mouse se è dentro il grafico, altrimenti segue il punto altimetrico
     float refY = mouseInPlot ? mouse.y : pyAlt;
@@ -1430,8 +1440,10 @@ void drawChartTooltip(void) {
     DrawRectangleRoundedLinesEx(tooltipRect, 0.2f, 4, 1.0f, currentTheme.borderColor);
 
     // Disegno etichette
-    DrawText(txtDist,  (int)(boxX + 7), (int)(boxY + 5),  fontSize, currentTheme.fgColor);
-    DrawText(txtAlt,   (int)(boxX + 7), (int)(boxY + 17), fontSize, currentTheme.accentColor);
-    DrawText(txtVel,   (int)(boxX + 7), (int)(boxY + 29), fontSize, velColor);
-    DrawText(txtSlope, (int)(boxX + 7), (int)(boxY + 41), fontSize, slopeColor);
+    DrawText(txtData,  (int)(boxX + 7), (int)(boxY + 5),  fontSize, GRAY);
+    DrawText(txtDist,  (int)(boxX + 7), (int)(boxY + 17),  fontSize, currentTheme.fgColor);
+    DrawText(txtAlt,   (int)(boxX + 7), (int)(boxY + 29), fontSize, currentTheme.accentColor);
+    DrawText(txtVel,   (int)(boxX + 7), (int)(boxY + 41), fontSize, velColor);
+    DrawText(txtSlope, (int)(boxX + 7), (int)(boxY + 53), fontSize, slopeColor);
+
 }
