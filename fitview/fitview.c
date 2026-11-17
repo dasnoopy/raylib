@@ -34,9 +34,9 @@
 const int screenWidth = 1096;
 const int screenHeight = 736;
 
-Rectangle datatRect = { 8,8,340,295};     // top/left
+Rectangle datatRect = { 8,32,340,295};     // top/left
 Rectangle mapRect = { 354,8.0,734,520};  // top/right
-Rectangle filesRect = { 8,343,340,358}; // bottom/left
+Rectangle filesRect = { 8,364,340,337}; // bottom/left
 Rectangle chartRect = {354,534,734,196};  // bottom/right
 
 const int fntSize = 16;
@@ -164,10 +164,11 @@ char fName[MAX_NAME] = "";
 int selectedIndex = 0;
 int rowHeight = 21;
 int visibleRows;
-int maxRows = 17;
+int maxRows = 16;
 int centerRow;
 int scrollOffset = 0;     // primo file visualizzato
 bool isTrackLoaded = false;
+bool btnQuit = false;
 
 // Variabili di stato per gli spinner
 int selectedMonth;
@@ -203,7 +204,7 @@ int main (int argc, char *argv[])
 	 // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "fitview");
-    SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
@@ -313,7 +314,7 @@ while (!WindowShouldClose())
             // aggiorna grafico perche viene disegnato solo quando viene caricato file .fit 
             drawChart(targetChart);
         }
-
+        if (btnQuit || IsKeyPressed(KEY_Q)) break;
         if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
@@ -490,8 +491,8 @@ while (!WindowShouldClose())
             DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
 
-            // DrawText(TextFormat("%s", TOOL_SHORT_NAME), screenWidth-60,8, 10,currentTheme.fgColor); 
-            // DrawText(TextFormat("v%s", TOOL_VERSION),screenWidth - 60,20, 10, currentTheme.gridColor); 
+            DrawText(TextFormat("%s", TOOL_NAME), 34, 14,10,currentTheme.fgColor); 
+            DrawText(TextFormat("v%s", TOOL_VERSION),96,14, 10, currentTheme.borderColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
             DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
@@ -585,16 +586,15 @@ while (!WindowShouldClose())
             //----------------------------------------------------------------
 
             // la ricerca va fatta una sola volta
-            GuiCheckBox((Rectangle){ 10, 314, 20, 20 }, "Filtro ", &filterEnabled);
+            GuiCheckBox((Rectangle){ 10, 336, 20, 20 }, "Filtro ", &filterEnabled);
             if (!filterEnabled) {
                  selectedMonth = currentMonth;
                  selectedYear = currentYear;
                  GuiDisable();
             }
 
-
-            GuiSpinner((Rectangle){ 126, 312, 72, 24 }, "Mese ", &selectedMonth, 0, 12, 0);
-            GuiSpinner((Rectangle){ 242, 312, 104, 24 }, "Anno ", &selectedYear, 2020, 2040, 0);
+            GuiSpinner((Rectangle){ 126, 334, 72, 24 }, "Mese ", &selectedMonth, 0, 12, 0);
+            GuiSpinner((Rectangle){ 242, 334, 104, 24 }, "Anno ", &selectedYear, 2020, 2040, 0);
             GuiEnable();            
 
             // Se un controllo è cambiato, ricalcola gli indici filtrati (istantaneo!)
@@ -677,6 +677,7 @@ while (!WindowShouldClose())
                 DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, currentTheme.accentColor);
                 }
             
+         btnQuit = GuiButton((Rectangle){8,8,20,20}, "#128#");
         EndDrawing();
 	}
 
