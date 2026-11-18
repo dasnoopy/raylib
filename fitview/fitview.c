@@ -7,9 +7,9 @@
 *
 ********************************************************************************************/
 
-#define TOOL_NAME               "FIT file viewer & analyzer"
+#define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.1.3"
+#define TOOL_VERSION            "2.2.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -31,13 +31,13 @@
 #define GARMIN_TIME_OFFSET 631065600
 
 // window size (16:9)
-const int screenWidth = 1096;
+const int screenWidth = 1184; 
 const int screenHeight = 736;
 
 Rectangle datatRect = { 8,32,340,295};     // top/left
-Rectangle mapRect = { 354,8.0,734,520};  // top/right
-Rectangle filesRect = { 8,364,340,337}; // bottom/left
-Rectangle chartRect = {354,534,734,196};  // bottom/right
+Rectangle mapRect = { 354,32.0,822,468};  // top/right
+Rectangle filesRect = { 8,365,340,337}; // bottom/left
+Rectangle chartRect = {354,506,822,196};  // bottom/right
 
 const int fntSize = 16;
 char tempBuffer[64];
@@ -202,7 +202,7 @@ void drawChartTooltip(void);
 int main (int argc, char *argv[])
 {
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED | FLAG_MSAA_4X_HINT); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "fitview");
     SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
     
@@ -466,7 +466,7 @@ while (!WindowShouldClose())
                         for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
                         
                             // punto sulla traccia?
-                            DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, RED);
+                            DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, isDarkMode?BLUE:RED);
                             DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
                             
                         if (showKM) {
@@ -497,10 +497,6 @@ while (!WindowShouldClose())
             DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
 
-            DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
-            DrawText(TextFormat("v%s", TOOL_VERSION),320,14, 10, currentTheme.accentColor); 
-            // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            DrawText(TextFormat("Zoom: %02.f%%", cam.zoom*100),screenWidth - 68, mapRect.height-6,10,BLACK);
 
             // -----------------------------------------------------------------
             // informazioni traccia
@@ -597,8 +593,8 @@ while (!WindowShouldClose())
                  GuiDisable();
             }
 
-            GuiSpinner((Rectangle){ 130, 335, 72, 22 }, "Mese ", &selectedMonth, 0, 12, 0);
-            GuiSpinner((Rectangle){ 244, 335, 104, 22 }, "Anno ", &selectedYear, 2020, 2040, 0);
+            GuiSpinner((Rectangle){ 134, 335, 72, 22 }, "Mese ", &selectedMonth, 0, 12, 0);
+            GuiSpinner((Rectangle){ 252, 335, 96, 22 }, "Anno ", &selectedYear, 2020, 2040, 0);
             GuiEnable();            
 
             // Se un controllo è cambiato, ricalcola gli indici filtrati (istantaneo!)
@@ -614,7 +610,7 @@ while (!WindowShouldClose())
             //  list files filtrati ---
             for (int i = 0; i < filteredCount; i++) {
                 int realIndex = filteredIndices[i];
-                displayNames[i] = GetFileName(allFiles[realIndex].path);
+                displayNames[i] = allFiles[realIndex].path;
             }
 
 
@@ -637,23 +633,32 @@ while (!WindowShouldClose())
                         int fileIndex = scrollOffset + i;
                         if (fileIndex > filteredCount) break;
 
+                        // even/odd row background
+                        if (i % 2) DrawRectangleRec((Rectangle){filesRect.x+1,filesRect.y +(i*rowHeight)+1,filesRect.width-2,rowHeight-1}, Fade(currentTheme.bgColor, 0.32f));
+
                         if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
-                            DrawTextEx(boldFont,TextFormat("%04i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            DrawTextEx(boldFont,TextFormat("%05i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
 
                             // print truncate too long filenames (max. 88 chars)
-                            const char *fileNameTrunc = TextSubtext(displayNames[fileIndex],0,124); 
-                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+44, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                            const char *fileNameTrunc = TextSubtext(GetFileName(displayNames[fileIndex]),0,44); 
+                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+54, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
                         }   
                 //vertical divider between index and filename 
-                DrawLine(filesRect.x+40,filesRect.y,filesRect.x+40,filesRect.y + filesRect.height,currentTheme.gridColor);
+                DrawLine(filesRect.x+48,filesRect.y,filesRect.x+48,filesRect.y + filesRect.height,currentTheme.gridColor);
             
             // -----------------------------------------------------------------
-            //  STATUS BAR
+            //  STATUS BARS
             //------------------------------------------------------------------
-                 char infoText[MAX_NAME + 64];
-                if (filterEnabled) snprintf(infoText, sizeof(infoText), "Filtro attivo: %s %04d, %d files presenti.", mesi[selectedMonth], selectedYear, filteredCount);
-                else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
-                GuiStatusBar((Rectangle){ 8, screenHeight-30, filesRect.width, 24 }, infoText);
+            char infoText[256];
+            if (filterEnabled) snprintf(infoText, sizeof(infoText), "Filtro attivo: %s %04d, %d files presenti.", mesi[selectedMonth], selectedYear, filteredCount);
+            else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
+            GuiStatusBar((Rectangle){ 8, screenHeight-28, filesRect.width, 22 }, infoText);
+
+            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), 40, 14,10,currentTheme.fgColor); 
+            // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
+            snprintf(infoText, sizeof(infoText), "[ Selected file: %s ] [ Map zoom: %02.f%% ]",displayNames[selectedIndex], cam.zoom*100.0f);
+            GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
+
  
             // -----------------------------------------------------------------
             //  MINIMAP
@@ -1120,7 +1125,7 @@ void drawChart(RenderTexture2D target) {
     if (numPointRec < 2) return;
 
     // 1. Margini
-    float margineSinistro = 38.0f;
+    float margineSinistro = 36.0f;
     float margineDestro   = 10.0f;
     float margineAlto     = 12.0f;
     float margineBasso    = 18.0f;
@@ -1269,6 +1274,9 @@ void drawChart(RenderTexture2D target) {
             float y2 = baseY - (normY2 * altezzaUtile);
 
             DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(isDarkMode?SKYBLUE:MAROON,0.72f));
+
+            // linea vert asse Y sul lato dx per chiudere il grafico
+            DrawLineV((Vector2){ startX + larghezzaUtile + 1, topY }, (Vector2){ startX + larghezzaUtile + 1, baseY }, currentTheme.borderColor);
         }
     
     EndTextureMode();
@@ -1298,7 +1306,7 @@ void drawChartTooltip(void) {
     }
 
     // Stessi margini usati in drawChart
-    float margineSinistro = 38.0f;
+    float margineSinistro = 36.0f;
     float margineDestro   = 10.0f;
     float margineAlto     = 12.0f;
     float margineBasso    = 18.0f;
@@ -1373,8 +1381,6 @@ void drawChartTooltip(void) {
     Color slopeColor = currentTheme.fgColor;
     if (pendenza > 1.0f)       slopeColor = RED;
     else if (pendenza < -1.0f) slopeColor = GREEN;
-
-
 
     // Coordinate esatte del punto selezionato sullo schermo
     float alt = (puntiGps[idx].alt < 0.0f) ? 0.0f : puntiGps[idx].alt;
