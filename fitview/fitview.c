@@ -9,14 +9,13 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.3.0"
+#define TOOL_VERSION            "2.3.1"
 
 #include <raylib.h>
 #include <raymath.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
-#include "fit_convert.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -24,6 +23,8 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+// Garmin .FIT conversion
+#include "fit_convert.h"
 #define _CRT_SECURE_NO_WARNINGS
 // Costante per convertire i semicerchi in gradi decimali
 #define SEMICIRCLES_TO_DEGREES (180.0 / 2147483648.0)
@@ -168,7 +169,6 @@ int selectedIndex = 0;
 int rowHeight = 21;
 int visibleRows;
 int maxRows = 16;
-int centerRow;
 int scrollOffset = 0;     // primo file visualizzato
 bool isTrackLoaded = false;
 bool btnQuit = false;
@@ -216,11 +216,9 @@ int main (int argc, char *argv[])
     int endGlyph = 255;
     int glyphCount = endGlyph - startGlyph + 1;
 
-    // Allocachiamo l'array per i codepoints
+    // array per i codepoints
     int *codepoints = (int *)malloc(sizeof(int) * glyphCount);
-    for (int i = 0; i < glyphCount; i++) {
-        codepoints[i] = startGlyph + i;
-    }
+    for (int i = 0; i < glyphCount; i++) codepoints[i] = startGlyph + i;
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
@@ -229,9 +227,8 @@ int main (int argc, char *argv[])
 
     // Caricamento mappa ( creare TIFF con QGIS)
     Texture2D mapTexture;
-    if (FileExists("assets/map.png")) {
-        mapTexture = LoadTexture("assets/map.png");
-    } else {
+    if (FileExists("assets/map.png")) mapTexture = LoadTexture("assets/map.png");
+    else {
         Image img = GenImageChecked(mapRect.width, mapRect.height, 12, 12, WHITE, RAYWHITE);
         mapTexture = LoadTextureFromImage(img);
         UnloadImage(img);
@@ -305,10 +302,10 @@ while (!WindowShouldClose())
 		float deltaTime = GetFrameTime();
         float speed = 150.0f /  cam.zoom;
 
+        // gestione zoom su mappa
         Vector2 thisPos = GetMousePosition();
         Vector2 delta = Vector2Subtract(prevMousePos, thisPos);
         prevMousePos = thisPos;
-
 
         if (IsKeyPressed(KEY_T)) {
             isDarkMode = !isDarkMode;
@@ -713,7 +710,6 @@ while (!WindowShouldClose())
                 selectedIndex = 0;
                 if (filteredCount<maxRows) visibleRows = filteredCount;
                 else visibleRows=maxRows;
-                centerRow = visibleRows / 2;
             }
 
             //  list files filtrati ---
@@ -885,12 +881,6 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     const double minLat = 45.15988611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
     const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
 
-    // const double minLon = 10.426533; // Ovest (Left)
-    // const double maxLon = 11.353342; // Est (Right)
-    // const double minLat = 45.208650; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
-    // const double maxLat = 45.921619; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
-
-
     double normX = (lon - minLon) / (maxLon - minLon);
     double normY = (lat - minLat) /(maxLat - minLat);
 
@@ -899,8 +889,6 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
     pixelPos.y = (float)((1.0 - normY) * tex.height);
     return pixelPos;
 }
-
-
 
 // Funzione di supporto per convertire il timestamp FIT in una stringa leggibile
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size) 
@@ -1098,10 +1086,8 @@ void loadLibrary (void) {
     // Carica tutti i file dalla cartella desiderata
     totalFilesCount = loadFilesRecursive("."); // carica files .fit
     // setta variabile di visualizzazione libreria in base al numero di files presenti...
-        if (totalFilesCount<maxRows) visibleRows = totalFilesCount;
-        else visibleRows=maxRows;
-        centerRow = visibleRows / 2;
-
+    if (totalFilesCount<maxRows) visibleRows = totalFilesCount;
+    else visibleRows=maxRows;
 }
 
 int compareFiles(const void *a, const void *b) {
