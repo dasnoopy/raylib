@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.2.0"
+#define TOOL_VERSION            "2.2.1"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -389,7 +389,7 @@ while (!WindowShouldClose())
                         if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) selectedIndex += 9;
                         if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
                         // -------------------------------------------------------------
-                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
 
                             if (filteredCount > 0 && selectedIndex >= 0 && selectedIndex < filteredCount) {
                                 int realIndex = filteredIndices[selectedIndex];
@@ -487,7 +487,7 @@ while (!WindowShouldClose())
                     Vector2 startPos = puntiPixel[1];
                     Vector2 endPos = puntiPixel[numPointRec-1];
                     DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ startPos.x, startPos.y, 16, 16 },  cityOrigin, 0.0f, GREEN);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ endPos.x, endPos.y, 16, 16 },  cityOrigin, 0.0f, BLUE);
+                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ endPos.x, endPos.y, 16, 16 },  cityOrigin, 0.0f, ORANGE);
                  }
 
                 EndMode2D();
@@ -656,7 +656,7 @@ while (!WindowShouldClose())
 
             DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), 40, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            snprintf(infoText, sizeof(infoText), "[ Selected file: %s ] [ Map zoom: %02.f%% ]",displayNames[selectedIndex], cam.zoom*100.0f);
+            snprintf(infoText, sizeof(infoText), "[ File aperto: %s | Totale record: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
             GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
 
  
@@ -1009,7 +1009,6 @@ int decodeFit(char* fileName) {
    if (convert_return == FIT_CONVERT_END_OF_FILE){
       // output in console some infos related to loaded track
       printf("%s\n",fName );
-      printf("Record totali: %d, record registrati: %d\n",numRecord, numPointRec );
       printf("File converted successfully.\n");
       printf("\n");
    }
@@ -1256,7 +1255,7 @@ void drawChart(RenderTexture2D target) {
         // 2. Disegno linea superiore con spessore 2.0f
         for (int i = 0; i < numPointRec - 1; i++) DrawLineEx(stripPoints[i * 2], stripPoints[(i + 1) * 2], 2.0f, currentTheme.accentColor);
 
-        // disegnao velocità
+        // disegna grafico velocità
         for (int i = 0; i < numPointRec - 1; i++) {
             float vel1 = (puntiGps[i].vel < 0.0f) ? 0.0f : puntiGps[i].vel;
             float vel2 = (puntiGps[i + 1].vel < 0.0f) ? 0.0f : puntiGps[i + 1].vel;
