@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.2.4"
+#define TOOL_VERSION            "2.3.0"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -159,6 +159,9 @@ static int totalFilesCount = 0;
 static int filteredIndices[MAX_FILES];
 static int filteredCount = 0;
 
+static int lastClickedIndex = -1;
+static double lastClickTime = 0.0;
+const double DOUBLE_CLICK_DELAY = 0.28; // 280 ms
 
 char fName[MAX_NAME] = "";
 int selectedIndex = 0;
@@ -371,49 +374,126 @@ while (!WindowShouldClose())
                 topLeft = GetScreenToWorld2D((Vector2){ mapRect.x, mapRect.y }, cam);
                 bottomRight = GetScreenToWorld2D((Vector2){ mapRect.x + mapRect.width, mapRect.y + mapRect.height }, cam);
 
-                //---------------------------------------------------------------------
-                //  file LIbrary management
-                //----------------------------------------------------------------------
+    //----------------------------------------------------------------------
+    //  file LIbrary management
+    //----------------------------------------------------------------------
                 // Scroll con tastiera per spostarsi tra i files (solo se si è con il mouse sulla zona della libreria)
-                 if (CheckCollisionPointRec(thisPos, filesRect)) {
-                    if (filteredCount >= visibleRows) 
-                    {
-                        selectedIndex  = -(int)GetMouseWheelMove() + selectedIndex;  
+                int maxOffset = filteredCount - visibleRows;
+                if (maxOffset < 0) maxOffset = 0;
+                int activatedFileIndex = -1;
 
-                        if (IsKeyPressed(KEY_HOME)) selectedIndex = 0;
-                        if (IsKeyPressed(KEY_END)) selectedIndex = filteredCount -1;
+                // --- 1. INPUT MOUSE (Dentro l'area della lista) ---
+                if (CheckCollisionPointRec(thisPos, filesRect))
+                {
+                    // Scroll libero con la rotellina (sposta la vista senza cambiare selectedIndex)
+                    float wheel = GetMouseWheelMove();
+                    if (wheel != 0.0f) {
+                        scrollOffset -= (int)wheel * 1; // Scorre di 3 righe per scatto (puoi mettere 1 se preferisci)
+                        if (scrollOffset < 0) scrollOffset = 0;
+                        if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+                    }
 
-                        // tasti con il repeat rate attivo -----------------------------
-                        if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime)) selectedIndex++;
-                        if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) selectedIndex--;
-                        if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) selectedIndex += 9;
-                        if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) selectedIndex -= 9;
-                        // -------------------------------------------------------------
-                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
+                    // Click sinistro per selezione e doppio click 
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                        int clickedRow = (int)((thisPos.y - filesRect.y) / rowHeight);
+                        int clickedIndex = scrollOffset + clickedRow;
 
-                            if (filteredCount > 0 && selectedIndex >= 0 && selectedIndex < filteredCount) {
-                                int realIndex = filteredIndices[selectedIndex];
-                                strcpy(fName,allFiles[realIndex].path);
-
-                                // decodifica il file .FIT
-                                decodeFit (fName);
-                                // disegna grafico altimetria
-                                selectedPointIdx = -1;
-                                drawChart(targetChart);
-                                isTrackLoaded = true;
-                                
-                                // Array di supporto per salvare i pixel convertiti
-                                puntiPixel[numPointRec];
-                                for (int i = 0; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
+                        if (clickedRow >= 0 && clickedRow < visibleRows && clickedIndex < filteredCount) {
+                            double now = GetTime();
+                            // Doppio click sullo stesso identico elemento
+                            if (clickedIndex == lastClickedIndex && (now - lastClickTime) <= DOUBLE_CLICK_DELAY)
+                            {
+                                activatedFileIndex = clickedIndex; // Segna il file da aprire
+                                lastClickedIndex = -1;
+                                lastClickTime = 0.0;
+                            } else {
+                                // Click singolo: seleziona soltanto, senza toccare scrollOffset
+                                selectedIndex = clickedIndex;
+                                lastClickedIndex = clickedIndex;
+                                lastClickTime = now;
                             }
                         }
-                            // checks
-                            if (selectedIndex < 0) selectedIndex=0;
-                            if (selectedIndex > filteredCount -1) selectedIndex = filteredCount-1;
                     }
                 }
 
-    // color GuyStyle e setting mese / anno correnti
+                if (filteredCount > 0) {
+                    bool selectionChangedByKey = false;
+                    if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime) && selectedIndex < filteredCount - 1) {
+                        selectedIndex++;
+                        selectionChangedByKey = true;
+                    }
+
+                    if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime) && selectedIndex > 0) {
+                        selectedIndex--;
+                        selectionChangedByKey = true;
+                    }
+
+                    if (UpdateKeyRepeater(&repeater, KEY_PAGE_DOWN, deltaTime)) {
+                        selectedIndex += visibleRows;
+                        if (selectedIndex >= filteredCount) selectedIndex = filteredCount - 1;
+                        selectionChangedByKey = true;
+                    }
+
+                    if (UpdateKeyRepeater(&repeater, KEY_PAGE_UP, deltaTime)) {
+                        selectedIndex -= visibleRows;
+                        if (selectedIndex < 0) selectedIndex = 0;
+                        selectionChangedByKey = true;
+                    }
+
+                    // 5. HOME (Primo file della lista)
+                    if (IsKeyPressed(KEY_HOME)) {
+                        selectedIndex = 0;
+                        selectionChangedByKey = true;
+                    }
+
+                    // 6. FINE (Ultimo file della lista)
+                    if (IsKeyPressed(KEY_END)) {
+                        selectedIndex = filteredCount - 1;
+                        selectionChangedByKey = true;
+                    }
+
+                    // --- ALLINEAMENTO AUTOMATICO DELLO SCROLL ---
+                    // Riporta `selectedIndex` dentro l'area visibile SOLO se l'utente ha premuto un tasto di navigazione
+                    if (selectionChangedByKey)
+                    {
+                        // Se la selezione è finita sopra la prima riga visibile
+                        if (selectedIndex < scrollOffset) scrollOffset = selectedIndex;
+                        // Se la selezione è finita sotto l'ultima riga visibile
+                        else if (selectedIndex >= scrollOffset + visibleRows) scrollOffset = selectedIndex - visibleRows + 1;
+                    }
+
+                    // Controllo di sicurezza finale sui limiti di scrollOffset
+                    int maxOffset = filteredCount - visibleRows;
+                    if (maxOffset < 0) maxOffset = 0;
+                    if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+                    if (scrollOffset < 0) scrollOffset = 0;
+                }
+
+                    if (filteredCount > 0 && selectedIndex >= 0 && selectedIndex < filteredCount) {
+                        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) activatedFileIndex = selectedIndex; // Segna il file attualmente selezionato
+                    }
+
+                    // Esecuzione tasks sia per doppio click che per Invio
+                    if (activatedFileIndex != -1)
+                    {
+                        int realIndex = filteredIndices[selectedIndex];
+                        strcpy(fName,allFiles[realIndex].path);
+
+                        // decodifica il file .FIT
+                        decodeFit (fName);
+                        // disegna grafico altimetria
+                        selectedPointIdx = -1;
+                        drawChart(targetChart);
+                        isTrackLoaded = true;
+                        
+                        // Array di supporto per salvare i pixel convertiti
+                        puntiPixel[numPointRec];
+                        for (int i = 0; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
+                    }
+
+    // -------------------------------------------------------------------------
+    // color GuiStyle widgets
+    //--------------------------------------------------------------------------
         GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.bgColor));
 
         GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme.gridColor));
@@ -432,7 +512,7 @@ while (!WindowShouldClose())
         GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
         GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
 
-        // Salva i valori precedenti per capire se l'utente ha cambiato filtro
+    // Filtro files: variabili  per capire se l'utente ha cambiato filtro..
         bool prevFilter = filterEnabled;
         int prevYear = selectedYear;
         int prevMonth = selectedMonth;
@@ -586,33 +666,29 @@ while (!WindowShouldClose())
             //------------------------------------------------------------------q
             DrawRectangleRec(filesRect,currentTheme.gridBgColor);
             DrawRectangleLinesEx(filesRect,1,currentTheme.gridColor);
+                    
+            for (int i = 0; i < visibleRows; ++i)
+            {
+                int fileIndex = scrollOffset + i;
+                if (fileIndex >= filteredCount) break;
 
-                scrollOffset = selectedIndex - centerRow;
-                if (scrollOffset < 0) scrollOffset = 0;
-                int maxOffset = filteredCount - visibleRows;
-                if (maxOffset < 0) maxOffset = 0;
-                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+                // even/odd row background
+                if (i % 2)
+                    DrawRectangleRec((Rectangle){ filesRect.x + 1, filesRect.y + (i * rowHeight) + 1, filesRect.width - 2, rowHeight - 1 }, Fade(currentTheme.bgColor, 0.50f));
 
-                    for (int i = 0; i < visibleRows; ++i) {
+                if (fileIndex == selectedIndex)
+                    DrawRectangle(filesRect.x + 1, filesRect.y + (i * rowHeight) + 1, filesRect.width - 2, rowHeight - 1, currentTheme.accentColor);
 
-                       // if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight),filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),currentTheme.gridColor);
+                Color textColor = (fileIndex == selectedIndex) ? GetReadableTextColor(currentTheme.accentColor) : currentTheme.fgColor;
 
-                        int fileIndex = scrollOffset + i;
-                        if (fileIndex > filteredCount) break;
+                DrawTextEx(boldFont, TextFormat("%05i", fileIndex + 1), (Vector2){ filesRect.x + 6, filesRect.y + (i * rowHeight) + 3 }, (float)boldFont.baseSize, -1, textColor);
+                const char *fileNameTrunc = TextSubtext(GetFileName(displayNames[fileIndex]), 0, 44);
+                DrawTextEx(textFont, TextFormat("%s", fileNameTrunc), (Vector2){ filesRect.x + 54, filesRect.y + (i * rowHeight) + 2 }, (float)textFont.baseSize, 0, textColor);
+            }   
 
-                        // even/odd row background
-                        if (i % 2) DrawRectangleRec((Rectangle){filesRect.x+1,filesRect.y +(i*rowHeight)+1,filesRect.width-2,rowHeight-1}, Fade(currentTheme.bgColor, 0.50f));
-
-                        if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
-                            DrawTextEx(boldFont,TextFormat("%05i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
-
-                            // print truncate too long filenames (max. 88 chars)
-                            const char *fileNameTrunc = TextSubtext(GetFileName(displayNames[fileIndex]),0,44); 
-                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+54, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
-                        }   
-                //vertical divider between index and filename 
-                DrawLine(filesRect.x+48,filesRect.y,filesRect.x+48,filesRect.y + (rowHeight * maxRows),currentTheme.gridColor);
-                DrawRectangleLinesEx((Rectangle){filesRect.x,filesRect.y,filesRect.width,1 + (rowHeight * maxRows)},1.0f,currentTheme.gridColor);
+            //vertical divider between index and filename 
+            DrawLine(filesRect.x+48,filesRect.y,filesRect.x+48,filesRect.y + (rowHeight * maxRows),currentTheme.gridColor);
+            DrawRectangleLinesEx((Rectangle){filesRect.x,filesRect.y,filesRect.width,1 + (rowHeight * maxRows)},1.0f,currentTheme.gridColor);
 
             // -----------------------------------------------------------------
             // FILTRO x files list
@@ -658,7 +734,7 @@ while (!WindowShouldClose())
             DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
             DrawText(TextFormat("vers. %s", TOOL_VERSION), 290, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            snprintf(infoText, sizeof(infoText), "[ File aperto: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
+            snprintf(infoText, sizeof(infoText), "[ File in uso: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
             GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
 
  
