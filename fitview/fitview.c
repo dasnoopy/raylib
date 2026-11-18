@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.2.1"
+#define TOOL_VERSION            "2.2.4"
 
 #include <raylib.h>
 #include <raymath.h>
@@ -35,8 +35,8 @@ const int screenWidth = 1184;
 const int screenHeight = 736;
 
 Rectangle datatRect = { 8,32,340,295};     // top/left
-Rectangle mapRect = { 354,32.0,822,468};  // top/right
-Rectangle filesRect = { 8,365,340,337}; // bottom/left
+Rectangle mapRect = { 354,8.0,822,492};  // top/right
+Rectangle filesRect = { 8,333,340,369}; // bottom/left
 Rectangle chartRect = {354,506,822,196};  // bottom/right
 
 const int fntSize = 16;
@@ -81,11 +81,11 @@ static const colorTheme lightTheme = {
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){230, 45, 66, 255},
+    .accentColor = (Color){237, 91, 0, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
-    .borderColor = (Color){76, 86, 106, 255},
-    .gridColor = (Color){77, 87, 106, 255},
+    .borderColor = (Color){116, 122, 133, 255},
+    .gridColor = (Color){86, 96, 116, 255},
     .gridBgColor = (Color){61, 68, 83, 255},
 };
 
@@ -465,10 +465,10 @@ while (!WindowShouldClose())
                         // prima disegna traccia e dopo le label : due for separati per evitare glitch grafici
                         for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
                         
-                            // punto sulla traccia?
-                            DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, isDarkMode?BLUE:RED);
-                            DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
-                            
+                        // punto/posizone sulla traccia
+                        DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, isDarkMode?lightTheme.accentColor:darkTheme.accentColor);
+                        DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
+                        
                         if (showKM) {
                         for (int i = 0; i < numPointRec - 1; i+=40) {
                             // disegna label KM : KEY_K
@@ -487,7 +487,7 @@ while (!WindowShouldClose())
                     Vector2 startPos = puntiPixel[1];
                     Vector2 endPos = puntiPixel[numPointRec-1];
                     DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ startPos.x, startPos.y, 16, 16 },  cityOrigin, 0.0f, GREEN);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ endPos.x, endPos.y, 16, 16 },  cityOrigin, 0.0f, ORANGE);
+                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ endPos.x, endPos.y, 16, 16 },  cityOrigin, 0.0f, RED);
                  }
 
                 EndMode2D();
@@ -561,7 +561,7 @@ while (!WindowShouldClose())
                 DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){datatRect.x + 16, (datatRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
+            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){datatRect.x + 28, (datatRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
 
 
             // -----------------------------------------------------------------
@@ -578,23 +578,56 @@ while (!WindowShouldClose())
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
                      // tooltip interattivo in tempo reale
                     drawChartTooltip();
-                } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 240, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
+                } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 256, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
             EndScissorMode();
 
             // -----------------------------------------------------------------
-            // filtro x files list
+            //  file list / library 
+            //------------------------------------------------------------------q
+            DrawRectangleRec(filesRect,currentTheme.gridBgColor);
+            DrawRectangleLinesEx(filesRect,1,currentTheme.gridColor);
+
+                scrollOffset = selectedIndex - centerRow;
+                if (scrollOffset < 0) scrollOffset = 0;
+                int maxOffset = filteredCount - visibleRows;
+                if (maxOffset < 0) maxOffset = 0;
+                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+
+                    for (int i = 0; i < visibleRows; ++i) {
+
+                       // if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight),filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),currentTheme.gridColor);
+
+                        int fileIndex = scrollOffset + i;
+                        if (fileIndex > filteredCount) break;
+
+                        // even/odd row background
+                        if (i % 2) DrawRectangleRec((Rectangle){filesRect.x+1,filesRect.y +(i*rowHeight)+1,filesRect.width-2,rowHeight-1}, Fade(currentTheme.bgColor, 0.50f));
+
+                        if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
+                            DrawTextEx(boldFont,TextFormat("%05i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+
+                            // print truncate too long filenames (max. 88 chars)
+                            const char *fileNameTrunc = TextSubtext(GetFileName(displayNames[fileIndex]),0,44); 
+                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+54, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
+                        }   
+                //vertical divider between index and filename 
+                DrawLine(filesRect.x+48,filesRect.y,filesRect.x+48,filesRect.y + (rowHeight * maxRows),currentTheme.gridColor);
+                DrawRectangleLinesEx((Rectangle){filesRect.x,filesRect.y,filesRect.width,1 + (rowHeight * maxRows)},1.0f,currentTheme.gridColor);
+
+            // -----------------------------------------------------------------
+            // FILTRO x files list
             //----------------------------------------------------------------
 
             // la ricerca va fatta una sola volta
-            GuiCheckBox((Rectangle){ 8, 337, 18, 18 }, "Filtro ", &filterEnabled);
+            GuiCheckBox((Rectangle){ 14, 678, 16, 16 }, "Filtro ", &filterEnabled);
             if (!filterEnabled) {
                  selectedMonth = currentMonth;
                  selectedYear = currentYear;
                  GuiDisable();
             }
 
-            GuiSpinner((Rectangle){ 134, 335, 72, 22 }, "Mese ", &selectedMonth, 0, 12, 0);
-            GuiSpinner((Rectangle){ 252, 335, 96, 22 }, "Anno ", &selectedYear, 2020, 2040, 0);
+            GuiSpinner((Rectangle){ 134, 674, 72, 22 }, "Mese ", &selectedMonth, 0, 12, 0);
+            GuiSpinner((Rectangle){ 246, 674, 96, 22 }, "Anno ", &selectedYear, 2020, 2040, 0);
             GuiEnable();            
 
             // Se un controllo è cambiato, ricalcola gli indici filtrati (istantaneo!)
@@ -615,38 +648,6 @@ while (!WindowShouldClose())
 
 
             // -----------------------------------------------------------------
-            //  file list / library 
-            //------------------------------------------------------------------q
-            DrawRectangleRec(filesRect,currentTheme.gridBgColor);
-            DrawRectangleLinesEx(filesRect,1,currentTheme.gridColor);
-
-                scrollOffset = selectedIndex - centerRow;
-                if (scrollOffset < 0) scrollOffset = 0;
-                int maxOffset = filteredCount - visibleRows;
-                if (maxOffset < 0) maxOffset = 0;
-                if (scrollOffset > maxOffset) scrollOffset = maxOffset;
-
-                    for (int i = 0; i < visibleRows; ++i) {
-
-                        if (i!=0) DrawLine(filesRect.x+1, filesRect.y + (1+i*rowHeight), filesRect.x + filesRect.width-1, filesRect.y +(1+i*rowHeight),currentTheme.gridColor);
-
-                        int fileIndex = scrollOffset + i;
-                        if (fileIndex > filteredCount) break;
-
-                        // even/odd row background
-                        if (i % 2) DrawRectangleRec((Rectangle){filesRect.x+1,filesRect.y +(i*rowHeight)+1,filesRect.width-2,rowHeight-1}, Fade(currentTheme.bgColor, 0.32f));
-
-                        if (fileIndex == selectedIndex) DrawRectangle(filesRect.x+1,filesRect.y +(i*rowHeight) +1 ,filesRect.width-2,rowHeight-1, currentTheme.accentColor);
-                            DrawTextEx(boldFont,TextFormat("%05i",fileIndex + 1),(Vector2){filesRect.x + 6, filesRect.y +(i*rowHeight)+3},(float)boldFont.baseSize,-1,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
-
-                            // print truncate too long filenames (max. 88 chars)
-                            const char *fileNameTrunc = TextSubtext(GetFileName(displayNames[fileIndex]),0,44); 
-                            DrawTextEx(textFont, TextFormat("%s",fileNameTrunc),(Vector2){filesRect.x+54, filesRect.y +(i*rowHeight)+2},(float)textFont.baseSize,0,(fileIndex == selectedIndex)?GetReadableTextColor(currentTheme.accentColor):currentTheme.fgColor);
-                        }   
-                //vertical divider between index and filename 
-                DrawLine(filesRect.x+48,filesRect.y,filesRect.x+48,filesRect.y + filesRect.height,currentTheme.gridColor);
-            
-            // -----------------------------------------------------------------
             //  STATUS BARS
             //------------------------------------------------------------------
             char infoText[256];
@@ -654,9 +655,10 @@ while (!WindowShouldClose())
             else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
             GuiStatusBar((Rectangle){ 8, screenHeight-28, filesRect.width, 22 }, infoText);
 
-            DrawText(TextFormat("%s v%s", TOOL_NAME, TOOL_VERSION), 40, 14,10,currentTheme.fgColor); 
+            DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
+            DrawText(TextFormat("vers. %s", TOOL_VERSION), 290, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            snprintf(infoText, sizeof(infoText), "[ File aperto: %s | Totale record: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
+            snprintf(infoText, sizeof(infoText), "[ File aperto: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
             GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
 
  
@@ -1272,7 +1274,7 @@ void drawChart(RenderTexture2D target) {
             float x2 = startX + (normX2 * larghezzaUtile);
             float y2 = baseY - (normY2 * altezzaUtile);
 
-            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, Fade(isDarkMode?SKYBLUE:MAROON,0.72f));
+            DrawLineEx((Vector2){ x1, y1 }, (Vector2){ x2, y2 }, 2.0f, isDarkMode?Fade(lightTheme.accentColor, 0.82f):Fade(darkTheme.accentColor, 0.82f));
 
             // linea vert asse Y sul lato dx per chiudere il grafico
             DrawLineV((Vector2){ startX + larghezzaUtile + 1, topY }, (Vector2){ startX + larghezzaUtile + 1, baseY }, currentTheme.borderColor);
