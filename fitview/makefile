@@ -1,31 +1,51 @@
-CC=gcc
-CFLAGS=-I"." -I"include/" 
+CC      := gcc
+TARGET  := fitview
+BUILD   := build
 
-# FIT_USE_STDINT_H can also be defined in fit_config.h
+# Flag di compilazione: standard C99, warning attivi, ottimizzazione e percorsi header
+CFLAGS  := -std=c99 -Wall -Wextra -O2 -I. -Iinclude
+
+# Flag del linker per Arch Linux (raylib + librerie di sistema)
+LDFLAGS := -lraylib -lGL -lm -lpthread -ldl -lrt
+
 ifneq ($(OS),Windows_NT)
-	CFLAGS+=-DFIT_USE_STDINT_H
+	CFLAGS += -DFIT_USE_STDINT_H
 endif
 
-fitview: fitview.o fit.o fit_convert.o fit_crc.o fit_product.o
-	$(CC) $(CFLAGS) fitview.o fit.o fit_convert.o fit_crc.o fit_product.o -o fitview -lm -lraylib 
+# Lista dei file sorgente
+SRCS := fitview.c \
+        include/fit.c \
+        include/fit_convert.c \
+        include/fit_crc.c \
+        include/fit_product.c
 
-fitview.o: fitview.c
-	$(CC) $(CFLAGS) -c fitview.c -o fitview.o
+# Trasforma automaticamente i percorsi .c in build/.../*.o
+OBJS := $(SRCS:%.c=$(BUILD)/%.o)
 
-fit.o: include/fit.c include/fit_config.h include/fit_include.h
-	$(CC) $(CFLAGS) -c include/fit.c -o fit.o
+# File di dipendenza (.d) per ricompilare se modifichi un file .h
+DEPS := $(OBJS:.o=.d)
 
-fit_convert.o: include/fit_convert.c include/fit_config.h include/fit_include.h
-	$(CC) $(CFLAGS) -c include/fit_convert.c -o fit_convert.o
+# Regola principale
+all: $(TARGET)
 
-fit_crc.o: include/fit_crc.c include/fit_config.h include/fit_include.h
-	$(CC) $(CFLAGS) -c include/fit_crc.c -o fit_crc.o
+# Linking finale dell'eseguibile
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
-fit_product.o: include/fit_product.c include/fit_config.h include/fit_include.h
-	$(CC) $(CFLAGS) -c include/fit_product.c -o fit_product.o
+# Regola generica per compilare ogni file .c nel rispettivo .o dentro build/
+$(BUILD)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+# Include le dipendenze generate automaticamente
+-include $(DEPS)
+
+# Comandi utili
+run: $(TARGET)
+	./$(TARGET)
 
 clean:
-	rm -f *.o
+	rm -rf $(BUILD) $(TARGET)
 
-# rm -f fitview *.o
+.PHONY: all run clean
 

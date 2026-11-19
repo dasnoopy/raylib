@@ -9,11 +9,11 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.3.1"
+#define TOOL_VERSION            "2.3.4"
 
 #include <raylib.h>
 #include <raymath.h>
-#include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -129,8 +129,8 @@ typedef struct {
     double altMax;
 } trackData;
 
-size_t numRecord;
-size_t numPointRec;
+int numRecord;
+int numPointRec;
 Vector2 puntiPixel[32768]; // todo : convert to diynamic
 gpsPoints puntiGps[32768]; // see above
 trackData infoTraccia;
@@ -142,7 +142,7 @@ static int selectedPointIdx = -1;
 
 // library & files management
 #define MAX_FILES 2048
-#define MAX_NAME 1024
+#define MAX_NAME 512
 #define FILTER_EXT      ".fit"
 
 // Struttura per memorizzare i metadati di ogni file senza rileggere il disco
@@ -202,7 +202,7 @@ void ApplyTheme(colorTheme *currentTheme, bool darkMode);
 Color GetReadableTextColor(Color bgColor);
 void drawChartTooltip(void);
 
-int main (int argc, char *argv[])
+int main (void)
 {
 	 // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
@@ -484,7 +484,6 @@ while (!WindowShouldClose())
                         isTrackLoaded = true;
                         
                         // Array di supporto per salvare i pixel convertiti
-                        puntiPixel[numPointRec];
                         for (int i = 0; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
                     }
 
@@ -722,7 +721,7 @@ while (!WindowShouldClose())
             // -----------------------------------------------------------------
             //  STATUS BARS
             //------------------------------------------------------------------
-            char infoText[256];
+            char infoText[1024];
             if (filterEnabled) snprintf(infoText, sizeof(infoText), "Filtro attivo: %s %04d, %d files presenti.", mesi[selectedMonth], selectedYear, filteredCount);
             else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
             GuiStatusBar((Rectangle){ 8, screenHeight-28, filesRect.width, 22 }, infoText);
@@ -877,9 +876,10 @@ Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
 
     // Bounding box geografico (WGS84 / EPSG:4326)
     const double minLon = 10.46546111; // Ovest (Left)
-    const double maxLon = 11.36574722; // Est (Right)
-    const double minLat = 45.15988611; // Sud (Bottom)// se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.1571xx >> 45.1591xx
-    const double maxLat = 45.91895000; // Nord (Top) // se la traccia e' un pò sfalsata aumenta di poco questo valore tipo 45.9179xx >> 45.9189xx
+    const double maxLon = 11.36674722; // Est (Right)
+    const double minLat = 45.15988611; // Sud (Bottom)
+    const double maxLat = 45.91895000; // Nord (Top) 
+
 
     double normX = (lon - minLon) / (maxLon - minLon);
     double normY = (lat - minLat) /(maxLat - minLat);
@@ -912,7 +912,6 @@ int decodeFit(char* fileName) {
    FIT_UINT8 buf[8];
    FIT_CONVERT_RETURN convert_return = FIT_CONVERT_CONTINUE;
    FIT_UINT32 buf_size;
-   FIT_UINT32 mesg_index = 0;
    #if defined(FIT_CONVERT_MULTI_THREAD)
       FIT_CONVERT_STATE state;
    #endif
@@ -930,12 +929,11 @@ int decodeFit(char* fileName) {
    }
     numRecord = 0;
     numPointRec = 0;
-    char data_ora[64];
-    double lat;
-    double lon;
-    double alt;
-    double dist;
-    double vel;
+    double lat = 0;
+    double lon = 0;
+    double alt = 0 ;
+    double dist = 0;
+    double vel = 0;
 
     while(!feof(file) && (convert_return == FIT_CONVERT_CONTINUE))
     {
@@ -1028,8 +1026,8 @@ int decodeFit(char* fileName) {
                             if (session->total_ascent != FIT_UINT16_INVALID) infoTraccia.altPos = session->total_ascent;
                             if (session->total_descent != FIT_UINT16_INVALID) infoTraccia.altNeg =session->total_descent;
                             if (session->total_calories != FIT_UINT16_INVALID) infoTraccia.calorie = session->total_calories;
-                            if (session->avg_temperature != FIT_UINT16_INVALID) infoTraccia.avgTemp = session->avg_temperature;
-                            if (session->max_temperature != FIT_UINT16_INVALID) infoTraccia.maxTemp = session->max_temperature;
+                            if (session->avg_temperature != FIT_SINT8_INVALID) infoTraccia.avgTemp = session->avg_temperature;
+                            if (session->max_temperature != FIT_SINT8_INVALID) infoTraccia.maxTemp = session->max_temperature;
                             if (session->avg_altitude!= FIT_UINT16_INVALID) infoTraccia.altAvg = ((double)session->avg_altitude/ 5.0) - 500.0;
                             if (session->max_altitude!= FIT_UINT16_INVALID) infoTraccia.altMax = ((double)session->max_altitude/ 5.0) - 500.0;
                        break;
@@ -1099,10 +1097,10 @@ int compareFiles(const void *a, const void *b) {
     const char *filename_b = GetFileName(path_b);
     
     // Confronto case sensitive...A <> a
-    //return strcmp(filename_a, filename_b);
+    // return strcmp(filename_a, filename_b);
     
     // Confronto case insensitive A = a
-    return strcasecmp(filename_a, filename_b);
+    return strcasecmp(filename_a, filename_b); //strcasecmp non esiste in C99
 }
 
 int compareFilesByModTime(const void *a, const void *b) {
@@ -1403,7 +1401,7 @@ void drawChartTooltip(void) {
         }
 
         int idx = left;
-        if (idx > 0 && fabsf(puntiGps[idx - 1].dist - targetDist) < fabsf(puntiGps[idx].dist - targetDist)) {
+        if (idx > 0 && fabs(puntiGps[idx - 1].dist - targetDist) < fabs(puntiGps[idx].dist - targetDist)) {
             idx = idx - 1;
         }
         selectedPointIdx = idx;
