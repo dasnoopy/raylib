@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.3.0"
+#define TOOL_VERSION            "0.4.1"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -31,7 +31,7 @@
 const int screenWidth = 1184; 
 const int screenHeight = 736;
 const int fntSize = 16;
-bool isDarkMode = true;
+bool isDarkMode = false;
 char tempBuffer[64]= { 0 };
 bool btnQuit = false;
 
@@ -39,7 +39,6 @@ Rectangle statusBarRect = { 8,32,340,295};     // top/left
 Rectangle listRepoRect = { 354,8.0,822,492};  // top/right
 Rectangle infoRepoRect = { 8,333,340,369}; // bottom/left
 Rectangle commitsRect = {354,506,822,196};  // bottom/right
-
 
 #define REPOS_LIST_FILE  "repos.txt"
 #define REPOS_STATE_FILE "repos_state.txt"
@@ -53,8 +52,8 @@ Rectangle commitsRect = {354,506,822,196};  // bottom/right
 #define FETCH_DEPTH     10
 
 typedef struct {
-    Color accentColorFg;
-    Color accentColorBg;
+    Color accentColorText;
+    Color accentColor;
     Color fgColor;
     Color bgColor;
     Color borderColor;
@@ -63,8 +62,8 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColorFg = (Color){249, 249, 252, 255}, 
-    .accentColorBg = (Color){53, 132, 228, 255}, 
+    .accentColorText = (Color){249, 249, 252, 255}, 
+    .accentColor = (Color){53, 132, 228, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -73,8 +72,8 @@ static const colorTheme lightTheme = {
 };
 
 static const colorTheme darkTheme = {
-    .accentColorFg = (Color){249, 249, 252, 255}, 
-    .accentColorBg = (Color){190, 33, 55, 255},
+    .accentColorText = (Color){249, 249, 252, 255}, 
+    .accentColor = (Color){190, 33, 55, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -695,8 +694,7 @@ int main(void) {
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 36,codepoints, glyphCount); // all other text
-    Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
+    Font messageFont = LoadFontEx("fonts/DINPro-Regular.otf", 16,codepoints, glyphCount); // all other text
 
     //mkdir(CACHE_DIR, 0755);
     //if(!DirectoryExists(CACHE_DIR)) MakeDirectory(CACHE_DIR);
@@ -720,6 +718,7 @@ int main(void) {
     GuiSetStyle(DEFAULT, TEXT_SPACING, 2);
     GuiSetStyle(SCROLLBAR,ARROWS_VISIBLE,0); 
     GuiSetStyle(SCROLLBAR,SCROLL_SLIDER_PADDING,0);
+    GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL,1);
 
     // set FPS e fai riapparire finestra dopo caricamento iniziale
     SetTargetFPS(60);
@@ -746,6 +745,11 @@ bool running = atomic_load(&state.is_running);
 
 
     if (btnQuit || IsKeyPressed(KEY_Q)) break;
+    if (IsKeyPressed(KEY_T)) {
+            isDarkMode = !isDarkMode;
+            // Applica tema colori
+            ApplyTheme(&currentTheme, isDarkMode);
+        }
     
     // -------------------------------------------------------------------------
     // color GuiStyle widgets
@@ -758,7 +762,7 @@ bool running = atomic_load(&state.is_running);
 
     GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.gridColor));
     GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));
-    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColorFg));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColor));
 
     GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, ColorToInt(currentTheme.gridColor));
     GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   ColorToInt(currentTheme.gridBgColor));
@@ -777,66 +781,75 @@ BeginDrawing();
     
     // close button
     btnQuit = GuiButton((Rectangle){8,8,20,20}, "#128#");
+    DrawTextEx(boldFont, TextFormat("%s\tversione %s", TOOL_NAME, TOOL_VERSION), (Vector2){36, 10},(float)boldFont.baseSize,-1,currentTheme.fgColor); 
 
     // --- TOP BAR ---
-    
     if (running) GuiDisable();
-        if (GuiButton((Rectangle){ 65, 10, 145, 30 }, "#211#Aggiorna tutto")) {
+        if (GuiButton((Rectangle){ 128, winH-64, 120, 28 }, "#77#Verifica tutti")) {
         start_check(&state, -1);
         commit_scroll = (Vector2){ 0, 0 };
     }
     if (selected_repo < 0) GuiDisable();
     
-    if (GuiButton((Rectangle){ 270, 10, 120, 30 }, "#143#Elimina")) {
-        remove_repository(&state, &selected_repo);
-        commit_scroll = (Vector2){ 0, 0 };
-    }
+    // if (GuiButton((Rectangle){ 270, 10, 120, 30 }, "#143#Elimina")) {
+    //     remove_repository(&state, &selected_repo);
+    //     commit_scroll = (Vector2){ 0, 0 };
+    // }
 
     if (!running) GuiEnable();
 
     float inputWidth = (float)winW - 150.0f;
     if (inputWidth < 200.0f) inputWidth = 200.0f;
     
-    bool submit_url = false;
-    if (GuiTextBox((Rectangle){ 15, 50, inputWidth, 30 }, url_input, MAX_URL_LEN, url_edit_mode)) {
-        url_edit_mode = !url_edit_mode;
-        if (!url_edit_mode && IsKeyPressed(KEY_ENTER)) {
-            submit_url = true;
-        }
-    }
+    // bool submit_url = false;
+    // if (GuiTextBox((Rectangle){ 15, 50, inputWidth, 30 }, url_input, MAX_URL_LEN, url_edit_mode)) {
+    //     url_edit_mode = !url_edit_mode;
+    //     if (!url_edit_mode && IsKeyPressed(KEY_ENTER)) {
+    //         submit_url = true;
+    //     }
+    // }
         
-    if (GuiButton((Rectangle){ 15 + inputWidth + 10, 50, 110, 30 }, "#112#Aggiungi") || submit_url) {
-        if (add_repository(&state, url_input, &selected_repo)) {
-            url_input[0] = '\0';
-            url_edit_mode = false;
-            commit_scroll = (Vector2){ 0, 0 };
-            start_check(&state, selected_repo);
-        }
-    }
+    // if (GuiButton((Rectangle){ 15 + inputWidth + 10, 50, 110, 30 }, "#112#Aggiungi") || submit_url) {
+    //     if (add_repository(&state, url_input, &selected_repo)) {
+    //         url_input[0] = '\0';
+    //         url_edit_mode = false;
+    //         commit_scroll = (Vector2){ 0, 0 };
+    //         start_check(&state, selected_repo);
+    //     }
+    // }
     GuiEnable();
 
+//
+//  STATUS BAR Messages
+//
+
+    char infoText[1024];
     if (running) {
         int done = atomic_load(&state.completed_count);
-        DrawText(TextFormat("Verifica in corso: %d / %d repo...", done, state.total_to_check), 350, 17, 10, DARKBLUE);
+        snprintf(infoText, sizeof(infoText), "Verifica repository in corso: %d / %d repo...", done, state.total_to_check);
         // Draw spinner while checking...
         float angle = (float)GetTime() * 360.0f;
-        DrawRing((Vector2){ (float)winW - 30, 25 }, 8, 12, angle, angle + 270, 16, DARKBLUE);
+        DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 270, 14, currentTheme.accentColor);
     } else {
-        if (state.last_check_time[0] != '\0') DrawText(TextFormat("Verificati %zu repo  |  Ultimo aggiornamento: %s", state.count, state.last_check_time), 350, 17, 10, DARKGRAY);
-        else DrawText(TextFormat("Monitorati %zu repository (%s) | Ultimo aggiornamento: %s", state.count, REPOS_LIST_FILE, tempBuffer), 350, 17, 10, DARKGRAY);
+        if (state.last_check_time[0] != '\0') 
+            snprintf(infoText,sizeof(infoText),"Verifica del/dei repository completata. Ultimo aggiornamento: %s", state.last_check_time);
+        else 
+        snprintf(infoText,sizeof(infoText),"In attesa di verifica %zu repository (%s). Ultimo aggiornamento: %s", state.count, REPOS_LIST_FILE, tempBuffer);
     }
+
+    GuiStatusBar((Rectangle){ 8, winH-28, winW, 22 }, infoText);
 
 // posizionamento pannelli centrali
     float topOffset = 36.0f; // posizione Y pannelli centrali
     float leftWidth = screenWidth / 3.0f; // divisione  tra pannelli sx e dx
 
 // --- PANNELLO SINISTRO: LISTA REPOSITORY ---
-    Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - topOffset - 15.0f };
+    Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - (topOffset * 3) };
     float itemHeight = 28.0f; // altezza singola "voce" della lista repo
     Rectangle leftContentRect = { 0, 0, leftWidth - 16, (float)state.count * itemHeight };
     Rectangle leftView = { 0 };
 
-    GuiScrollPanel(leftPanelBounds, "Lista repository", leftContentRect, &repo_scroll, &leftView);
+    GuiScrollPanel(leftPanelBounds, NULL, leftContentRect, &repo_scroll, &leftView);
     BeginScissorMode((int)leftView.x, (int)leftView.y, (int)leftView.width, (int)leftView.height);
     
     // lista dei repository
@@ -853,7 +866,7 @@ BeginDrawing();
             if (running || !mouseInView) GuiDisable();
             
             // quando si preme singolo bottone check (uno per repo)
-            if (GuiButton(updateBtnRect, "#211#")) {
+            if (GuiButton(updateBtnRect, "#77#")) {
                 clickedSingleBtn = true;
                 selected_repo = (int)i;
                 commit_scroll = (Vector2){ 0, 0 };
@@ -869,17 +882,21 @@ BeginDrawing();
             commit_scroll = (Vector2){ 0, 0 };
         }
 
-        Color bg = isSelected ? currentTheme.accentColorBg : currentTheme.gridBgColor;
+        Color badgeColor = LIGHTGRAY;
+        Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
+        Color bg = isSelected ? currentTheme.accentColor : (i%2)?currentTheme.gridBgColor:currentTheme.bgColor;
+
+        // "selezione" reposito
         DrawRectangleRec(rowRect, bg);
-        DrawRectangleLinesEx(rowRect, 0.0f, isSelected ? BLUE : LIGHTGRAY);
+
         if (running || !mouseInView) GuiDisable();
         
         //
-        GuiButton(updateBtnRect, "#211#");
+        GuiButton(updateBtnRect, "#77#");
 
         GuiEnable();
         
-        Color badgeColor = LIGHTGRAY;
+
         if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
         else if (state.repos[i].error) badgeColor = RED;
         else if (state.repos[i].is_new_repo) badgeColor = BLUE;
@@ -889,7 +906,7 @@ BeginDrawing();
         DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
         char buf[MAX_URL_LEN + 64];
         const char *shortName = truncate_url(state.repos[i].url,buf,58);
-        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 26, (int)rowRect.y + 6},(float)textFont.baseSize,-1, currentTheme.accentColorFg);
+        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 26, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
     
     } // fine del for (operazioni per tutte le voci della lista)
     EndScissorMode();
@@ -909,17 +926,17 @@ BeginDrawing();
         open_url_in_browser(sel->url);
     }
 
-    DrawText(sel->url, (int)rightX + 15, (int)topOffset + 20, 16, DARKBLUE);
+    DrawText(sel->url, (int)rightX + 15, (int)topOffset + 20, 16, currentTheme.accentColorText);
 
     if (isRepoChecking) {
         DrawText("Stato: Verifica in corso sul server remoto...", (int)rightX + 15, (int)topOffset + 52, 16, ORANGE);
     } else if (sel->error) {
         DrawText(TextFormat("Errore: %s", sel->error_msg), (int)rightX + 15, (int)topOffset + 52, 16, RED);
     } else if (sel->current_hash[0] == '\0') {
-        DrawText("In attesa di verifica. Premi l'icona di aggiornamento o 'Aggiorna tutto'.", (int)rightX + 15, (int)topOffset + 52, 16, DARKGRAY);
+        DrawText("In attesa di verifica. Premi l'icona di aggiornamento o 'Aggiorna tutto'.", (int)rightX + 15, (int)topOffset + 52, 16, currentTheme.fgColor);
     } else {
         const char *statusStr = sel->is_new_repo ? "Nuovo repo (ultimi 10 commit)" : (sel->has_updates ? TextFormat("Repo aggiornato (%d nuovi commit)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (ultimi %d commit)", FETCH_DEPTH));
-        Color statusCol = sel->has_updates ? DARKGREEN : DARKGRAY;
+        Color statusCol = sel->has_updates ? DARKGREEN : currentTheme.fgColor;
         DrawText(TextFormat("Branch: %s   |   Hash attuale: %.12s", sel->branch, sel->current_hash), (int)rightX + 15, (int)topOffset + 47, 15, BLACK);
         DrawText(statusStr, (int)rightX + 15, (int)topOffset + 69, 16, statusCol);
     }
@@ -930,7 +947,7 @@ BeginDrawing();
     int displayCount = isRepoChecking ? 0 : sel->new_commits_count;
     Rectangle commitsContent = { 0, 0, rightWidth - 16, (float)displayCount * commitRowH };
     Rectangle commitsView = { 0 };
-    GuiScrollPanel(commitsBounds, "Commit rilevati", commitsContent, &commit_scroll, &commitsView);
+    GuiScrollPanel(commitsBounds, "acnchio devo sparire Commit rilevati", commitsContent, &commit_scroll, &commitsView);
     BeginScissorMode((int)commitsView.x, (int)commitsView.y, (int)commitsView.width, (int)commitsView.height);
     if (!isRepoChecking && displayCount == 0 && !sel->error) {
         DrawText("Nessun commit caricato.", (int)commitsView.x + 15, (int)commitsView.y + 15, 16, GRAY);
@@ -964,7 +981,7 @@ BeginDrawing();
             GuiEnable();
         }
         // Riga 1: Hash, Data/Ora e Autore
-        DrawText(TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author), (int)cRect.x + 10, (int)cRect.y + 6, 14, DARKBLUE);
+        DrawText(TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author), (int)cRect.x + 10, (int)cRect.y + 6, 14, currentTheme.accentColorText);
             // Riga 2: Messaggio del commit
         DrawText(sel->new_commits[c].message, (int)cRect.x + 10, (int)cRect.y + 26, 15, BLACK);
         }
@@ -986,8 +1003,7 @@ BeginDrawing();
 
     UnloadFont(boldFont);
     UnloadFont(textFont);
-    UnloadFont(titleFont);
-    UnloadFont(subTitleFont);
+    UnloadFont(messageFont);
 
     CloseWindow();
     git_libgit2_shutdown();
