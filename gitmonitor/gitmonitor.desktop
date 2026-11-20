@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=gitmonitor
+GenericName=gitmonitor
+Type=Application
+Version=1.0
+Comment=A simple GIT commit monitoring app
+Path=/home/andrea/Projects/raylib/gitmonitor
+Exec=/home/andrea/Projects/raylib/gitmonitor/gitmonitor
+Icon=/home/andrea/Projects/raylib/gitmonitor/gitmonitor.svg
+Terminal=false
+StartupNotify=false
+X-Desktop-File-Install-Version=0.28
+

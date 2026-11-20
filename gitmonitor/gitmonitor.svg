@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   width="800px"
+   height="800px"
+   viewBox="0 0 256 256"
+   preserveAspectRatio="xMinYMin meet"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="gitmonitor.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1"
+     inkscape:cx="400.5"
+     inkscape:cy="160"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1"
+     showgrid="false" />
+  <path
+     d="M 251.172,116.594 139.4,4.828 c -6.433,-6.437 -16.873,-6.437 -23.314,0 L 81.47,39.442 4.83,116.077 c -6.44,6.443 -6.44,16.884 0,23.322 l 111.774,111.768 c 6.435,6.438 16.873,6.438 23.316,0 L 251.171,139.918 c 6.438,-6.44 6.438,-16.887 0,-23.324"
+     fill="#de4c36"
+     id="path1-5"
+     sodipodi:nodetypes="cccccccccc"
+     style="fill:#f9f9f9" />
+  <path
+     d="M251.172 116.594L139.4 4.828c-6.433-6.437-16.873-6.437-23.314 0l-23.21 23.21 29.443 29.443c6.842-2.312 14.688-.761 20.142 4.693 5.48 5.489 7.02 13.402 4.652 20.266l28.375 28.376c6.865-2.365 14.786-.835 20.269 4.657 7.663 7.66 7.663 20.075 0 27.74-7.665 7.666-20.08 7.666-27.749 0-5.764-5.77-7.188-14.235-4.27-21.336l-26.462-26.462-.003 69.637a19.82 19.82 0 0 1 5.188 3.71c7.663 7.66 7.663 20.076 0 27.747-7.665 7.662-20.086 7.662-27.74 0-7.663-7.671-7.663-20.086 0-27.746a19.654 19.654 0 0 1 6.421-4.281V94.196a19.378 19.378 0 0 1-6.421-4.281c-5.806-5.798-7.202-14.317-4.227-21.446L81.47 39.442l-76.64 76.635c-6.44 6.443-6.44 16.884 0 23.322l111.774 111.768c6.435 6.438 16.873 6.438 23.316 0l111.251-111.249c6.438-6.44 6.438-16.887 0-23.324"
+     fill="#DE4C36"
+     id="path1" />
+  <g
+     fill="#37474f"
+     id="g5"
+     transform="matrix(3.59444,0,0,3.59444,41.73344,76.98468)"
+     style="fill:#24221c">
+    <circle
+       cx="33"
+       cy="16"
+       r="6"
+       id="circle1"
+       style="fill:#24221c" />
+    <circle
+       cx="15"
+       cy="16"
+       r="6"
+       id="circle2"
+       style="fill:#24221c" />
+    <path
+       d="M 46.7,25 31.4,28 H 16.7 L 1.4,25 5.7,17.1 C 6.8,15.2 8.8,14 11,14 h 26.2 c 2.2,0 4.2,1.2 5.3,3.1 z"
+       id="path2"
+       style="fill:#24221c" />
+    <circle
+       cx="38"
+       cy="30"
+       r="10"
+       id="circle3"
+       style="fill:#24221c" />
+    <circle
+       cx="10"
+       cy="30"
+       r="10"
+       id="circle4"
+       style="fill:#24221c" />
+    <circle
+       cx="24"
+       cy="28"
+       r="5"
+       id="circle5"
+       style="fill:#24221c" />
+  </g>
+  <circle
+     fill="#546e7a"
+     cx="127.99999"
+     cy="177.629"
+     r="7.18888"
+     id="circle6"
+     style="stroke-width:3.59444" />
+  <g
+     fill="#aa00ff"
+     id="g8"
+     transform="matrix(3.59444,0,0,3.59444,41.73344,76.98468)"
+     style="fill:#80b3ff">
+    <circle
+       cx="38"
+       cy="30"
+       r="7"
+       id="circle7"
+       style="fill:#80b3ff" />
+    <circle
+       cx="10"
+       cy="30"
+       r="7"
+       id="circle8"
+       style="fill:#80b3ff" />
+  </g>
+  <g
+     fill="#ce93d8"
+     id="g9"
+     transform="matrix(3.59444,0,0,3.59444,41.73344,76.98468)"
+     style="fill:#0044aa">
+    <path
+       d="M 41.7,27.7 C 40.7,26.6 39.4,26 38,26 c -1.4,0 -2.8,0.6 -3.7,1.7 -0.4,0.4 -0.3,1 0.1,1.4 0.4,0.4 1,0.3 1.4,-0.1 1.2,-1.3 3.3,-1.3 4.5,0 0.2,0.2 0.5,0.3 0.7,0.3 0.2,0 0.5,-0.1 0.7,-0.3 0.4,-0.3 0.4,-0.9 0,-1.3 z"
+       id="path8"
+       style="fill:#0044aa" />
+    <path
+       d="m 10,26 c -1.4,0 -2.8,0.6 -3.7,1.7 -0.4,0.4 -0.3,1 0.1,1.4 0.4,0.4 1,0.3 1.4,-0.1 1.2,-1.3 3.3,-1.3 4.5,0 0.2,0.2 0.5,0.3 0.7,0.3 0.2,0 0.5,-0.1 0.7,-0.3 0.4,-0.4 0.4,-1 0.1,-1.4 -1,-1 -2.4,-1.6 -3.8,-1.6 z"
+       id="path9"
+       style="fill:#0044aa" />
+  </g>
+</svg>

@@ -1,9 +1,9 @@
 https://github.com/wingedpanther/cleanmytv.git 48f5989993a520d019ae8b3f0d0f3323c39309b9
 https://github.com/mierak/rmpc.git 7e4e737a60a9b3794ea79df069f48d0b8fd96a03
-https://github.com/ztrahmet/rounded-window-corners.git 8e278b118ec9f5d8bc9d1e2c5ea8c18782c12909
-https://github.com/alainm23/planify.git 5355ef58edafa52df749a83294bebfde77e13a6d
+https://github.com/ztrahmet/rounded-window-corners.git f26280d33026ad1fe50000480b14e86239c47528
+https://github.com/alainm23/planify.git a7828e4ea7c1ea5acacd45f1d99f088f2885cd19
 https://github.com/amit9838/mousam.git 1afbc048c39dcac89b47891b97e47895343861a6
-https://codeberg.org/ckruse/Gitte.git b8465da357899aa8e411b12fd931d2cd56c14fd8
+https://codeberg.org/ckruse/Gitte.git e221d32b34fdbae992fc19f813beb00d72b52da2
 https://gitlab.gnome.org/GNOME/meld.git c2a57c4aca96c879e6f1a0b9d49250c58b77ede2
 https://github.com/tanaybhomia/Whisp.git c8f05d1177dbf3b3f6a683ee935a6d38c2dd48ca
 https://github.com/pdfarranger/pdfarranger.git ee35719b6ee68537c098858e693264e803e82c87
@@ -29,4 +29,4 @@ https://github.com/nokyan/resources.git 45b4c122d5acd29788934469fd123ae62296bea2
 https://github.com/GeopJr/Collision.git 9d35ba01750b24cdf70512b08914c0961f008c59
 https://github.com/lassekongo83/adw-gtk3.git 47922ed96562c002696ad2d2d80383f2ad30dc93
 https://github.com/johnfactotum/foliate.git 56fb0c7bd5493a8ada88a05aeb576898266e124a
-https://github.com/dasnoopy/raylib.git b906c90d06b18bdb97d173e58db7a107daf0dfe3
+https://github.com/dasnoopy/raylib.git bf1d775e09dee8dbb7428dd76b43c2da0a7a9ebc

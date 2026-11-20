@@ -9,8 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.2.1"
-
+#define TOOL_VERSION            "0.3.0"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -34,6 +33,13 @@ const int screenHeight = 736;
 const int fntSize = 16;
 bool isDarkMode = false;
 char tempBuffer[64]= { 0 };
+bool btnQuit = false;
+
+Rectangle statusBarRect = { 8,32,340,295};     // top/left
+Rectangle listRepoRect = { 354,8.0,822,492};  // top/right
+Rectangle infoRepoRect = { 8,333,340,369}; // bottom/left
+Rectangle commitsRect = {354,506,822,196};  // bottom/right
+
 
 #define REPOS_LIST_FILE  "repos.txt"
 #define REPOS_STATE_FILE "repos_state.txt"
@@ -215,12 +221,28 @@ bool get_cache_path(const char *url, char *out_path, size_t max_len) {
 }
 
 const char* get_short_repo_name(const char *url) {
-    const char *p = strstr(url, "://github.com");
+    const char *p = strstr(url, "https://git");
     if (p) return p + 11;
     const char *last_slash = strrchr(url, '/');
     return last_slash ? last_slash + 1 : url;
 }
 
+const char *truncate_url(const char *url, char *dest, size_t max_len) {
+    if (!url || !dest || max_len == 0) return "";
+
+    size_t len = strlen(url);
+    if (len <= max_len) {
+        strcpy(dest, url);
+    } else if (max_len > 3) {
+        strncpy(dest, url, max_len - 3);
+        dest[max_len - 3] = '\0';
+        strcat(dest, "...");
+    } else {
+        strncpy(dest, url, max_len);
+        dest[max_len] = '\0';
+    }
+    return dest;
+}
 void save_repos_to_file(const char *filename, RepoStatus *repos, size_t count) {
     FILE *f = fopen(filename, "w");
     if (!f) return;
@@ -651,13 +673,13 @@ void start_check(AppState *state, int target_idx) {
     pthread_detach(coord);
 }
 
-// --- INTERFACCIA GRAFICA RAYLIB + RAYGUI ---
+
 int main(void) {
 
      // Set configuration flags for window creation
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT); //|  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "gitmonitor");
-    SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
+    SetExitKey(KEY_NULL);       // Disable KEY_ESCAPE to close window, X-button still works
 
     // carica fonts con tutti i caratteri da 32 (spazio) a 255 (caratteri estesi europei)
     int startGlyph = 32;
@@ -672,7 +694,6 @@ int main(void) {
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 36,codepoints, glyphCount); // all other text
     Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
-
 
     //mkdir(CACHE_DIR, 0755);
     //if(!DirectoryExists(CACHE_DIR)) MakeDirectory(CACHE_DIR);
@@ -694,9 +715,8 @@ int main(void) {
     // GuiStyle common settings
     GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
     GuiSetStyle(DEFAULT, TEXT_SPACING, 2);
-    GuiSetStyle(VALUEBOX, SPINNER_BUTTON_SPACING, -1);
-    GuiSetStyle(VALUEBOX, SPINNER_BUTTON_WIDTH, 20);
-
+    GuiSetStyle(SCROLLBAR,ARROWS_VISIBLE,0); 
+    GuiSetStyle(SCROLLBAR,SCROLL_SLIDER_PADDING,0);
 
     // set FPS e fai riapparire finestra dopo caricamento iniziale
     SetTargetFPS(60);
@@ -705,8 +725,15 @@ int main(void) {
 
 while (!WindowShouldClose()) {
 
+
+//----------------------------------------------------------------------------------
+// Update
+//----------------------------------------------------------------------------------
+
+
 int winW = GetScreenWidth();
 int winH = GetScreenHeight();
+
 bool running = atomic_load(&state.is_running);
 
     // Ottiene il timestamp di modifica del file REPOS_STATE_FILE tramite raylib
@@ -715,53 +742,53 @@ bool running = atomic_load(&state.is_running);
     strftime(tempBuffer, sizeof(tempBuffer), "%d/%m/%Y %H:%M:%S", tm_info);
 
 
-BeginDrawing();
-
-//----------------------------------------------------------------------------------
-// Update
-//----------------------------------------------------------------------------------
-
+    if (btnQuit || IsKeyPressed(KEY_Q)) break;
+    
     // -------------------------------------------------------------------------
     // color GuiStyle widgets
     //--------------------------------------------------------------------------
-        GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.bgColor));
+    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.bgColor));
 
-        GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme.gridColor));
-        GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL,   ColorToInt(currentTheme.gridBgColor));
-        GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL,   ColorToInt(currentTheme.fgColor));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme.gridColor));
+    GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL,   ColorToInt(currentTheme.gridBgColor));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL,   ColorToInt(currentTheme.fgColor));
 
-        GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.gridColor));
-        GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));
-        GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColor));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.gridColor));
+    GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColor));
 
-        GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, ColorToInt(currentTheme.gridColor));
-        GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   ColorToInt(currentTheme.gridBgColor));
-        GuiSetStyle(DEFAULT, TEXT_COLOR_PRESSED,   ColorToInt(currentTheme.fgColor));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, ColorToInt(currentTheme.gridColor));
+    GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   ColorToInt(currentTheme.gridBgColor));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_PRESSED,   ColorToInt(currentTheme.fgColor));
 
-        GuiSetStyle(DEFAULT, BORDER_COLOR_DISABLED, ColorToInt(currentTheme.gridColor));
-        GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
-        GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_DISABLED, ColorToInt(currentTheme.gridColor));
+    GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
 
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
 
-    ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+BeginDrawing();
+    ClearBackground(currentTheme.bgColor);
+    
+    // close button
+    btnQuit = GuiButton((Rectangle){8,8,20,20}, "#128#");
+
     // --- TOP BAR ---
-    DrawRectangle(0, 0, winW, 92, Fade(LIGHTGRAY, 0.35f));
-    DrawLine(0, 92, winW, 92, GRAY);
     
     if (running) GuiDisable();
-        if (GuiButton((Rectangle){ 15, 10, 145, 30 }, "#211#Aggiorna tutto")) {
+        if (GuiButton((Rectangle){ 65, 10, 145, 30 }, "#211#Aggiorna tutto")) {
         start_check(&state, -1);
         commit_scroll = (Vector2){ 0, 0 };
     }
     if (selected_repo < 0) GuiDisable();
-
-    if (GuiButton((Rectangle){ 170, 10, 120, 30 }, "#143#Elimina")) {
+    
+    if (GuiButton((Rectangle){ 270, 10, 120, 30 }, "#143#Elimina")) {
         remove_repository(&state, &selected_repo);
         commit_scroll = (Vector2){ 0, 0 };
     }
+
     if (!running) GuiEnable();
 
     float inputWidth = (float)winW - 150.0f;
@@ -774,184 +801,189 @@ BeginDrawing();
             submit_url = true;
         }
     }
-if (GuiButton((Rectangle){ 15 + inputWidth + 10, 50, 110, 30 }, "#112#Aggiungi") || submit_url) {
-if (add_repository(&state, url_input, &selected_repo)) {
-url_input[0] = '\0';
-url_edit_mode = false;
-commit_scroll = (Vector2){ 0, 0 };
-start_check(&state, selected_repo);
-}
-}
-GuiEnable();
-
-
-        if (running) {
-            int done = atomic_load(&state.completed_count);
-            DrawText(TextFormat("Verifica in corso: %d / %d repo...", done, state.total_to_check),
-                     310, 17, 18, DARKBLUE);
-            float angle = (float)GetTime() * 360.0f;
-            DrawRing((Vector2){ (float)winW - 30, 25 }, 8, 12, angle, angle + 270, 16, DARKBLUE);
-        } else {
-            // <-- VA QUI DENTRO L'ELSE:
-            if (state.last_check_time[0] != '\0') {
-                DrawText(TextFormat("Verificati %zu repo  |  Ultimo aggiornamento: %s",
-                                    state.count, state.last_check_time),
-                         310, 17, 17, DARKGRAY);
-            } else {
-                DrawText(TextFormat("Monitorati %zu repository (%s) | Ultimo aggiornamento: %s",
-                                    state.count, REPOS_LIST_FILE, tempBuffer),
-                         310, 17, 17, DARKGRAY);
-            }
+        
+    if (GuiButton((Rectangle){ 15 + inputWidth + 10, 50, 110, 30 }, "#112#Aggiungi") || submit_url) {
+        if (add_repository(&state, url_input, &selected_repo)) {
+            url_input[0] = '\0';
+            url_edit_mode = false;
+            commit_scroll = (Vector2){ 0, 0 };
+            start_check(&state, selected_repo);
         }
+    }
+    GuiEnable();
+
+    if (running) {
+        int done = atomic_load(&state.completed_count);
+        DrawText(TextFormat("Verifica in corso: %d / %d repo...", done, state.total_to_check), 350, 17, 10, DARKBLUE);
+        // Draw spinner while checking...
+        float angle = (float)GetTime() * 360.0f;
+        DrawRing((Vector2){ (float)winW - 30, 25 }, 8, 12, angle, angle + 270, 16, DARKBLUE);
+    } else {
+        if (state.last_check_time[0] != '\0') DrawText(TextFormat("Verificati %zu repo  |  Ultimo aggiornamento: %s", state.count, state.last_check_time), 350, 17, 10, DARKGRAY);
+        else DrawText(TextFormat("Monitorati %zu repository (%s) | Ultimo aggiornamento: %s", state.count, REPOS_LIST_FILE, tempBuffer), 350, 17, 10, DARKGRAY);
+    }
+
+// posizionamento pannelli centrali
+    float topOffset = 36.0f; // posizione Y pannelli centrali
+    float leftWidth = screenWidth / 3.0f; // divisione  tra pannelli sx e dx
 
 // --- PANNELLO SINISTRO: LISTA REPOSITORY ---
-float topOffset = 105.0f;
-float leftWidth = 400.0f;
-Rectangle leftPanelBounds = { 15, topOffset, leftWidth, (float)winH - topOffset - 15.0f };
-float itemHeight = 46.0f;
-Rectangle leftContentRect = { 0, 0, leftWidth - 16, (float)state.count * itemHeight };
-Rectangle leftView = { 0 };
-GuiScrollPanel(leftPanelBounds, "Repository", leftContentRect, &repo_scroll, &leftView);
-BeginScissorMode((int)leftView.x, (int)leftView.y, (int)leftView.width, (int)leftView.height);
-for (size_t i = 0; i < state.count; i++) {
-float y = leftView.y + repo_scroll.y + (i * itemHeight);
-if (y + itemHeight < leftView.y || y > leftView.y + leftView.height) continue;
-Rectangle rowRect = { leftView.x + 4, y + 3, leftView.width - 8, itemHeight - 6 };
-bool isSelected = ((int)i == selected_repo);
-float singleBtnSize = 28.0f;
-Rectangle singleBtnRect = {
-rowRect.x + rowRect.width - singleBtnSize - 6,
-rowRect.y + (rowRect.height - singleBtnSize) * 0.5f,
-singleBtnSize,
-singleBtnSize
-};
-bool mouseInView = CheckCollisionPointRec(GetMousePosition(), leftView);
-bool clickedSingleBtn = false;
-if (running || !mouseInView) GuiDisable();
-if (GuiButton(singleBtnRect, "#211#")) {
-clickedSingleBtn = true;
-selected_repo = (int)i;
-commit_scroll = (Vector2){ 0, 0 };
-start_check(&state, (int)i);
-}
-GuiEnable();
-if (!clickedSingleBtn && mouseInView &&
-CheckCollisionPointRec(GetMousePosition(), rowRect) &&
-IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-selected_repo = (int)i;
-commit_scroll = (Vector2){ 0, 0 };
-}
-Color bg = isSelected ? Fade(SKYBLUE, 0.45f) : Fade(WHITE, 0.8f);
-DrawRectangleRec(rowRect, bg);
-DrawRectangleLinesEx(rowRect, isSelected ? 2.0f : 1.0f, isSelected ? BLUE : LIGHTGRAY);
-if (running || !mouseInView) GuiDisable();
-GuiButton(singleBtnRect, "#211#");
-GuiEnable();
-const char *badge = "---";
-Color badgeColor = GRAY;
-if (atomic_load(&state.repos[i].checking)) {
-badge = "...";
-badgeColor = ORANGE;
-} else if (state.repos[i].error) {
-badge = "ERR";
-badgeColor = RED;
-} else if (state.repos[i].is_new_repo) {
-badge = "NEW";
-badgeColor = BLUE;
-} else if (state.repos[i].has_updates) {
-badge = "UPD";
-badgeColor = LIME;
-} else if (state.repos[i].current_hash[0] != '\0') {
-badge = "OK";
-badgeColor = DARKGREEN;
-}
-DrawRectangle((int)rowRect.x + 6, (int)rowRect.y + 8, 44, 24, badgeColor);
-DrawText(badge, (int)rowRect.x + 12, (int)rowRect.y + 13, 14, WHITE);
-const char *shortName = get_short_repo_name(state.repos[i].url);
-DrawText(shortName, (int)rowRect.x + 58, (int)rowRect.y + 12, 16, BLACK);
-}
-EndScissorMode();
+    Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - topOffset - 15.0f };
+    float itemHeight = 28.0f; // altezza singola "voce" della lista repo
+    Rectangle leftContentRect = { 0, 0, leftWidth - 16, (float)state.count * itemHeight };
+    Rectangle leftView = { 0 };
+
+    GuiScrollPanel(leftPanelBounds, "Lista repository", leftContentRect, &repo_scroll, &leftView);
+    BeginScissorMode((int)leftView.x, (int)leftView.y, (int)leftView.width, (int)leftView.height);
+    
+    // lista dei repository
+        for (size_t i = 0; i < state.count; i++) {
+            float y = leftView.y + repo_scroll.y + (i * itemHeight);
+            if (y + itemHeight < leftView.y || y > leftView.y + leftView.height) continue;
+            Rectangle rowRect = { leftView.x, y, leftView.width, itemHeight };
+            bool isSelected = ((int)i == selected_repo);
+            float singleBtnSize = 20.0f;
+            Rectangle updateBtnRect = { rowRect.x + rowRect.width - singleBtnSize - 6, rowRect.y + (rowRect.height - singleBtnSize) * 0.5f, singleBtnSize, singleBtnSize };
+            
+            bool mouseInView = CheckCollisionPointRec(GetMousePosition(), leftView);
+            bool clickedSingleBtn = false;
+            if (running || !mouseInView) GuiDisable();
+            
+            // quando si preme singolo bottone check (uno per repo)
+            if (GuiButton(updateBtnRect, "#211#")) {
+                clickedSingleBtn = true;
+                selected_repo = (int)i;
+                commit_scroll = (Vector2){ 0, 0 };
+                start_check(&state, (int)i);
+            }
+
+
+        GuiEnable();
+
+        // selezione del repo dalla lista
+        if (!clickedSingleBtn && mouseInView && CheckCollisionPointRec(GetMousePosition(), rowRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            selected_repo = (int)i;
+            commit_scroll = (Vector2){ 0, 0 };
+        }
+
+        Color bg = isSelected ? currentTheme.accentColor : currentTheme.gridBgColor;
+        DrawRectangleRec(rowRect, bg);
+        DrawRectangleLinesEx(rowRect, 0.0f, isSelected ? BLUE : LIGHTGRAY);
+        if (running || !mouseInView) GuiDisable();
+        
+        //
+        GuiButton(updateBtnRect, "#211#");
+
+        GuiEnable();
+        
+        const char *badge = "---";
+        Color badgeColor = LIGHTGRAY;
+        
+            if (atomic_load(&state.repos[i].checking)) {
+                badge = "CHK";
+                badgeColor = ORANGE;
+            } else if (state.repos[i].error) {
+                badge = "ERR";
+                badgeColor = RED;
+            } else if (state.repos[i].is_new_repo) {
+                badge = "NEW";
+                badgeColor = BLUE;
+            } else if (state.repos[i].has_updates) {
+                badge = "UPD";
+                badgeColor = YELLOW;
+            } else if (state.repos[i].current_hash[0] != '\0') {
+                badge = "OK";
+                badgeColor = GREEN;
+            }
+            //DrawRectangleRounded((Rectangle){(int)rowRect.x + 4, (int)rowRect.y + 4, 32, 20},0.30f,4, badgeColor);
+            DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
+            //DrawText(badge, (int)rowRect.x + 10, (int)rowRect.y + 10, 10, currentTheme.fgColor);
+            char buf[MAX_URL_LEN + 64];
+            const char *shortName = truncate_url(state.repos[i].url,buf,58);
+            //DrawText(shortName, (int)rowRect.x + 58, (int)rowRect.y + 12, 10, BLACK);
+            DrawText(shortName, (int)rowRect.x + 28, (int)rowRect.y + 10, 10, BLACK);
+    
+    } // fine del for (operazioni per tutte le voci della lista)
+    EndScissorMode();
+
 // --- PANNELLO DESTRO: DETTAGLI E COMMIT ---
-float rightX = leftWidth + 30.0f;
-float rightWidth = (float)winW - rightX - 15.0f;
-Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - topOffset - 15.0f };
-if (selected_repo >= 0 && (size_t)selected_repo < state.count) {
-RepoStatus *sel = &state.repos[selected_repo];
-bool isRepoChecking = atomic_load(&sel->checking);
-Rectangle headerBox = { rightX, topOffset, rightWidth, 98 };
-GuiGroupBox(headerBox, "Dettagli Repository");
-float openRepoBtnW = 155.0f;
-if (GuiButton((Rectangle){ rightX + rightWidth - openRepoBtnW - 12, topOffset + 14, openRepoBtnW, 28 },
-"#185#Apri nel browser")) {
-open_url_in_browser(sel->url);
-}
-DrawText(sel->url, (int)rightX + 15, (int)topOffset + 20, 16, DARKBLUE);
-if (isRepoChecking) {
-DrawText("Stato: Verifica in corso sul server remoto...", (int)rightX + 15, (int)topOffset + 52, 16, ORANGE);
-} else if (sel->error) {
-DrawText(TextFormat("Errore: %s", sel->error_msg), (int)rightX + 15, (int)topOffset + 52, 16, RED);
-} else if (sel->current_hash[0] == '\0') {
-DrawText("In attesa di verifica. Premi l'icona di aggiornamento o 'Aggiorna tutto'.",
-(int)rightX + 15, (int)topOffset + 52, 16, DARKGRAY);
-} else {
-const char *statusStr = sel->is_new_repo ? "Nuovo repository tracciato (ultimi 3 commit)" : (sel->has_updates ? TextFormat("Aggiornato (%d nuovi commit)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (mostrati gli ultimi %d)", FETCH_DEPTH));
-Color statusCol = sel->has_updates ? DARKGREEN : DARKGRAY;
-DrawText(TextFormat("Branch: %s   |   Hash attuale: %.12s", sel->branch, sel->current_hash),
-(int)rightX + 15, (int)topOffset + 47, 15, BLACK);
-DrawText(statusStr, (int)rightX + 15, (int)topOffset + 69, 16, statusCol);
-}
-float commitsTop = topOffset + 112.0f;
-Rectangle commitsBounds = { rightX, commitsTop, rightWidth, (float)winH - commitsTop - 15.0f };
-float commitRowH = 56.0f;
-int displayCount = isRepoChecking ? 0 : sel->new_commits_count;
-Rectangle commitsContent = { 0, 0, rightWidth - 16, (float)displayCount * commitRowH };
-Rectangle commitsView = { 0 };
-GuiScrollPanel(commitsBounds, "Commit rilevati", commitsContent, &commit_scroll, &commitsView);
-BeginScissorMode((int)commitsView.x, (int)commitsView.y, (int)commitsView.width, (int)commitsView.height);
-if (!isRepoChecking && displayCount == 0 && !sel->error) {
-DrawText("Nessun commit caricato.", (int)commitsView.x + 15, (int)commitsView.y + 15, 16, GRAY);
-}
-for (int c = 0; c < displayCount; c++) {
-float cy = commitsView.y + commit_scroll.y + (c * commitRowH);
-if (cy + commitRowH < commitsView.y || cy > commitsView.y + commitsView.height) continue;
-Rectangle cRect = { commitsView.x + 6, cy + 4, commitsView.width - 12, commitRowH - 8 };
-DrawRectangleRec(cRect, Fade(LIGHTGRAY, 0.25f));
-DrawRectangleLinesEx(cRect, 1.0f, LIGHTGRAY);
-float commitBtnW = 85.0f;
-Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 8, cRect.y + 10, commitBtnW, 28 };
-if (CheckCollisionPointRec(GetMousePosition(), commitsView)) {
-if (GuiButton(commitBtnRect, "#185#Apri")) {
-char commitUrl[MAX_URL_LEN + 64];
-char baseUrl[MAX_URL_LEN];
-strncpy(baseUrl, sel->url, MAX_URL_LEN - 1);
-baseUrl[MAX_URL_LEN - 1] = '\0';
-size_t ulen = strlen(baseUrl);
-if (ulen > 4 && strcmp(baseUrl + ulen - 4, ".git") == 0) {
-baseUrl[ulen - 4] = '\0';
-}
-snprintf(commitUrl, sizeof(commitUrl), "%s/commit/%s", baseUrl, sel->new_commits[c].full_hash);
-open_url_in_browser(commitUrl);
-}
-} else {
-GuiDisable();
-GuiButton(commitBtnRect, "#185#Apri");
-GuiEnable();
-}
-// Riga 1: Hash, Data/Ora e Autore
-DrawText(TextFormat("[%s]  %s  -  %s",
-sel->new_commits[c].short_hash,
-sel->new_commits[c].date,
-sel->new_commits[c].author),
-(int)cRect.x + 10, (int)cRect.y + 6, 14, DARKBLUE);
-// Riga 2: Messaggio del commit
-DrawText(sel->new_commits[c].message,
-(int)cRect.x + 10, (int)cRect.y + 26, 15, BLACK);
-}
-EndScissorMode();
-} else {
-GuiGroupBox(rightPanelBounds, "Dettagli");
-DrawText("Nessun repository disponibile. Inserisci un URL in alto e premi Aggiungi.",
-(int)rightX + 20, (int)topOffset + 30, 16, GRAY);
+    float rightX = leftWidth + 30.0f;
+    float rightWidth = (float)winW - rightX - 15.0f;
+    Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - topOffset - 15.0f };
+    if (selected_repo >= 0 && (size_t)selected_repo < state.count) {
+        RepoStatus *sel = &state.repos[selected_repo];
+        bool isRepoChecking = atomic_load(&sel->checking);
+        Rectangle headerBox = { rightX, topOffset, rightWidth, 98 };
+        GuiGroupBox(headerBox, "Dettagli Repository");
+        float openRepoBtnW = 155.0f;
+    
+    if (GuiButton((Rectangle){ rightX + rightWidth - openRepoBtnW - 12, topOffset + 14, openRepoBtnW, 28 }, "#185#Apri nel browser")) {
+        open_url_in_browser(sel->url);
+    }
+
+    DrawText(sel->url, (int)rightX + 15, (int)topOffset + 20, 16, DARKBLUE);
+
+    if (isRepoChecking) {
+        DrawText("Stato: Verifica in corso sul server remoto...", (int)rightX + 15, (int)topOffset + 52, 16, ORANGE);
+    } else if (sel->error) {
+        DrawText(TextFormat("Errore: %s", sel->error_msg), (int)rightX + 15, (int)topOffset + 52, 16, RED);
+    } else if (sel->current_hash[0] == '\0') {
+        DrawText("In attesa di verifica. Premi l'icona di aggiornamento o 'Aggiorna tutto'.", (int)rightX + 15, (int)topOffset + 52, 16, DARKGRAY);
+    } else {
+        const char *statusStr = sel->is_new_repo ? "Nuovo repo (ultimi 10 commit)" : (sel->has_updates ? TextFormat("Repo aggiornato (%d nuovi commit)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (ultimi %d commit)", FETCH_DEPTH));
+        Color statusCol = sel->has_updates ? DARKGREEN : DARKGRAY;
+        DrawText(TextFormat("Branch: %s   |   Hash attuale: %.12s", sel->branch, sel->current_hash), (int)rightX + 15, (int)topOffset + 47, 15, BLACK);
+        DrawText(statusStr, (int)rightX + 15, (int)topOffset + 69, 16, statusCol);
+    }
+
+    float commitsTop = topOffset + 112.0f;
+    Rectangle commitsBounds = { rightX, commitsTop, rightWidth, (float)winH - commitsTop - 15.0f };
+    float commitRowH = 56.0f;
+    int displayCount = isRepoChecking ? 0 : sel->new_commits_count;
+    Rectangle commitsContent = { 0, 0, rightWidth - 16, (float)displayCount * commitRowH };
+    Rectangle commitsView = { 0 };
+    GuiScrollPanel(commitsBounds, "Commit rilevati", commitsContent, &commit_scroll, &commitsView);
+    BeginScissorMode((int)commitsView.x, (int)commitsView.y, (int)commitsView.width, (int)commitsView.height);
+    if (!isRepoChecking && displayCount == 0 && !sel->error) {
+        DrawText("Nessun commit caricato.", (int)commitsView.x + 15, (int)commitsView.y + 15, 16, GRAY);
+    }
+
+    for (int c = 0; c < displayCount; c++) {
+        float cy = commitsView.y + commit_scroll.y + (c * commitRowH);
+        if (cy + commitRowH < commitsView.y || cy > commitsView.y + commitsView.height) continue;
+        Rectangle cRect = { commitsView.x + 6, cy + 4, commitsView.width - 12, commitRowH - 8 };
+        DrawRectangleRec(cRect, Fade(LIGHTGRAY, 0.25f));
+        DrawRectangleLinesEx(cRect, 1.0f, LIGHTGRAY);
+        float commitBtnW = 85.0f;
+        Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 8, cRect.y + 10, commitBtnW, 28 };
+       
+        if (CheckCollisionPointRec(GetMousePosition(), commitsView)) {
+            if (GuiButton(commitBtnRect, "#185#Apri")) {
+            char commitUrl[MAX_URL_LEN + 64];
+            char baseUrl[MAX_URL_LEN];
+            strncpy(baseUrl, sel->url, MAX_URL_LEN - 1);
+            baseUrl[MAX_URL_LEN - 1] = '\0';
+            size_t ulen = strlen(baseUrl);
+            if (ulen > 4 && strcmp(baseUrl + ulen - 4, ".git") == 0) {
+                baseUrl[ulen - 4] = '\0';
+            }
+            snprintf(commitUrl, sizeof(commitUrl), "%s/commit/%s", baseUrl, sel->new_commits[c].full_hash);
+            open_url_in_browser(commitUrl);
+            }
+        } else {
+            GuiDisable();
+            GuiButton(commitBtnRect, "#185#Apri");
+            GuiEnable();
+        }
+        // Riga 1: Hash, Data/Ora e Autore
+        DrawText(TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author), (int)cRect.x + 10, (int)cRect.y + 6, 14, DARKBLUE);
+            // Riga 2: Messaggio del commit
+        DrawText(sel->new_commits[c].message, (int)cRect.x + 10, (int)cRect.y + 26, 15, BLACK);
+        }
+        EndScissorMode();
+        } else {
+        GuiGroupBox(rightPanelBounds, "Dettagli");
+        DrawText("Nessun repository disponibile. Inserisci un URL in alto e premi Aggiungi.", (int)rightX + 20, (int)topOffset + 30, 16, GRAY);
         }
     EndDrawing();
     }
