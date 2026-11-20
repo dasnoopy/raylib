@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.4.1"
+#define TOOL_VERSION            "0.4.3"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -29,7 +29,7 @@
 
 // window size (16:9)
 const int screenWidth = 1184; 
-const int screenHeight = 736;
+const int screenHeight = 720;
 const int fntSize = 16;
 bool isDarkMode = false;
 char tempBuffer[64]= { 0 };
@@ -694,7 +694,9 @@ int main(void) {
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font messageFont = LoadFontEx("fonts/DINPro-Regular.otf", 16,codepoints, glyphCount); // all other text
+    Font h1font = LoadFontEx("fonts/ManropeV5-ExtraBold.otf", 32, codepoints, glyphCount);
+    Font h2font = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 24, codepoints, glyphCount);
+    Font h3font = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, codepoints, glyphCount);
 
     //mkdir(CACHE_DIR, 0755);
     //if(!DirectoryExists(CACHE_DIR)) MakeDirectory(CACHE_DIR);
@@ -785,16 +787,16 @@ BeginDrawing();
 
     // --- TOP BAR ---
     if (running) GuiDisable();
-        if (GuiButton((Rectangle){ 128, winH-64, 120, 28 }, "#77#Verifica tutti")) {
+        if (GuiButton((Rectangle){ 8, winH-68, 128, 28 }, "#77#Aggiorna tutto")) {
         start_check(&state, -1);
         commit_scroll = (Vector2){ 0, 0 };
     }
     if (selected_repo < 0) GuiDisable();
     
-    // if (GuiButton((Rectangle){ 270, 10, 120, 30 }, "#143#Elimina")) {
-    //     remove_repository(&state, &selected_repo);
-    //     commit_scroll = (Vector2){ 0, 0 };
-    // }
+    if (GuiButton((Rectangle){ 274, winH-68, 128, 28 }, "#143#Elimina repo")) {
+        remove_repository(&state, &selected_repo);
+        commit_scroll = (Vector2){ 0, 0 };
+    }
 
     if (!running) GuiEnable();
 
@@ -822,22 +824,23 @@ BeginDrawing();
 //
 //  STATUS BAR Messages
 //
-
     char infoText[1024];
+    float angle = (float)GetTime() * 360.0f;
+    DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 14, currentTheme.gridColor);
+
     if (running) {
         int done = atomic_load(&state.completed_count);
-        snprintf(infoText, sizeof(infoText), "Verifica repository in corso: %d / %d repo...", done, state.total_to_check);
+        snprintf(infoText, sizeof(infoText), "Aggiornamento repository in corso: %d / %d repo...", done, state.total_to_check);
         // Draw spinner while checking...
-        float angle = (float)GetTime() * 360.0f;
         DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 270, 14, currentTheme.accentColor);
     } else {
         if (state.last_check_time[0] != '\0') 
-            snprintf(infoText,sizeof(infoText),"Verifica del/dei repository completata. Ultimo aggiornamento: %s", state.last_check_time);
+            snprintf(infoText,sizeof(infoText),"Aggiornamento del/dei repository completata. Data ultima verifica: %s", state.last_check_time);
         else 
-        snprintf(infoText,sizeof(infoText),"In attesa di verifica %zu repository (%s). Ultimo aggiornamento: %s", state.count, REPOS_LIST_FILE, tempBuffer);
+        snprintf(infoText,sizeof(infoText),"In attesa di aggiornameto  %zu repository (%s). Data ultimo controllo: %s", state.count, REPOS_LIST_FILE, tempBuffer);
     }
 
-    GuiStatusBar((Rectangle){ 8, winH-28, winW, 22 }, infoText);
+    GuiStatusBar((Rectangle){ 8, winH-32, winW-16, 22 }, infoText);
 
 // posizionamento pannelli centrali
     float topOffset = 36.0f; // posizione Y pannelli centrali
@@ -850,6 +853,7 @@ BeginDrawing();
     Rectangle leftView = { 0 };
 
     GuiScrollPanel(leftPanelBounds, NULL, leftContentRect, &repo_scroll, &leftView);
+
     BeginScissorMode((int)leftView.x, (int)leftView.y, (int)leftView.width, (int)leftView.height);
     
     // lista dei repository
@@ -896,11 +900,11 @@ BeginDrawing();
 
         GuiEnable();
         
-
+        // BADGE
         if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
         else if (state.repos[i].error) badgeColor = RED;
-        else if (state.repos[i].is_new_repo) badgeColor = BLUE;
-        else if (state.repos[i].has_updates) badgeColor = YELLOW;
+        else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
+        else if (state.repos[i].has_updates) badgeColor = GOLD;
         else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
         DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
@@ -912,42 +916,45 @@ BeginDrawing();
     EndScissorMode();
 
 // --- PANNELLO DESTRO: DETTAGLI E COMMIT ---
-    float rightX = leftWidth + 30.0f;
-    float rightWidth = (float)winW - rightX - 15.0f;
-    Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - topOffset - 15.0f };
+    float rightX = leftWidth + 16.0f; // distanza dal pannello di sinistra
+    float rightWidth = (float)winW - rightX - 8.0f;
+    Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - (topOffset * 3) };
     if (selected_repo >= 0 && (size_t)selected_repo < state.count) {
         RepoStatus *sel = &state.repos[selected_repo];
         bool isRepoChecking = atomic_load(&sel->checking);
-        Rectangle headerBox = { rightX, topOffset, rightWidth, 98 };
-        GuiGroupBox(headerBox, "Dettagli Repository");
-        float openRepoBtnW = 155.0f;
+        //Rectangle headerBox = { rightX, topOffset, rightWidth, 98 };
+        //GuiGroupBox(headerBox, "Dettagli Repository");
     
-    if (GuiButton((Rectangle){ rightX + rightWidth - openRepoBtnW - 12, topOffset + 14, openRepoBtnW, 28 }, "#185#Apri nel browser")) {
+    if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) {
         open_url_in_browser(sel->url);
     }
-
-    DrawText(sel->url, (int)rightX + 15, (int)topOffset + 20, 16, currentTheme.accentColorText);
+    // URL del repository
+    DrawTextEx(h1font, sel->url,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.accentColor);
+    DrawLine((int)rightX,(int)topOffset+58,(int)rightX+rightWidth,(int)topOffset+58,currentTheme.gridColor);
 
     if (isRepoChecking) {
-        DrawText("Stato: Verifica in corso sul server remoto...", (int)rightX + 15, (int)topOffset + 52, 16, ORANGE);
+        DrawTextEx(h2font,"Stato: Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else if (sel->error) {
-        DrawText(TextFormat("Errore: %s", sel->error_msg), (int)rightX + 15, (int)topOffset + 52, 16, RED);
+        DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize,0, RED);
     } else if (sel->current_hash[0] == '\0') {
-        DrawText("In attesa di verifica. Premi l'icona di aggiornamento o 'Aggiorna tutto'.", (int)rightX + 15, (int)topOffset + 52, 16, currentTheme.fgColor);
+        DrawTextEx(h2font,"In attesa di verifica. Premi icona di aggiornamento o 'Aggiorna tutto'.", (Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else {
-        const char *statusStr = sel->is_new_repo ? "Nuovo repo (ultimi 10 commit)" : (sel->has_updates ? TextFormat("Repo aggiornato (%d nuovi commit)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (ultimi %d commit)", FETCH_DEPTH));
-        Color statusCol = sel->has_updates ? DARKGREEN : currentTheme.fgColor;
-        DrawText(TextFormat("Branch: %s   |   Hash attuale: %.12s", sel->branch, sel->current_hash), (int)rightX + 15, (int)topOffset + 47, 15, BLACK);
-        DrawText(statusStr, (int)rightX + 15, (int)topOffset + 69, 16, statusCol);
+        const char *statusStr = sel->is_new_repo ? "Nuovo repository (commit recenti)" : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovi commit)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (ultimi %d commit)", FETCH_DEPTH));
+        
+        // messaggio no commit recenti
+        Color statusCol = sel->has_updates ? currentTheme.accentColor : currentTheme.fgColor;
+        DrawTextEx(h2font, TextFormat("Branch: %s; hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+
+        DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 62},(float)h3font.baseSize,0, statusCol);
     }
 
-    float commitsTop = topOffset + 112.0f;
-    Rectangle commitsBounds = { rightX, commitsTop, rightWidth, (float)winH - commitsTop - 15.0f };
+    float commitsTop = topOffset + 88.0f; // distanza tra dettagli e lista commit 
+    Rectangle commitsBounds = { rightX, commitsTop, rightWidth, (float)winH - commitsTop - 40.0f };
     float commitRowH = 56.0f;
     int displayCount = isRepoChecking ? 0 : sel->new_commits_count;
     Rectangle commitsContent = { 0, 0, rightWidth - 16, (float)displayCount * commitRowH };
     Rectangle commitsView = { 0 };
-    GuiScrollPanel(commitsBounds, "acnchio devo sparire Commit rilevati", commitsContent, &commit_scroll, &commitsView);
+    GuiScrollPanel(commitsBounds, NULL, commitsContent, &commit_scroll, &commitsView);
     BeginScissorMode((int)commitsView.x, (int)commitsView.y, (int)commitsView.width, (int)commitsView.height);
     if (!isRepoChecking && displayCount == 0 && !sel->error) {
         DrawText("Nessun commit caricato.", (int)commitsView.x + 15, (int)commitsView.y + 15, 16, GRAY);
@@ -987,7 +994,7 @@ BeginDrawing();
         }
         EndScissorMode();
         } else {
-        GuiGroupBox(rightPanelBounds, "Dettagli");
+        GuiGroupBox(rightPanelBounds, "Dettagliatatatatatatatat");
         DrawText("Nessun repository disponibile. Inserisci un URL in alto e premi Aggiungi.", (int)rightX + 20, (int)topOffset + 30, 16, GRAY);
         }
     EndDrawing();
@@ -1003,8 +1010,9 @@ BeginDrawing();
 
     UnloadFont(boldFont);
     UnloadFont(textFont);
-    UnloadFont(messageFont);
-
+    UnloadFont(h1font);
+    UnloadFont(h2font);
+    UnloadFont(h3font);
     CloseWindow();
     git_libgit2_shutdown();
 return 0;
