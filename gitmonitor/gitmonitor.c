@@ -31,7 +31,7 @@
 const int screenWidth = 1184; 
 const int screenHeight = 736;
 const int fntSize = 16;
-bool isDarkMode = false;
+bool isDarkMode = true;
 char tempBuffer[64]= { 0 };
 bool btnQuit = false;
 
@@ -53,7 +53,8 @@ Rectangle commitsRect = {354,506,822,196};  // bottom/right
 #define FETCH_DEPTH     10
 
 typedef struct {
-    Color accentColor;
+    Color accentColorFg;
+    Color accentColorBg;
     Color fgColor;
     Color bgColor;
     Color borderColor;
@@ -62,7 +63,8 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = (Color){53, 132, 228, 255}, 
+    .accentColorFg = (Color){249, 249, 252, 255}, 
+    .accentColorBg = (Color){53, 132, 228, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -71,7 +73,8 @@ static const colorTheme lightTheme = {
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){237, 91, 0, 255},
+    .accentColorFg = (Color){249, 249, 252, 255}, 
+    .accentColorBg = (Color){190, 33, 55, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -755,7 +758,7 @@ bool running = atomic_load(&state.is_running);
 
     GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.gridColor));
     GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));
-    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColor));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.accentColorFg));
 
     GuiSetStyle(DEFAULT, BORDER_COLOR_PRESSED, ColorToInt(currentTheme.gridColor));
     GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED,   ColorToInt(currentTheme.gridBgColor));
@@ -842,7 +845,7 @@ BeginDrawing();
             if (y + itemHeight < leftView.y || y > leftView.y + leftView.height) continue;
             Rectangle rowRect = { leftView.x, y, leftView.width, itemHeight };
             bool isSelected = ((int)i == selected_repo);
-            float singleBtnSize = 20.0f;
+            float singleBtnSize = 22.0f;
             Rectangle updateBtnRect = { rowRect.x + rowRect.width - singleBtnSize - 6, rowRect.y + (rowRect.height - singleBtnSize) * 0.5f, singleBtnSize, singleBtnSize };
             
             bool mouseInView = CheckCollisionPointRec(GetMousePosition(), leftView);
@@ -866,7 +869,7 @@ BeginDrawing();
             commit_scroll = (Vector2){ 0, 0 };
         }
 
-        Color bg = isSelected ? currentTheme.accentColor : currentTheme.gridBgColor;
+        Color bg = isSelected ? currentTheme.accentColorBg : currentTheme.gridBgColor;
         DrawRectangleRec(rowRect, bg);
         DrawRectangleLinesEx(rowRect, 0.0f, isSelected ? BLUE : LIGHTGRAY);
         if (running || !mouseInView) GuiDisable();
@@ -876,32 +879,17 @@ BeginDrawing();
 
         GuiEnable();
         
-        const char *badge = "---";
         Color badgeColor = LIGHTGRAY;
-        
-            if (atomic_load(&state.repos[i].checking)) {
-                badge = "CHK";
-                badgeColor = ORANGE;
-            } else if (state.repos[i].error) {
-                badge = "ERR";
-                badgeColor = RED;
-            } else if (state.repos[i].is_new_repo) {
-                badge = "NEW";
-                badgeColor = BLUE;
-            } else if (state.repos[i].has_updates) {
-                badge = "UPD";
-                badgeColor = YELLOW;
-            } else if (state.repos[i].current_hash[0] != '\0') {
-                badge = "OK";
-                badgeColor = GREEN;
-            }
-            //DrawRectangleRounded((Rectangle){(int)rowRect.x + 4, (int)rowRect.y + 4, 32, 20},0.30f,4, badgeColor);
-            DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
-            //DrawText(badge, (int)rowRect.x + 10, (int)rowRect.y + 10, 10, currentTheme.fgColor);
-            char buf[MAX_URL_LEN + 64];
-            const char *shortName = truncate_url(state.repos[i].url,buf,58);
-            //DrawText(shortName, (int)rowRect.x + 58, (int)rowRect.y + 12, 10, BLACK);
-            DrawText(shortName, (int)rowRect.x + 28, (int)rowRect.y + 10, 10, BLACK);
+        if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
+        else if (state.repos[i].error) badgeColor = RED;
+        else if (state.repos[i].is_new_repo) badgeColor = BLUE;
+        else if (state.repos[i].has_updates) badgeColor = YELLOW;
+        else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
+
+        DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
+        char buf[MAX_URL_LEN + 64];
+        const char *shortName = truncate_url(state.repos[i].url,buf,58);
+        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 26, (int)rowRect.y + 6},(float)textFont.baseSize,-1, currentTheme.accentColorFg);
     
     } // fine del for (operazioni per tutte le voci della lista)
     EndScissorMode();

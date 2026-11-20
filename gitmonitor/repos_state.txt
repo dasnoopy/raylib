@@ -29,4 +29,4 @@ https://github.com/nokyan/resources.git 45b4c122d5acd29788934469fd123ae62296bea2
 https://github.com/GeopJr/Collision.git 9d35ba01750b24cdf70512b08914c0961f008c59
 https://github.com/lassekongo83/adw-gtk3.git 47922ed96562c002696ad2d2d80383f2ad30dc93
 https://github.com/johnfactotum/foliate.git 56fb0c7bd5493a8ada88a05aeb576898266e124a
-https://github.com/dasnoopy/raylib.git bf1d775e09dee8dbb7428dd76b43c2da0a7a9ebc
+https://github.com/dasnoopy/raylib.git cbe2283e5b9dcfaa31225ea76fbfd9c0eb63944d
