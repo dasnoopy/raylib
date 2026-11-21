@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.6.2"
+#define TOOL_VERSION            "0.6.6"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -73,7 +73,7 @@ static const colorTheme lightTheme = {
 
 static const colorTheme darkTheme = {
     .accentColorText = (Color){249, 249, 252, 255}, 
-    .accentColor = (Color){190, 33, 55, 255},
+    .accentColor = (Color){237, 91, 0, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -694,9 +694,9 @@ int main(void) {
 
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font h1font = LoadFontEx("fonts/ManropeV5-ExtraBold.otf", 32, codepoints, glyphCount);
-    Font h2font = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 26, codepoints, glyphCount);
-    Font h3font = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, codepoints, glyphCount);
+    Font h1font = LoadFontEx("fonts/InterDisplay-ExtraBold.otf", 32, codepoints, glyphCount);
+    Font h2font = LoadFontEx("fonts/InterDisplay-SemiBold.otf", 24, codepoints, glyphCount);
+    Font h3font = LoadFontEx("fonts/InterDisplay-Regular.otf", 24, codepoints, glyphCount);
     Font monoFont = LoadFontEx("fonts/SF-Mono-Semibold.ttf",16,codepoints,glyphCount);
 
     //mkdir(CACHE_DIR, 0755);
@@ -819,7 +819,7 @@ BeginDrawing();
         if (state.last_check_time[0] != '\0') 
             snprintf(infoText,sizeof(infoText),"Aggiornamento dei repository completato. Data ultima verifica: %s", state.last_check_time);
         else 
-        snprintf(infoText,sizeof(infoText),"In attesa di aggiornameto  %zu repository (%s). Data ultimo controllo: %s", state.count, REPOS_LIST_FILE, tempBuffer);
+        snprintf(infoText,sizeof(infoText),"In attesa di aggiornamento di %zu repository (%s). Data ultimo controllo: %s", state.count, REPOS_LIST_FILE, tempBuffer);
     }
 
     GuiStatusBar((Rectangle){ 8, winH-32, winW-16, 22 }, infoText);
@@ -841,7 +841,7 @@ BeginDrawing();
         for (size_t i = 0; i < state.count; i++) {
             float y = leftView.y + repo_scroll.y + (i * itemHeight);
             if (y + itemHeight < leftView.y || y > leftView.y + leftView.height) continue;
-            Rectangle rowRect = { leftView.x, y, leftView.width, itemHeight };
+            Rectangle rowRect = { leftView.x+1, y , leftView.width, itemHeight };
             bool isSelected = ((int)i == selected_repo);
             bool mouseInView = CheckCollisionPointRec(GetMousePosition(), leftView);
             GuiEnable();
@@ -887,25 +887,26 @@ BeginDrawing();
         bool isRepoChecking = atomic_load(&sel->checking);
     
     if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) open_url_in_browser(sel->url);
+   
     // URL del repository
-    const char *shortUrl = truncate_url(sel->url,buf,62);
+    const char *shortUrl = truncate_url(sel->url,buf,58);
     DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.fgColor);
-
+    DrawLine(rightX, topOffset+32, rightX + rightWidth , topOffset+32, currentTheme.gridColor);
 
     if (isRepoChecking) {
-        DrawTextEx(h2font,"Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else if (sel->error) {
-        DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize,0, RED);
+        DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize,0, RED);
     } else if (sel->current_hash[0] == '\0') {
-        DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else {
         const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository (mostra ultimi %d commit)", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovi commit presenti)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (mostra ultimi %d commit)", FETCH_DEPTH));
         
         // messaggio no commit recenti
         //Color statusCol = sel->has_updates ? currentTheme.accentColor : currentTheme.fgColor;
-        DrawTextEx(h2font, TextFormat("Branch: %s - Hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font, TextFormat("Branch: %s - Hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
 
-        DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 56},(float)h3font.baseSize,0, GRAY);
+        DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 64},(float)h3font.baseSize,0, GRAY);
     }
 
     float commitsTop = topOffset + 88.0f; // distanza tra dettagli e lista commit 
@@ -956,7 +957,7 @@ BeginDrawing();
             DrawTextEx(textFont, shortCommit ,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)textFont.baseSize,0, GRAY);
         }
     EndScissorMode();
-    } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2 + 64, (int)screenHeight/2},(float)h2font.baseSize,-1,currentTheme.fgColor);
+    } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2 + 64, (int)screenHeight/2},(float)h2font.baseSize,0,currentTheme.fgColor);
 EndDrawing();
 }
 
