@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.6.0"
+#define TOOL_VERSION            "0.6.2"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -863,15 +863,17 @@ BeginDrawing();
             GuiEnable();
             
             // BADGE
-            if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
+            if (atomic_load(&state.repos[i].checking)) badgeColor = GOLD;
             else if (state.repos[i].error) badgeColor = RED;
             else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
-            else if (state.repos[i].has_updates) badgeColor = GOLD;
+            else if (state.repos[i].has_updates) badgeColor = ORANGE;
             else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
             DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
-            const char *shortName = truncate_url(state.repos[i].url,buf,58);
-            DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
+            const char *shortName = truncate_url(state.repos[i].url,buf,62);
+
+            if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)boldFont.baseSize,-1, fg);
+            else DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);   
         
         } // fine del for (operazioni per tutte le voci della lista)
     EndScissorMode();
@@ -886,7 +888,7 @@ BeginDrawing();
     
     if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) open_url_in_browser(sel->url);
     // URL del repository
-    const char *shortUrl = truncate_url(sel->url,buf,58);
+    const char *shortUrl = truncate_url(sel->url,buf,62);
     DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.fgColor);
 
 
