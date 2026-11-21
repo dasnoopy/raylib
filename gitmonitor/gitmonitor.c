@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.5.4"
+#define TOOL_VERSION            "0.5.6"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -716,6 +716,7 @@ int main(void) {
     //char url_input[MAX_URL_LEN] = { 0 };
     //bool url_edit_mode = false;
     char buf[MAX_URL_LEN + 64];
+    char infoText[1024];
 
     // GuiStyle common settings
     GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
@@ -758,7 +759,7 @@ bool running = atomic_load(&state.is_running);
     // -------------------------------------------------------------------------
     // color GuiStyle widgets
     //--------------------------------------------------------------------------
-    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.bgColor));
+    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(currentTheme.gridBgColor));
 
     GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme.gridColor));
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL,   ColorToInt(currentTheme.gridBgColor));
@@ -825,7 +826,8 @@ BeginDrawing();
 //
 //  STATUS BAR Messages
 //
-    char infoText[1024];
+    // spinner statico in alto a destra
+
     float angle = (float)GetTime() * 360.0f;
     DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 14, currentTheme.gridColor);
 
@@ -854,7 +856,6 @@ BeginDrawing();
     Rectangle leftView = { 0 };
 
     GuiScrollPanel(leftPanelBounds, NULL, leftContentRect, &repo_scroll, &leftView);
-
     BeginScissorMode((int)leftView.x, (int)leftView.y, (int)leftView.width, (int)leftView.height);
     
     // lista dei repository
@@ -891,7 +892,6 @@ BeginDrawing();
 
         // "selezione" repository
         DrawRectangleRec(rowRect, bg);
-
         if (running || !mouseInView) GuiDisable();
         
         //
@@ -949,8 +949,8 @@ BeginDrawing();
     Rectangle commitsContent = { 0, 0, rightWidth - 16, (float)displayCount * commitRowH };
     Rectangle commitsView = { 0 };
 
-        GuiScrollPanel(commitsBounds, NULL, commitsContent, &commit_scroll, &commitsView);
 
+    GuiScrollPanel(commitsBounds, NULL, commitsContent, &commit_scroll, &commitsView);
     BeginScissorMode((int)commitsView.x, (int)commitsView.y, (int)commitsView.width, (int)commitsView.height);
 
         if (!isRepoChecking && displayCount == 0 && !sel->error) {
@@ -990,7 +990,7 @@ BeginDrawing();
             DrawTextEx(textFont, shortCommit ,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)textFont.baseSize,0, GRAY);
         }
     EndScissorMode();
-    } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2, (int)screenHeight/2},(float)h2font.baseSize,-1,currentTheme.fgColor);
+    } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2 + 64, (int)screenHeight/2},(float)h2font.baseSize,-1,currentTheme.fgColor);
 EndDrawing();
 }
 
