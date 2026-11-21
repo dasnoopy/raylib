@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.5.0"
+#define TOOL_VERSION            "0.5.4"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -695,7 +695,7 @@ int main(void) {
     Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font h1font = LoadFontEx("fonts/ManropeV5-ExtraBold.otf", 32, codepoints, glyphCount);
-    Font h2font = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 24, codepoints, glyphCount);
+    Font h2font = LoadFontEx("fonts/ManropeV5-SemiBold.otf", 26, codepoints, glyphCount);
     Font h3font = LoadFontEx("fonts/ManropeV5-Regular.otf", 24, codepoints, glyphCount);
     Font monoFont = LoadFontEx("fonts/SF-Mono-Semibold.ttf",16,codepoints,glyphCount);
 
@@ -713,8 +713,9 @@ int main(void) {
     int selected_repo = (state.count > 0) ? 0 : -1;
     Vector2 repo_scroll = { 0, 0 };
     Vector2 commit_scroll = { 0, 0 };
-    char url_input[MAX_URL_LEN] = { 0 };
-    bool url_edit_mode = false;
+    //char url_input[MAX_URL_LEN] = { 0 };
+    //bool url_edit_mode = false;
+    char buf[MAX_URL_LEN + 64];
 
     // GuiStyle common settings
     GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
@@ -876,8 +877,6 @@ BeginDrawing();
                 commit_scroll = (Vector2){ 0, 0 };
                 start_check(&state, (int)i);
             }
-
-
         GuiEnable();
 
         // selezione del repo dalla lista
@@ -890,14 +889,13 @@ BeginDrawing();
         Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
         Color bg = isSelected ? currentTheme.accentColor : currentTheme.gridBgColor;
 
-        // "selezione" reposito
+        // "selezione" repository
         DrawRectangleRec(rowRect, bg);
 
         if (running || !mouseInView) GuiDisable();
         
         //
-        GuiButton(updateBtnRect, "#77#");
-
+        GuiButton(updateBtnRect, "#77#"); //ridisegna bottone aggiorna
         GuiEnable();
         
         // BADGE
@@ -908,9 +906,8 @@ BeginDrawing();
         else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
         DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
-        char buf[MAX_URL_LEN + 64];
         const char *shortName = truncate_url(state.repos[i].url,buf,58);
-        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 26, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
+        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
     
     } // fine del for (operazioni per tutte le voci della lista)
     EndScissorMode();
@@ -918,19 +915,16 @@ BeginDrawing();
 // --- PANNELLO DESTRO: DETTAGLI E COMMIT ---
     float rightX = leftWidth + 16.0f; // distanza dal pannello di sinistra
     float rightWidth = (float)winW - rightX - 8.0f;
-    Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - (topOffset * 3) };
+    //Rectangle rightPanelBounds = { rightX, topOffset, rightWidth, (float)winH - (topOffset * 3) };
     if (selected_repo >= 0 && (size_t)selected_repo < state.count) {
         RepoStatus *sel = &state.repos[selected_repo];
         bool isRepoChecking = atomic_load(&sel->checking);
-        //Rectangle headerBox = { rightX, topOffset, rightWidth, 98 };
-        //GuiGroupBox(headerBox, "Dettagli Repository");
     
-    if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) {
-        open_url_in_browser(sel->url);
-    }
+    if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) open_url_in_browser(sel->url);
     // URL del repository
-    DrawTextEx(h1font, sel->url,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.accentColor);
-    //DrawLine((int)rightX,(int)topOffset+58,(int)rightX+rightWidth,(int)topOffset+58,currentTheme.gridColor);
+    const char *shortUrl = truncate_url(sel->url,buf,58);
+    DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.fgColor);
+
 
     if (isRepoChecking) {
         DrawTextEx(h2font,"Stato: Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
@@ -943,7 +937,7 @@ BeginDrawing();
         
         // messaggio no commit recenti
         //Color statusCol = sel->has_updates ? currentTheme.accentColor : currentTheme.fgColor;
-        DrawTextEx(h2font, TextFormat("Branch [ %s ] - Hash attuale [ %.12s ]", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font, TextFormat("Branch: %s - Hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
 
         DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 56},(float)h3font.baseSize,0, GRAY);
     }
@@ -986,13 +980,14 @@ BeginDrawing();
                 }
             } else {
                 GuiDisable();
-                GuiButton(commitBtnRect, "#185#");
+                GuiButton(commitBtnRect, "#185#"); // ridisegna bottone apri a fianco del commit
                 GuiEnable();
             }
             // Riga 1: Hash, Data/Ora e Autore
             DrawTextEx(monoFont, TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author),(Vector2){(int)cRect.x + 4, (int)cRect.y + 4},(float)monoFont.baseSize,0, currentTheme.fgColor);
             // Riga 2: Messaggio del commit
-            DrawTextEx(textFont, sel->new_commits[c].message,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)textFont.baseSize,0, GRAY);
+            const char *shortCommit = truncate_url(sel->new_commits[c].message,buf,108);
+            DrawTextEx(textFont, shortCommit ,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)textFont.baseSize,0, GRAY);
         }
     EndScissorMode();
     } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2, (int)screenHeight/2},(float)h2font.baseSize,-1,currentTheme.fgColor);
