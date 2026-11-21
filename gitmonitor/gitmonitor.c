@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.5.6"
+#define TOOL_VERSION            "0.6.0"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -802,27 +802,6 @@ BeginDrawing();
 
     if (!running) GuiEnable();
 
-    float inputWidth = (float)winW - 150.0f;
-    if (inputWidth < 200.0f) inputWidth = 200.0f;
-    
-    // bool submit_url = false;
-    // if (GuiTextBox((Rectangle){ 15, 50, inputWidth, 30 }, url_input, MAX_URL_LEN, url_edit_mode)) {
-    //     url_edit_mode = !url_edit_mode;
-    //     if (!url_edit_mode && IsKeyPressed(KEY_ENTER)) {
-    //         submit_url = true;
-    //     }
-    // }
-        
-    // if (GuiButton((Rectangle){ 15 + inputWidth + 10, 50, 110, 30 }, "#112#Aggiungi") || submit_url) {
-    //     if (add_repository(&state, url_input, &selected_repo)) {
-    //         url_input[0] = '\0';
-    //         url_edit_mode = false;
-    //         commit_scroll = (Vector2){ 0, 0 };
-    //         start_check(&state, selected_repo);
-    //     }
-    // }
-    GuiEnable();
-
 //
 //  STATUS BAR Messages
 //
@@ -835,10 +814,10 @@ BeginDrawing();
         int done = atomic_load(&state.completed_count);
         snprintf(infoText, sizeof(infoText), "Aggiornamento repository in corso: %d / %d repo...", done, state.total_to_check);
         // Draw spinner while checking...
-        DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 270, 14, currentTheme.accentColor);
+        DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 90, 14, currentTheme.accentColor);
     } else {
         if (state.last_check_time[0] != '\0') 
-            snprintf(infoText,sizeof(infoText),"Aggiornamento del/dei repository completato. Data ultima verifica: %s", state.last_check_time);
+            snprintf(infoText,sizeof(infoText),"Aggiornamento dei repository completato. Data ultima verifica: %s", state.last_check_time);
         else 
         snprintf(infoText,sizeof(infoText),"In attesa di aggiornameto  %zu repository (%s). Data ultimo controllo: %s", state.count, REPOS_LIST_FILE, tempBuffer);
     }
@@ -864,52 +843,37 @@ BeginDrawing();
             if (y + itemHeight < leftView.y || y > leftView.y + leftView.height) continue;
             Rectangle rowRect = { leftView.x, y, leftView.width, itemHeight };
             bool isSelected = ((int)i == selected_repo);
-            float singleBtnSize = 24.0f;
-            Rectangle updateBtnRect = { rowRect.x + rowRect.width - singleBtnSize - 6, rowRect.y + (rowRect.height - singleBtnSize) * 0.5f, singleBtnSize, singleBtnSize };
-            
             bool mouseInView = CheckCollisionPointRec(GetMousePosition(), leftView);
-            bool clickedSingleBtn = false;
-            if (running || !mouseInView) GuiDisable();
-            
-            // quando si preme singolo bottone check (uno per repo)
-            if (GuiButton(updateBtnRect, "#77#")) {
-                clickedSingleBtn = true;
+            GuiEnable();
+
+            // selezione del repo dalla lista
+            if (mouseInView && CheckCollisionPointRec(GetMousePosition(), rowRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 selected_repo = (int)i;
                 commit_scroll = (Vector2){ 0, 0 };
-                start_check(&state, (int)i);
             }
-        GuiEnable();
 
-        // selezione del repo dalla lista
-        if (!clickedSingleBtn && mouseInView && CheckCollisionPointRec(GetMousePosition(), rowRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            selected_repo = (int)i;
-            commit_scroll = (Vector2){ 0, 0 };
-        }
+            Color badgeColor = LIGHTGRAY;
+            Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
+            Color bg = isSelected ? currentTheme.accentColor : (i % 2) ? Fade(currentTheme.bgColor, 0.50f) : currentTheme.gridBgColor;
 
-        Color badgeColor = LIGHTGRAY;
-        Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
-        Color bg = isSelected ? currentTheme.accentColor : currentTheme.gridBgColor;
+            // "selezione" repository
+            DrawRectangleRec(rowRect, bg);
+            if (running || !mouseInView) GuiDisable();
+            
+            GuiEnable();
+            
+            // BADGE
+            if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
+            else if (state.repos[i].error) badgeColor = RED;
+            else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
+            else if (state.repos[i].has_updates) badgeColor = GOLD;
+            else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
-        // "selezione" repository
-        DrawRectangleRec(rowRect, bg);
-        if (running || !mouseInView) GuiDisable();
+            DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
+            const char *shortName = truncate_url(state.repos[i].url,buf,58);
+            DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
         
-        //
-        GuiButton(updateBtnRect, "#77#"); //ridisegna bottone aggiorna
-        GuiEnable();
-        
-        // BADGE
-        if (atomic_load(&state.repos[i].checking)) badgeColor = ORANGE;
-        else if (state.repos[i].error) badgeColor = RED;
-        else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
-        else if (state.repos[i].has_updates) badgeColor = GOLD;
-        else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
-
-        DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
-        const char *shortName = truncate_url(state.repos[i].url,buf,58);
-        DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);
-    
-    } // fine del for (operazioni per tutte le voci della lista)
+        } // fine del for (operazioni per tutte le voci della lista)
     EndScissorMode();
 
 // --- PANNELLO DESTRO: DETTAGLI E COMMIT ---
@@ -927,11 +891,11 @@ BeginDrawing();
 
 
     if (isRepoChecking) {
-        DrawTextEx(h2font,"Stato: Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else if (sel->error) {
         DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize,0, RED);
     } else if (sel->current_hash[0] == '\0') {
-        DrawTextEx(h2font,"In attesa di verifica. Premi icona di aggiornamento o 'Aggiorna tutto'.", (Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 28},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else {
         const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository (mostra ultimi %d commit)", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovi commit presenti)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (mostra ultimi %d commit)", FETCH_DEPTH));
         
@@ -961,7 +925,7 @@ BeginDrawing();
             float cy = commitsView.y + commit_scroll.y + (c * commitRowH);
             if (cy + commitRowH < commitsView.y || cy > commitsView.y + commitsView.height) continue;
             Rectangle cRect = { commitsView.x, cy, commitsView.width, commitRowH};
-            DrawRectangleRec(cRect, (c % 2) ? currentTheme.bgColor : currentTheme.gridBgColor);
+            DrawRectangleRec(cRect, (c % 2) ? Fade(currentTheme.bgColor, 0.50f) : currentTheme.gridBgColor);
             float commitBtnW = 24.0f;
             Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 8, cRect.y + 10, commitBtnW, 24 };
            
