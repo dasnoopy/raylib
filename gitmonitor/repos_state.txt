@@ -1,4 +1,4 @@
-https://github.com/dasnoopy/raylib.git 07e2ec347bc235244bf6d71931a9b9686fddec40
+https://github.com/dasnoopy/raylib.git a097424d1fec0273451a758ac7d79c836e130e27
 https://github.com/wingedpanther/cleanmytv.git e2fd7179a1b33c8d40c31edb3809603e98ab0ded
 https://github.com/mierak/rmpc.git 5719367997bc95f59d4d75f9481d128fe5f9179a
 https://github.com/ztrahmet/rounded-window-corners.git f26280d33026ad1fe50000480b14e86239c47528

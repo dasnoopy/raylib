@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.7.4"
+#define TOOL_VERSION            "0.7.6"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -28,7 +28,7 @@
 #include "raygui.h"
 
 // window size (16:9)
-const int screenWidth = 1184; 
+const int screenWidth = 1080; 
 const int screenHeight = 672;
 const int fntSize = 16;
 bool isDarkMode = false;
@@ -774,6 +774,7 @@ while (!WindowShouldClose()) {
     GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
     GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
 
+    float btnWidth = 117.0f;
     //----------------------------------------------------------------------------------
     // Draw
     //----------------------------------------------------------------------------------
@@ -786,13 +787,13 @@ while (!WindowShouldClose()) {
         DrawTextEx(boldFont, TextFormat("%s\tversione %s", TOOL_NAME, TOOL_VERSION), (Vector2){36, 10},(float)boldFont.baseSize,-1,currentTheme.fgColor); 
 
         if (running) GuiDisable();
-            if (GuiButton((Rectangle){ 8, winH-68, 128, 28 }, "#77#Aggiorna tutto")) {
+            if (GuiButton((Rectangle){ 8, winH-68, btnWidth, 28 }, "#77#Aggiorna")) {
             start_check(&state, -1);
             commit_scroll = (Vector2){ 0, 0 };
         }
         if (selected_repo < 0) GuiDisable();
         
-        if (GuiButton((Rectangle){ 274, winH-68, 128, 28 }, "#143#Elimina repo")) {
+        if (GuiButton((Rectangle){ 8 + btnWidth + 4 + btnWidth + 4 , winH-68, btnWidth, 28 }, "#143#Elimina")) {
             remove_repository(&state, &selected_repo);
             commit_scroll = (Vector2){ 0, 0 };
         }
@@ -869,10 +870,10 @@ while (!WindowShouldClose()) {
                 else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
                 DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
-                const char *shortName = truncate_url(state.repos[i].url,buf,62);
+                const char *shortName = truncate_url(state.repos[i].url,buf,58);
 
-                if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)boldFont.baseSize,-1, fg);
-                else DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 6},(float)textFont.baseSize,-1, fg);   
+                if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 5},(float)boldFont.baseSize,-1, fg);
+                else DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 5},(float)textFont.baseSize,-1, fg);   
             
             } // fine del for (operazioni per tutte le voci della lista)
         EndScissorMode();
@@ -884,10 +885,10 @@ while (!WindowShouldClose()) {
             RepoStatus *sel = &state.repos[selected_repo];
             bool isRepoChecking = atomic_load(&sel->checking);
             
-            if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) open_url_in_browser(sel->url);
+            if (GuiButton((Rectangle){ 8 + btnWidth + 4, winH-68, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
            
             // URL MAIN
-            const char *shortUrl = truncate_url(sel->url,buf,54);
+            const char *shortUrl = truncate_url(sel->url,buf,50);
             DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.accentColor);
             DrawLine(rightX, topOffset+32, rightX + rightWidth , topOffset+32, currentTheme.gridColor);
 
@@ -896,7 +897,7 @@ while (!WindowShouldClose()) {
             } else if (sel->error) {
                 DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize,0, RED);
             } else if (sel->current_hash[0] == '\0') {
-                DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
+                DrawTextEx(h2font,"Premi [ Aggiorna ] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
             } else {
                 const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository (mostra ultimi %d commit)", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovi commit presenti)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (mostra ultimi %d commit)", FETCH_DEPTH));
                 
@@ -950,7 +951,7 @@ while (!WindowShouldClose()) {
                     //DrawCircle((int)cRect.x+8,(int)cRect.y+10,4,currentTheme.gridColor);
                     DrawTextEx(commitFont, TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author),(Vector2){(int)cRect.x + 4, (int)cRect.y + 4},(float)commitFont.baseSize,0, currentTheme.accentColor);
                     // Riga 2: Messaggio del commit
-                    const char *shortCommit = truncate_url(sel->new_commits[c].message,buf,96);
+                    const char *shortCommit = truncate_url(sel->new_commits[c].message,buf,88);
                     //DrawCircle((int)cRect.x+8,(int)cRect.y+30,4,currentTheme.gridColor);
                     DrawTextEx(monoFont, TextFormat("# %s", shortCommit) ,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)monoFont.baseSize,-1, currentTheme.fgColor);
                 }
