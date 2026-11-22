@@ -1,6 +1,6 @@
-https://github.com/dasnoopy/raylib.git 70a559d4bae153905d6f76f17e8c1583990686aa
+https://github.com/dasnoopy/raylib.git d1e960227000f005f17fc5d48c6e9e43f2a5d3aa
 https://github.com/wingedpanther/cleanmytv.git e2fd7179a1b33c8d40c31edb3809603e98ab0ded
-https://github.com/mierak/rmpc.git 0083d0394bb3151466a5542734afa558cca41ff6
+https://github.com/mierak/rmpc.git 5719367997bc95f59d4d75f9481d128fe5f9179a
 https://github.com/ztrahmet/rounded-window-corners.git f26280d33026ad1fe50000480b14e86239c47528
 https://github.com/alainm23/planify.git a7828e4ea7c1ea5acacd45f1d99f088f2885cd19
 https://github.com/amit9838/mousam.git 1afbc048c39dcac89b47891b97e47895343861a6
@@ -13,7 +13,7 @@ https://gitlab.gnome.org/World/Shortwave.git ee1e4b774f673380a6943c3a91e791a2171
 https://github.com/karlstav/cava.git 505cbf6dc19be0e0aaf082b5b35f1031102c5e97
 https://gitlab.com/AndrewZaech/azclock.git d31d19d6ecac7616ae45d37ef80cdae97739a47c
 https://github.com/raysan5/raygui.git 2a3c4790c6a887075ee192e44892916ed210c2e6
-https://github.com/PapirusDevelopmentTeam/papirus-icon-theme.git eeaaa6ce113dd0885fa795d64c3c58bf7cd0af23
+https://github.com/PapirusDevelopmentTeam/papirus-icon-theme.git 626182cfe885b7eb2dbb7bcae5cde6d8d1048f2f
 https://github.com/mjakeman/extension-manager.git 07fa3c852ef2038cd969a5519496695045aff54a
 https://gitlab.gnome.org/World/amberol.git bf240557ee846748adc23b61431b4159758b9925
 https://gitlab.gnome.org/World/eartag.git 79087282a746cec2f68336a55412dc44d7e1c5aa

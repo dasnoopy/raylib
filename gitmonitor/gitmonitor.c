@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.6.6"
+#define TOOL_VERSION            "0.7.0"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -696,8 +696,9 @@ int main(void) {
     Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font h1font = LoadFontEx("fonts/InterDisplay-ExtraBold.otf", 32, codepoints, glyphCount);
     Font h2font = LoadFontEx("fonts/InterDisplay-SemiBold.otf", 24, codepoints, glyphCount);
-    Font h3font = LoadFontEx("fonts/InterDisplay-Regular.otf", 24, codepoints, glyphCount);
+    Font h3font = LoadFontEx("fonts/InterDisplay-Regular.otf", 20, codepoints, glyphCount);
     Font monoFont = LoadFontEx("fonts/SF-Mono-Semibold.ttf",16,codepoints,glyphCount);
+    Font commitFont = LoadFontEx("fonts/SF-Mono-Regular.ttf",14,codepoints,glyphCount);
 
     //mkdir(CACHE_DIR, 0755);
     //if(!DirectoryExists(CACHE_DIR)) MakeDirectory(CACHE_DIR);
@@ -713,8 +714,6 @@ int main(void) {
     int selected_repo = (state.count > 0) ? 0 : -1;
     Vector2 repo_scroll = { 0, 0 };
     Vector2 commit_scroll = { 0, 0 };
-    //char url_input[MAX_URL_LEN] = { 0 };
-    //bool url_edit_mode = false;
     char buf[MAX_URL_LEN + 64];
     char infoText[1024];
 
@@ -808,13 +807,13 @@ BeginDrawing();
     // spinner statico in alto a destra
 
     float angle = (float)GetTime() * 360.0f;
-    DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 14, currentTheme.gridColor);
+    DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 16, currentTheme.gridColor);
 
     if (running) {
         int done = atomic_load(&state.completed_count);
         snprintf(infoText, sizeof(infoText), "Aggiornamento repository in corso: %d / %d repo...", done, state.total_to_check);
         // Draw spinner while checking...
-        DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 90, 14, currentTheme.accentColor);
+        DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 90, 18, currentTheme.accentColor);
     } else {
         if (state.last_check_time[0] != '\0') 
             snprintf(infoText,sizeof(infoText),"Aggiornamento dei repository completato. Data ultima verifica: %s", state.last_check_time);
@@ -888,25 +887,25 @@ BeginDrawing();
     
     if (GuiButton((Rectangle){ 140, winH-68, 130, 28 }, "#185#Apri nel browser")) open_url_in_browser(sel->url);
    
-    // URL del repository
-    const char *shortUrl = truncate_url(sel->url,buf,58);
-    DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.fgColor);
+    // URL MAIN
+    const char *shortUrl = truncate_url(sel->url,buf,54);
+    DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.accentColor);
     DrawLine(rightX, topOffset+32, rightX + rightWidth , topOffset+32, currentTheme.gridColor);
 
     if (isRepoChecking) {
-        DrawTextEx(h2font,"Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Verifica in corso sul server remoto...",(Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else if (sel->error) {
-        DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize,0, RED);
+        DrawTextEx(h2font, TextFormat("Errore: %s", sel->error_msg),(Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize,0, RED);
     } else if (sel->current_hash[0] == '\0') {
-        DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font,"Premi [Aggiorna tutto] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
     } else {
         const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository (mostra ultimi %d commit)", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovi commit presenti)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (mostra ultimi %d commit)", FETCH_DEPTH));
         
         // messaggio no commit recenti
         //Color statusCol = sel->has_updates ? currentTheme.accentColor : currentTheme.fgColor;
-        DrawTextEx(h2font, TextFormat("Branch: %s - Hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 38},(float)h2font.baseSize, 0, currentTheme.fgColor);
+        DrawTextEx(h2font, TextFormat("Branch: %s - Hash attuale: %.12s", sel->branch, sel->current_hash),(Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
 
-        DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 64},(float)h3font.baseSize,0, GRAY);
+        DrawTextEx(h3font, statusStr, (Vector2){(int)rightX, (int)topOffset + 64},(float)h3font.baseSize,0, currentTheme.fgColor);
     }
 
     float commitsTop = topOffset + 88.0f; // distanza tra dettagli e lista commit 
@@ -951,10 +950,12 @@ BeginDrawing();
                 GuiEnable();
             }
             // Riga 1: Hash, Data/Ora e Autore
-            DrawTextEx(monoFont, TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author),(Vector2){(int)cRect.x + 4, (int)cRect.y + 4},(float)monoFont.baseSize,0, currentTheme.fgColor);
+            DrawCircle((int)cRect.x+10,(int)cRect.y+10,4,currentTheme.gridColor);
+            DrawTextEx(commitFont, TextFormat("[%s]  %s  -  %s", sel->new_commits[c].short_hash, sel->new_commits[c].date, sel->new_commits[c].author),(Vector2){(int)cRect.x + 24, (int)cRect.y + 4},(float)commitFont.baseSize,0, currentTheme.accentColor);
             // Riga 2: Messaggio del commit
-            const char *shortCommit = truncate_url(sel->new_commits[c].message,buf,108);
-            DrawTextEx(textFont, shortCommit ,(Vector2){(int)cRect.x + 4, (int)cRect.y + 22},(float)textFont.baseSize,0, GRAY);
+            const char *shortCommit = truncate_url(sel->new_commits[c].message,buf,96);
+            DrawCircle((int)cRect.x+10,(int)cRect.y+30,4,currentTheme.gridColor);
+            DrawTextEx(monoFont, shortCommit ,(Vector2){(int)cRect.x + 24, (int)cRect.y + 22},(float)monoFont.baseSize,-1, currentTheme.fgColor);
         }
     EndScissorMode();
     } else DrawTextEx(h2font,"Nessun repository disponibile!",(Vector2){(int)screenWidth/2 + 64, (int)screenHeight/2},(float)h2font.baseSize,0,currentTheme.fgColor);
@@ -975,6 +976,7 @@ EndDrawing();
     UnloadFont(h2font);
     UnloadFont(h3font);
     UnloadFont(monoFont);
+    UnloadFont(commitFont);
     CloseWindow();
     git_libgit2_shutdown();
 return 0;
