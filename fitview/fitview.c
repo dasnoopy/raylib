@@ -211,7 +211,7 @@ int main (void)
     
     RenderTexture target = LoadRenderTexture(screenWidth, screenHeight);  
 
-    // carica fonts con tutti i caraatteri da 32 (spazio) a 255 (caratteri estesi europei)
+    // carica fonts con tutti i caratteri da 32 (spazio) a 255 (caratteri estesi europei)
     int startGlyph = 32;
     int endGlyph = 255;
     int glyphCount = endGlyph - startGlyph + 1;
@@ -650,7 +650,7 @@ while (!WindowShouldClose())
             BeginScissorMode(chartRect.x, chartRect.y, chartRect.width, chartRect.height);
                 if (isTrackLoaded) {
                     Rectangle sourceRec = { 0.0f, 0.0f, (float)targetChart.texture.width, - (float)targetChart.texture.height };
-                    // disegna texture graafico alt / spped
+                    // disegna texture grafico alt / spped
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
                      // tooltip interattivo in tempo reale
                     drawChartTooltip();
@@ -725,7 +725,7 @@ while (!WindowShouldClose())
             if (filterEnabled) snprintf(infoText, sizeof(infoText), "Filtro attivo: %s %04d, %d files presenti.", mesi[selectedMonth], selectedYear, filteredCount);
             else snprintf(infoText, sizeof(infoText), "Filtro non attivo! %d files presenti.", filteredCount);
             GuiStatusBar((Rectangle){ 8, screenHeight-28, filesRect.width, 22 }, infoText);
-
+            // titolo finestra
             DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
             DrawText(TextFormat("vers. %s", TOOL_VERSION), 290, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
