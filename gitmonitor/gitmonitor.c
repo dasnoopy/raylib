@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.8.0"
+#define TOOL_VERSION            "0.8.4"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -31,7 +31,7 @@
 const int screenWidth = 1080; 
 const int screenHeight = 672;
 const int fntSize = 16;
-bool isDarkMode = true;
+bool isDarkMode = true ;
 char tempBuffer[64]= { 0 };
 bool btnQuit = false;
 
@@ -73,7 +73,7 @@ static const colorTheme lightTheme = {
 
 static const colorTheme darkTheme = {
     .accentColorText = (Color){249, 249, 252, 255}, 
-    .accentColor = (Color){191, 97, 106, 255},
+    .accentColor = (Color){94, 129, 172, 255}, 
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -772,10 +772,12 @@ while (!WindowShouldClose()) {
     GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
     GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
 
-    GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,    ColorToInt(currentTheme.fgColor));      
-    GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.bgColor));  
-    GuiSetStyle(BUTTON, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.accentColor));
+    GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,    ColorToInt(currentTheme.fgColor));
     GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.fgColor));
+    GuiSetStyle(BUTTON, BASE_COLOR_NORMAL,   ColorToInt(currentTheme.bgColor));  
+    GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.gridBgColor));  
+    GuiSetStyle(BUTTON, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.accentColor));
+
     
     float btnWidth = 117.0f;
     //----------------------------------------------------------------------------------
@@ -790,7 +792,7 @@ while (!WindowShouldClose()) {
         DrawTextEx(boldFont, TextFormat("%s\tversione %s", TOOL_NAME, TOOL_VERSION), (Vector2){36, 10},(float)boldFont.baseSize,-1,currentTheme.fgColor); 
 
         if (running) GuiDisable();
-            if (GuiButton((Rectangle){ 8, winH-68, btnWidth, 28 }, "#77#Aggiorna")) {
+        if (GuiButton((Rectangle){ 8, winH-68, btnWidth, 28 }, "#77#Aggiorna")) {
             start_check(&state, -1);
             commit_scroll = (Vector2){ 0, 0 };
         }
@@ -814,7 +816,7 @@ while (!WindowShouldClose()) {
             int done = atomic_load(&state.completed_count);
             snprintf(infoText, sizeof(infoText), "Aggiornamento repository in corso: %d / %d repo...", done, state.total_to_check);
             // Draw spinner while checking...
-            DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, angle, angle + 90, 18, currentTheme.accentColor);
+            DrawRing((Vector2){ (float) winW - 24, 24 }, 7, 13, angle, angle + 90, 16, currentTheme.fgColor);
         } else {
             if (state.last_check_time[0] != '\0') 
                 snprintf(infoText,sizeof(infoText),"Aggiornamento dei repository completato. Data ultima verifica: %s", state.last_check_time);
@@ -854,7 +856,7 @@ while (!WindowShouldClose()) {
                     commit_scroll = (Vector2){ 0, 0 };
                 }
 
-                Color badgeColor = (Color){76, 86, 106, 255}; // GRAY
+                Color badgeColor = (Color){204, 208, 218, 255}; // GRAY
                 Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
                 Color bg = isSelected ? currentTheme.accentColor : (i % 2) ? Fade(currentTheme.bgColor, 0.50f) : currentTheme.gridBgColor;
 
@@ -865,11 +867,11 @@ while (!WindowShouldClose()) {
                 GuiEnable();
                 
                 // BADGE
-                if (atomic_load(&state.repos[i].checking)) badgeColor = (Color){235, 203, 139, 255}; //GOLD;
+                if (atomic_load(&state.repos[i].checking)) badgeColor = GOLD;
                 else if (state.repos[i].error) badgeColor = RED;
                 else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
                 else if (state.repos[i].has_updates) badgeColor = ORANGE;
-                else if (state.repos[i].current_hash[0] != '\0') badgeColor = (Color){163, 190, 140, 255}; // LIME;
+                else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
 
                 //DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
                 Vector2 statusOrigin = { statusIcon.width, statusIcon.height };
@@ -891,8 +893,10 @@ while (!WindowShouldClose()) {
             RepoStatus *sel = &state.repos[selected_repo];
             bool isRepoChecking = atomic_load(&sel->checking);
             
+            if (running) GuiDisable();
             if (GuiButton((Rectangle){ 8 + btnWidth + 4, winH-68, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
-           
+            if (!running) GuiEnable();
+            
             // URL MAIN
             const char *shortUrl = truncate_url(sel->url,buf,50);
             DrawTextEx(h1font, shortUrl,(Vector2){(int)rightX, (int)topOffset-4},(float)h1font.baseSize,0, currentTheme.accentColor);

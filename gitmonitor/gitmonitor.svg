@@ -44,7 +44,7 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.15"
-     inkscape:cx="521.73913"
+     inkscape:cx="330"
      inkscape:cy="710.43478"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
@@ -118,19 +118,19 @@
      fill="#aa00ff"
      id="g8"
      transform="matrix(3.59444,0,0,3.59444,41.733441,89.338042)"
-     style="fill:#ffdd55">
+     style="fill:#b3b3b3">
     <circle
        cx="38"
        cy="30"
        r="7"
        id="circle7"
-       style="fill:#ffdd55" />
+       style="fill:#b3b3b3" />
     <circle
        cx="10"
        cy="30"
        r="7"
        id="circle8"
-       style="fill:#ffdd55" />
+       style="fill:#b3b3b3" />
   </g>
   <g
      fill="#ce93d8"
