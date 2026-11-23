@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.8.6"
+#define TOOL_VERSION            "0.8.8"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -29,7 +29,7 @@
 
 // window size (16:9)
 const int screenWidth = 1080; 
-const int screenHeight = 672;
+const int screenHeight = 640;
 const int fntSize = 16;
 bool isDarkMode = false ;
 char tempBuffer[64]= { 0 };
@@ -792,22 +792,20 @@ while (!WindowShouldClose()) {
         DrawTextEx(boldFont, TextFormat("%s\tversione %s", TOOL_NAME, TOOL_VERSION), (Vector2){36, 10},(float)boldFont.baseSize,-1,currentTheme.fgColor); 
 
         if (running) GuiDisable();
-        if (GuiButton((Rectangle){ 8, winH-68, btnWidth, 28 }, "#77#Aggiorna")) {
+        if (GuiButton((Rectangle){ 8, winH-34, btnWidth, 28 }, "#77#Aggiorna")) {
             start_check(&state, -1);
             commit_scroll = (Vector2){ 0, 0 };
         }
         if (selected_repo < 0) GuiDisable();
         
-        if (GuiButton((Rectangle){ 8 + btnWidth + 4 + btnWidth + 4 , winH-68, btnWidth, 28 }, "#143#Elimina")) {
+        if (GuiButton((Rectangle){ 8 + btnWidth + 4 + btnWidth + 4 , winH-34, btnWidth, 28 }, "#143#Elimina")) {
             remove_repository(&state, &selected_repo);
             commit_scroll = (Vector2){ 0, 0 };
         }
 
         if (!running) GuiEnable();
 
-        //
-        //  STATUS BAR Messages
-        //
+    
         // spinner statico in alto a destra
         float angle = (float)GetTime() * 360.0f;
         DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 16, currentTheme.gridColor);
@@ -823,17 +821,19 @@ while (!WindowShouldClose()) {
             else 
             snprintf(infoText,sizeof(infoText),"In attesa di aggiornamento di %zu repository (%s). Data ultimo controllo: %s", state.count, REPOS_LIST_FILE, tempBuffer);
         }
-
-        GuiStatusBar((Rectangle){ 8, winH-32, winW-16, 22 }, infoText);
+        //
+        //  STATUS BAR Messages
+        //
+        GuiStatusBar((Rectangle){ 376, winH-34, winW-383, 28 }, infoText);
 
     // posizionamento pannelli centrali
-        float topOffset = 36.0f; // posizione Y pannelli centrali
+        float topOffset = 34.0f; // posizione Y pannelli centrali
         float leftWidth = screenWidth / 3.0f; // divisione  tra pannelli sx e dx
         float rightX = leftWidth + 16.0f; // distanza dal pannello di sinistra
         float rightWidth = (float)(screenWidth-leftWidth) - 23.0f;
 
     // --- PANNELLO SINISTRO: LISTA REPOSITORY ---
-        Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - (topOffset * 3) };
+        Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - (topOffset * 2) - 6};
         float itemHeight = 24.0f; // altezza singola "voce" della lista repo
         Rectangle leftContentRect = { 0, 0, leftWidth - 14, (float)state.count * itemHeight };
         Rectangle leftView = { 0 };
@@ -894,7 +894,7 @@ while (!WindowShouldClose()) {
             bool isRepoChecking = atomic_load(&sel->checking);
             
             if (running) GuiDisable();
-            if (GuiButton((Rectangle){ 8 + btnWidth + 4, winH-68, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
+            if (GuiButton((Rectangle){ 8 + btnWidth + 4, winH-34, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
             if (!running) GuiEnable();
             
             // URL MAIN
@@ -933,7 +933,7 @@ while (!WindowShouldClose()) {
                     float cy = commitsView.y + commit_scroll.y + (c * commitRowH);
                     if (cy + commitRowH < commitsView.y || cy > commitsView.y + commitsView.height) continue;
                     Rectangle cRect = { commitsView.x, cy, commitsView.width, commitRowH};
-                    DrawRectangleRec(cRect, (c % 2) ? Fade(currentTheme.bgColor, 0.50f) : currentTheme.gridBgColor);
+                    if (c % 2) DrawRectangleRec(cRect, Fade(currentTheme.bgColor, 0.50f));
                     float commitBtnW = 24.0f;
                     Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 8, cRect.y + 10, commitBtnW, 24 };
                    
