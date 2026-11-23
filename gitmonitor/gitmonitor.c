@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.8.4"
+#define TOOL_VERSION            "0.8.6"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -31,7 +31,7 @@
 const int screenWidth = 1080; 
 const int screenHeight = 672;
 const int fntSize = 16;
-bool isDarkMode = true ;
+bool isDarkMode = false ;
 char tempBuffer[64]= { 0 };
 bool btnQuit = false;
 
@@ -691,8 +691,8 @@ int main(void) {
     int *codepoints = (int *)malloc(sizeof(int) * glyphCount);
     for (int i = 0; i < glyphCount; i++) codepoints[i] = startGlyph + i;
 
-    Font textFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,codepoints, glyphCount); // all other text
-    Font boldFont = LoadFontEx("fonts/PixelOperator-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
+    Font textFont = LoadFontEx("fonts/PixelOperatorSC.ttf", fntSize,codepoints, glyphCount); // all other text
+    Font boldFont = LoadFontEx("fonts/PixelOperatorSC-Bold.ttf", fntSize,codepoints, glyphCount); // all other text
     Font h1font = LoadFontEx("fonts/InterDisplay-ExtraBold.otf", 32, codepoints, glyphCount);
     Font h2font = LoadFontEx("fonts/InterDisplay-SemiBold.otf", 24, codepoints, glyphCount);
     Font h3font = LoadFontEx("fonts/InterDisplay-Regular.otf", 20, codepoints, glyphCount);
@@ -834,7 +834,7 @@ while (!WindowShouldClose()) {
 
     // --- PANNELLO SINISTRO: LISTA REPOSITORY ---
         Rectangle leftPanelBounds = { 8, topOffset, leftWidth, (float)winH - (topOffset * 3) };
-        float itemHeight = 28.0f; // altezza singola "voce" della lista repo
+        float itemHeight = 24.0f; // altezza singola "voce" della lista repo
         Rectangle leftContentRect = { 0, 0, leftWidth - 14, (float)state.count * itemHeight };
         Rectangle leftView = { 0 };
 
@@ -875,13 +875,13 @@ while (!WindowShouldClose()) {
 
                 //DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
                 Vector2 statusOrigin = { statusIcon.width, statusIcon.height };
-                Vector2 statusPos = {(int)rowRect.x + 20, (int)rowRect.y + 22};
+                Vector2 statusPos = {(int)rowRect.x + 20, (int)rowRect.y + 20};
                 DrawTexturePro(statusIcon, (Rectangle){ 0, 0, statusIcon.width, statusIcon.height }, (Rectangle){ statusPos.x, statusPos.y, 16, 16 },  statusOrigin, 0.0f, badgeColor );
 
-                const char *shortName = truncate_url(state.repos[i].url,buf,58);
+                const char *shortName = truncate_url(state.repos[i].url,buf,56);
 
-                if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 5},(float)boldFont.baseSize,-1, fg);
-                else DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 5},(float)textFont.baseSize,-1, fg);   
+                if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 2},(float)boldFont.baseSize,-1, fg);
+                else DrawTextEx(textFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 2},(float)textFont.baseSize,-1, fg);   
             
             } // fine del for (operazioni per tutte le voci della lista)
         EndScissorMode();
