@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.7.8"
+#define TOOL_VERSION            "0.8.0"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -63,7 +63,7 @@ typedef struct {
 
 static const colorTheme lightTheme = {
     .accentColorText = (Color){249, 249, 252, 255}, 
-    .accentColor = (Color){53, 132, 228, 255}, 
+    .accentColor = (Color){94, 129, 172, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -73,7 +73,7 @@ static const colorTheme lightTheme = {
 
 static const colorTheme darkTheme = {
     .accentColorText = (Color){249, 249, 252, 255}, 
-    .accentColor = (Color){237, 91, 0, 255},
+    .accentColor = (Color){191, 97, 106, 255},
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -675,7 +675,6 @@ void start_check(AppState *state, int target_idx) {
     pthread_detach(coord);
 }
 
-
 int main(void) {
 
      // Set configuration flags for window creation
@@ -700,8 +699,7 @@ int main(void) {
     Font monoFont = LoadFontEx("fonts/SF-Mono-Semibold.ttf",16,codepoints,glyphCount);
     Font commitFont = LoadFontEx("fonts/SF-Mono-Regular.ttf",14,codepoints,glyphCount);
 
-    //mkdir(CACHE_DIR, 0755);
-    //if(!DirectoryExists(CACHE_DIR)) MakeDirectory(CACHE_DIR);
+    Texture2D statusIcon= LoadTexture("assets/status.png"); 
 
     ApplyTheme(&currentTheme, isDarkMode);
 
@@ -777,6 +775,7 @@ while (!WindowShouldClose()) {
     GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,    ColorToInt(currentTheme.fgColor));      
     GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.bgColor));  
     GuiSetStyle(BUTTON, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.accentColor));
+    GuiSetStyle(BUTTON, TEXT_COLOR_FOCUSED,   ColorToInt(currentTheme.fgColor));
     
     float btnWidth = 117.0f;
     //----------------------------------------------------------------------------------
@@ -855,7 +854,7 @@ while (!WindowShouldClose()) {
                     commit_scroll = (Vector2){ 0, 0 };
                 }
 
-                Color badgeColor = LIGHTGRAY;
+                Color badgeColor = (Color){76, 86, 106, 255}; // GRAY
                 Color fg = isSelected ? currentTheme.accentColorText : currentTheme.fgColor;
                 Color bg = isSelected ? currentTheme.accentColor : (i % 2) ? Fade(currentTheme.bgColor, 0.50f) : currentTheme.gridBgColor;
 
@@ -866,13 +865,17 @@ while (!WindowShouldClose()) {
                 GuiEnable();
                 
                 // BADGE
-                if (atomic_load(&state.repos[i].checking)) badgeColor = GOLD;
+                if (atomic_load(&state.repos[i].checking)) badgeColor = (Color){235, 203, 139, 255}; //GOLD;
                 else if (state.repos[i].error) badgeColor = RED;
                 else if (state.repos[i].is_new_repo) badgeColor = SKYBLUE;
                 else if (state.repos[i].has_updates) badgeColor = ORANGE;
-                else if (state.repos[i].current_hash[0] != '\0') badgeColor = GREEN;
+                else if (state.repos[i].current_hash[0] != '\0') badgeColor = (Color){163, 190, 140, 255}; // LIME;
 
-                DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
+                //DrawCircleV((Vector2){(int)rowRect.x + 12, (int)rowRect.y + 14}, 6.0f,badgeColor);
+                Vector2 statusOrigin = { statusIcon.width, statusIcon.height };
+                Vector2 statusPos = {(int)rowRect.x + 20, (int)rowRect.y + 22};
+                DrawTexturePro(statusIcon, (Rectangle){ 0, 0, statusIcon.width, statusIcon.height }, (Rectangle){ statusPos.x, statusPos.y, 16, 16 },  statusOrigin, 0.0f, badgeColor );
+
                 const char *shortName = truncate_url(state.repos[i].url,buf,58);
 
                 if (state.repos[i].has_updates) DrawTextEx(boldFont, shortName,(Vector2){(int)rowRect.x + 24, (int)rowRect.y + 5},(float)boldFont.baseSize,-1, fg);
@@ -978,6 +981,7 @@ while (!WindowShouldClose()) {
     UnloadFont(h3font);
     UnloadFont(monoFont);
     UnloadFont(commitFont);
+    UnloadTexture(statusIcon);
     CloseWindow();
     git_libgit2_shutdown();
 return 0;
