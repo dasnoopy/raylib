@@ -1,10 +1,10 @@
-https://github.com/dasnoopy/raylib.git 6468e322a29d853d426c289e831cffd1676d26a6
+https://github.com/dasnoopy/raylib.git 8e1f91732acab669d2086726ecb8421e8e386da3
 https://github.com/wingedpanther/cleanmytv.git e2fd7179a1b33c8d40c31edb3809603e98ab0ded
-https://github.com/mierak/rmpc.git 071d449c371db7b927cb1b2747e8d5dec7a17765
+https://github.com/mierak/rmpc.git 3f4bd1f867d4ccb419c11cc3e87903771d472b4b
 https://github.com/ztrahmet/rounded-window-corners.git f26280d33026ad1fe50000480b14e86239c47528
 https://github.com/alainm23/planify.git a7828e4ea7c1ea5acacd45f1d99f088f2885cd19
 https://github.com/amit9838/mousam.git 1afbc048c39dcac89b47891b97e47895343861a6
-https://codeberg.org/ckruse/Gitte.git e221d32b34fdbae992fc19f813beb00d72b52da2
+https://codeberg.org/ckruse/Gitte.git e2facfa48c3bb2f9cecf43853c374c6a9589d7a8
 https://gitlab.gnome.org/GNOME/meld.git f8420e793c9f7b52b5dc59db75150f365db6a270
 https://github.com/tanaybhomia/Whisp.git 8377ddb1531612ed056b3d23e1dc006bff7c3ea8
 https://github.com/pdfarranger/pdfarranger.git ee35719b6ee68537c098858e693264e803e82c87

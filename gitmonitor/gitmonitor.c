@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.7.6"
+#define TOOL_VERSION            "0.7.8"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -31,7 +31,7 @@
 const int screenWidth = 1080; 
 const int screenHeight = 672;
 const int fntSize = 16;
-bool isDarkMode = false;
+bool isDarkMode = true;
 char tempBuffer[64]= { 0 };
 bool btnQuit = false;
 
@@ -774,6 +774,10 @@ while (!WindowShouldClose()) {
     GuiSetStyle(DEFAULT, BASE_COLOR_DISABLED,   ColorToInt(currentTheme.gridBgColor));
     GuiSetStyle(DEFAULT, TEXT_COLOR_DISABLED,   ColorToInt(currentTheme.gridColor));
 
+    GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL,    ColorToInt(currentTheme.fgColor));      
+    GuiSetStyle(BUTTON, BASE_COLOR_FOCUSED,   ColorToInt(currentTheme.bgColor));  
+    GuiSetStyle(BUTTON, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme.accentColor));
+    
     float btnWidth = 117.0f;
     //----------------------------------------------------------------------------------
     // Draw
@@ -800,11 +804,10 @@ while (!WindowShouldClose()) {
 
         if (!running) GuiEnable();
 
-    //
-    //  STATUS BAR Messages
-    //
+        //
+        //  STATUS BAR Messages
+        //
         // spinner statico in alto a destra
-
         float angle = (float)GetTime() * 360.0f;
         DrawRing((Vector2){ (float) winW - 24, 24 }, 8, 12, 0.0f,360.0f , 16, currentTheme.gridColor);
 
