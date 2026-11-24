@@ -160,6 +160,7 @@ static int totalFilesCount = 0;
 static int filteredIndices[MAX_FILES];
 static int filteredCount = 0;
 
+// variabili per gestire doppio click su filename
 static int lastClickedIndex = -1;
 static double lastClickTime = 0.0;
 const double DOUBLE_CLICK_DELAY = 0.28; // 280 ms
@@ -185,6 +186,9 @@ const char *mesi[] = {
     "Settembre", "Ottobre", "Novembre", "Dicembre"
 };
 
+/* -----------------------------------------------------------------------------
+                        Function declaration
+----------------------------------------------------------------------------- */
 void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom);
 void calcMinimap (Texture2D mapTexture);
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
@@ -272,10 +276,10 @@ int main (void)
     // usati nel filtro dei file
     time_t now = time (NULL);
     struct tm *t = localtime(&now);
-    int currentMonth = t->tm_mon + 1; // current month
+    //int currentMonth = t->tm_mon + 1; // current month
     int currentYear = t->tm_year + 1900; // current year
 
-    selectedMonth = currentMonth;
+    selectedMonth = 0; //currentMonth;
     selectedYear = currentYear;
 
     // Applica il filtro iniziale in base a bool filterEnable...
@@ -319,7 +323,7 @@ while (!WindowShouldClose())
 
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
-            SetMouseCursor(3);
+            SetMouseCursor(4);
             if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
             if (IsKeyPressed(KEY_X) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
             if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapRect, 1.0f, &minZoom);    
@@ -379,13 +383,13 @@ while (!WindowShouldClose())
                 if (maxOffset < 0) maxOffset = 0;
                 int activatedFileIndex = -1;
 
-                // --- 1. INPUT MOUSE (Dentro l'area della lista) ---
+                // mouse dentro l'area della lista files...
                 if (CheckCollisionPointRec(thisPos, filesRect))
                 {
                     // Scroll libero con la rotellina (sposta la vista senza cambiare selectedIndex)
                     float wheel = GetMouseWheelMove();
                     if (wheel != 0.0f) {
-                        scrollOffset -= (int)wheel * 1; // Scorre di 3 righe per scatto (puoi mettere 1 se preferisci)
+                        scrollOffset -= (int)wheel * 1; // velocità scroll in righe 
                         if (scrollOffset < 0) scrollOffset = 0;
                         if (scrollOffset > maxOffset) scrollOffset = maxOffset;
                     }
@@ -449,7 +453,6 @@ while (!WindowShouldClose())
                         selectionChangedByKey = true;
                     }
 
-                    // --- ALLINEAMENTO AUTOMATICO DELLO SCROLL ---
                     // Riporta `selectedIndex` dentro l'area visibile SOLO se l'utente ha premuto un tasto di navigazione
                     if (selectionChangedByKey)
                     {
@@ -541,7 +544,7 @@ while (!WindowShouldClose())
                         // prima disegna traccia e dopo le label : due for separati per evitare glitch grafici
                         for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
                         
-                        // punto/posizone sulla traccia
+                        // punto/posizione sulla traccia che scorre in base alla posizione del mous sul grafico altimetria/velocita
                         DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, isDarkMode?lightTheme.accentColor:darkTheme.accentColor);
                         DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
                         
@@ -693,7 +696,7 @@ while (!WindowShouldClose())
             // la ricerca va fatta una sola volta
             GuiCheckBox((Rectangle){ 14, 678, 16, 16 }, "Filtro ", &filterEnabled);
             if (!filterEnabled) {
-                 selectedMonth = currentMonth;
+                 selectedMonth = 0;//currentMonth;
                  selectedYear = currentYear;
                  GuiDisable();
             }

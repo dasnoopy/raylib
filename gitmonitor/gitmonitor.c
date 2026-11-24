@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "GIT MONITOR"
 #define TOOL_SHORT_NAME         "gitmonitor"
-#define TOOL_VERSION            "0.9.0"
+#define TOOL_VERSION            "0.9.1"
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
@@ -896,7 +896,7 @@ while (!WindowShouldClose()) {
             bool isRepoChecking = atomic_load(&sel->checking);
             
             if (running) GuiDisable();
-            if (GuiButton((Rectangle){ 8 + btnWidth + 4, winH-34, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
+            if (GuiButton((Rectangle){ btnWidth + 12, winH - 34, btnWidth, 28 }, "#185#Apri link")) open_url_in_browser(sel->url);
             if (!running) GuiEnable();
             
             // URL MAIN
@@ -911,7 +911,7 @@ while (!WindowShouldClose()) {
             } else if (sel->current_hash[0] == '\0') {
                 DrawTextEx(h2font,"Premi [ Aggiorna ] per aggiornare lo stato dei repository.", (Vector2){(int)rightX, (int)topOffset + 36},(float)h2font.baseSize, 0, currentTheme.fgColor);
             } else {
-                const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository (lista %d commit recenti)", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato (%d nuovo/i commit presenti)", sel->new_commits_count) : TextFormat("Nessun nuovo commit (lista %d commit recenti)", FETCH_DEPTH));
+                const char *statusStr = sel->is_new_repo ? TextFormat("Nuovo repository: mostra ultimi %2d commit.", FETCH_DEPTH) : (sel->has_updates ? TextFormat("Repository aggiornato: presenti %2d nuovi commit.", sel->new_commits_count) : TextFormat("Nessun nuovo commit presente: mostra ultimi %2d commit.", FETCH_DEPTH));
                 
                 // messaggio no commit recenti
                 //Color statusCol = sel->has_updates ? currentTheme.accentColor : currentTheme.fgColor;
@@ -937,7 +937,7 @@ while (!WindowShouldClose()) {
                     Rectangle cRect = { commitsView.x, cy, commitsView.width, commitRowH};
                     if (c % 2) DrawRectangleRec(cRect, Fade(currentTheme.bgColor, 0.50f));
                     float commitBtnW = 24.0f;
-                    Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 6, cRect.y + 10, commitBtnW, 24 };
+                    Rectangle commitBtnRect = { cRect.x + cRect.width - commitBtnW - 6, cRect.y + 10, commitBtnW, commitBtnW };
                    
                     if (CheckCollisionPointRec(GetMousePosition(), commitsView)) {
                         if (GuiButton(commitBtnRect, "#185#")) {

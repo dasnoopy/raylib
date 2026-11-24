@@ -1,8 +1,8 @@
-https://github.com/dasnoopy/raylib.git b98a5dd3980fa2b2ef64f179b0db034af0115dc5
+https://github.com/dasnoopy/raylib.git 28101f474482c8bb61caf42789f0907f02e252ca
 https://github.com/wingedpanther/cleanmytv.git e2fd7179a1b33c8d40c31edb3809603e98ab0ded
 https://github.com/mierak/rmpc.git 3f4bd1f867d4ccb419c11cc3e87903771d472b4b
 https://github.com/ztrahmet/rounded-window-corners.git f26280d33026ad1fe50000480b14e86239c47528
-https://github.com/alainm23/planify.git b5cf04257ffe4e40eaba4f60dd566f6643f4b764
+https://github.com/alainm23/planify.git c48e3c41c078f7c550d4dbc51c44a6d5a0f1aa42
 https://github.com/amit9838/mousam.git 1afbc048c39dcac89b47891b97e47895343861a6
 https://codeberg.org/ckruse/Gitte.git e2facfa48c3bb2f9cecf43853c374c6a9589d7a8
 https://gitlab.gnome.org/GNOME/meld.git f8420e793c9f7b52b5dc59db75150f365db6a270
