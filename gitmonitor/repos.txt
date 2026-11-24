@@ -20,7 +20,6 @@ https://gitlab.gnome.org/World/amberol.git
 https://gitlab.gnome.org/World/eartag.git
 https://gitlab.gnome.org/TheEvilSkeleton/Refine.git
 https://github.com/herve4m/length.git
-https://gitlab.gnome.org/GNOME/gnome-tweaks.git
 https://gitlab.gnome.org/neithern/g4music.git
 https://github.com/nokyan/resources.git
 https://github.com/GeopJr/Collision.git
