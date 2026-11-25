@@ -6,7 +6,7 @@ BUILD   := build
 CFLAGS  := -std=c99 -Wall -Wextra -O2 -I. -Iinclude
 
 # Flag del linker per Arch Linux (raylib + librerie di sistema)
-LDFLAGS := -lraylib -lGL -lm -lpthread -ldl -lrt
+LDFLAGS := -lraylib -lcurl -lGL -lm -lpthread -ldl -lrt
 
 ifneq ($(OS),Windows_NT)
 	CFLAGS += -DFIT_USE_STDINT_H

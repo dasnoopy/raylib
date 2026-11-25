@@ -9,7 +9,10 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "2.3.4"
+#define TOOL_VERSION            "3.0.5"
+
+#define _DEFAULT_SOURCE
+#define _POSIX_C_SOURCE 200809L
 
 #include <raylib.h>
 #include <raymath.h>
@@ -19,6 +22,17 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#include <curl/curl.h>
+#include <pthread.h>
+#include <string.h>
+#include <math.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -42,26 +56,8 @@ Rectangle chartRect = {354,506,822,196};  // bottom/right
 
 const int fntSize = 16;
 char tempBuffer[64];
-bool showMinimap = false;
 bool showKM=false;
 bool isDarkMode = false;
-
-float minZoomX;
-float minZoomY;
-float minZoom;
-const float stepZoom = 0.20f;
-const float maxZoom = 5.0f;
-
-//mimimap variables
-const float maxMapSize = 172.0f; 
-float miniMapX;
-float miniMapY;
-float miniMapWidth;
-float miniMapHeight;
-float aspectRatio;
-
-float scaleX;
-float scaleY;
 
 typedef struct {
     Color accentColor;
@@ -73,7 +69,7 @@ typedef struct {
 } colorTheme;
 
 static const colorTheme lightTheme = {
-    .accentColor = (Color){53, 132, 228, 255}, 
+    .accentColor = (Color){94, 129, 172, 255}, 
     .fgColor = (Color){55, 65, 70, 255},
     .bgColor = (Color){218, 227, 227, 255},
     .borderColor = (Color){76, 86, 106, 255},
@@ -82,7 +78,7 @@ static const colorTheme lightTheme = {
 };
 
 static const colorTheme darkTheme = {
-    .accentColor = (Color){237, 91, 0, 255},
+    .accentColor = (Color){208, 135, 112, 255}, 
     .fgColor = (Color){216, 222, 233, 255},
     .bgColor = (Color){50, 55, 66, 255},
     .borderColor = (Color){116, 122, 133, 255},
@@ -186,13 +182,279 @@ const char *mesi[] = {
     "Settembre", "Ottobre", "Novembre", "Dicembre"
 };
 
+// --- CONFIGURAZIONE ---
+#define TILE_SIZE 256
+#define MIN_ZOOM 5
+#define MAX_ZOOM 17          // OpenTopoMap supporta fino a zoom 17
+#define MAX_RAM_TILES 256    // Cache GPU estesa (~64 MB VRAM) per mantenere i tile padre
+#define MAX_QUEUE_SIZE 64    // Coda massima richieste download
+#define CACHE_DIR ".tile_cache"
+
+// --- STRUTTURE DATI ---
+typedef struct {
+    int z, x, y;
+    Texture2D tex;
+    bool inUse;
+    unsigned long lastUsedFrame;
+} CachedTile;
+
+typedef struct {
+    int z, x, y;
+    bool active;
+} DownloadJob;
+
+// --- STATO GLOBALE CACHE E THREADING ---
+static CachedTile ramCache[MAX_RAM_TILES] = {0};
+static DownloadJob downloadQueue[MAX_QUEUE_SIZE] = {0};
+static int queueCount = 0;
+
+static pthread_mutex_t queueMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t queueCond = PTHREAD_COND_INITIALIZER;
+static bool workerRunning = true;
+
+// --- FUNZIONI MATEMATICHE WEB MERCATOR ---
+void LatLonToWorldPixel(double lat, double lon, int zoom, double *px, double *py) {
+    double n = pow(2.0, zoom);
+    double tileX = (lon + 180.0) / 360.0 * n;
+    double latRad = lat * M_PI / 180.0;
+    double tileY = (1.0 - asinh(tan(latRad)) / M_PI) / 2.0 * n;
+
+    *px = tileX * TILE_SIZE;
+    *py = tileY * TILE_SIZE;
+}
+
+// Calcola i limiti (bounding box) di un array di punti GPS
+void ComputeTrackBounds(const Vector2 *points, int count, double *minLat, double *maxLat, double *minLon, double *maxLon) {
+    if (count <= 0) return;
+    *minLat = *maxLat = points[0].x;
+    *minLon = *maxLon = points[0].y;
+
+    for (int i = 1; i < count; i++) {
+        if (points[i].x < *minLat) *minLat = points[i].x;
+        if (points[i].x > *maxLat) *maxLat = points[i].x;
+        if (points[i].y < *minLon) *minLon = points[i].y;
+        if (points[i].y > *maxLon) *maxLon = points[i].y;
+    }
+}
+
+// Calcola lo zoom massimo in cui rientra l'intera traccia e centra la telecamera
+void FitTrackToScreen(double minLat, double maxLat, double minLon, double maxLon,
+                      int screenW, int screenH, int paddingPx,
+                      int *outZoom, double *outCamX, double *outCamY) {
+    int availW = screenW - paddingPx * 2;
+    int availH = screenH - paddingPx * 2;
+    if (availW < 64) availW = 64;
+    if (availH < 64) availH = 64;
+
+    int bestZoom = MIN_ZOOM;
+
+    for (int z = MAX_ZOOM; z >= MIN_ZOOM; z--) {
+        double x1, y1, x2, y2;
+        LatLonToWorldPixel(maxLat, minLon, z, &x1, &y1);
+        LatLonToWorldPixel(minLat, maxLon, z, &x2, &y2);
+
+        double widthPx = fabs(x2 - x1);
+        double heightPx = fabs(y2 - y1);
+
+        if (widthPx <= availW && heightPx <= availH) {
+            bestZoom = z;
+            break;
+        }
+    }
+
+    double xMin, yMin, xMax, yMax;
+    LatLonToWorldPixel(maxLat, minLon, bestZoom, &xMin, &yMin);
+    LatLonToWorldPixel(minLat, maxLon, bestZoom, &xMax, &yMax);
+
+    *outZoom = bestZoom;
+    *outCamX = (xMin + xMax) / 2.0;
+    *outCamY = (yMin + yMax) / 2.0;
+}
+
+// --- GESTIONE DOWNLOAD ASINCRONO (LIBCURL) ---
+static size_t WriteFileCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
+    return fwrite(ptr, size, nmemb, (FILE *)stream);
+}
+
+static bool IsTileQueued(int z, int x, int y) {
+    for (int i = 0; i < queueCount; i++) {
+        if (downloadQueue[i].z == z && downloadQueue[i].x == x && downloadQueue[i].y == y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void EnqueueTileDownload(int z, int x, int y) {
+    pthread_mutex_lock(&queueMutex);
+    if (!IsTileQueued(z, x, y) && queueCount < MAX_QUEUE_SIZE) {
+        downloadQueue[queueCount++] = (DownloadJob){z, x, y, true};
+        pthread_cond_signal(&queueCond);
+    }
+    pthread_mutex_unlock(&queueMutex);
+}
+
+static void *DownloadWorker(void *arg) {
+    (void)arg;
+    CURL *curl = curl_easy_init();
+    if (!curl) return NULL;
+
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "RaylibGPSViewer/1.0 (Linux; C99)");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFileCallback);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+    const char subdomains[3] = {'a', 'b', 'c'};
+
+    while (workerRunning) {
+        pthread_mutex_lock(&queueMutex);
+        while (queueCount == 0 && workerRunning) {
+            pthread_cond_wait(&queueCond, &queueMutex);
+        }
+        if (!workerRunning) {
+            pthread_mutex_unlock(&queueMutex);
+            break;
+        }
+
+        DownloadJob job = downloadQueue[0];
+        for (int i = 1; i < queueCount; i++) {
+            downloadQueue[i - 1] = downloadQueue[i];
+        }
+        queueCount--;
+        pthread_mutex_unlock(&queueMutex);
+
+        char finalPath[256];
+        char tempPath[256];
+        snprintf(finalPath, sizeof(finalPath), "%s/otm_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
+        snprintf(tempPath, sizeof(tempPath), "%s/tmp_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
+
+        if (access(finalPath, F_OK) == 0) continue;
+
+        char url[256];
+        char sub = subdomains[(job.x + job.y) % 3];
+        snprintf(url, sizeof(url), "https://%c.tile.opentopomap.org/%d/%d/%d.png", sub, job.z, job.x, job.y);
+        //snprintf(url, sizeof(url), "https://%c.tile-cyclosm.openstreetmap.fr/cyclosm/%d/%d/%d.png", sub, job.z, job.x, job.y);
+
+
+        FILE *fp = fopen(tempPath, "wb");
+        if (fp) {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+            CURLcode res = curl_easy_perform(curl);
+
+            long httpCode = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+            fclose(fp);
+
+            if (res == CURLE_OK && httpCode == 200) {
+                rename(tempPath, finalPath);
+            } else {
+                remove(tempPath);
+            }
+        }
+    }
+
+    curl_easy_cleanup(curl);
+    return NULL;
+}
+
+// --- GESTIONE CACHE TEXTURE IN GPU & FALLBACK SCALING ---
+static Texture2D *FindTileInRamOnly(int z, int x, int y, unsigned long currentFrame) {
+    for (int i = 0; i < MAX_RAM_TILES; i++) {
+        if (ramCache[i].inUse && ramCache[i].z == z && ramCache[i].x == x && ramCache[i].y == y) {
+            ramCache[i].lastUsedFrame = currentFrame;
+            return &ramCache[i].tex;
+        }
+    }
+    return NULL;
+}
+
+static Texture2D *GetTileTexture(int z, int x, int y, unsigned long currentFrame) {
+    // 1. Cerca nella cache RAM/GPU
+    Texture2D *cached = FindTileInRamOnly(z, x, y, currentFrame);
+    if (cached) return cached;
+
+    // 2. Controlla se il file esiste su disco
+    char path[256];
+    snprintf(path, sizeof(path), "%s/otm_%d_%d_%d.png", CACHE_DIR, z, x, y);
+
+    if (FileExists(path)) {
+        int targetIdx = -1;
+        unsigned long oldestFrame = currentFrame + 1;
+
+        for (int i = 0; i < MAX_RAM_TILES; i++) {
+            if (!ramCache[i].inUse) {
+                targetIdx = i;
+                break;
+            }
+            // Protegge i tile usati nel frame corrente o appena precedente (inclusi i tile padre)
+            if (ramCache[i].lastUsedFrame < oldestFrame && (currentFrame - ramCache[i].lastUsedFrame) > 2) {
+                oldestFrame = ramCache[i].lastUsedFrame;
+                targetIdx = i;
+            }
+        }
+
+        // Fallback se tutti gli slot sono stati usati negli ultimi 2 frame
+        if (targetIdx == -1) {
+            for (int i = 0; i < MAX_RAM_TILES; i++) {
+                if (ramCache[i].lastUsedFrame < oldestFrame) {
+                    oldestFrame = ramCache[i].lastUsedFrame;
+                    targetIdx = i;
+                }
+            }
+        }
+
+        if (targetIdx != -1) {
+            if (ramCache[targetIdx].inUse) {
+                UnloadTexture(ramCache[targetIdx].tex);
+            }
+            Texture2D tex = LoadTexture(path);
+            if (tex.id > 0) {
+                SetTextureFilter(tex, TEXTURE_FILTER_BILINEAR);
+                ramCache[targetIdx] = (CachedTile){z, x, y, tex, true, currentFrame};
+                return &ramCache[targetIdx].tex;
+            }
+        }
+    } else {
+        // 3. Accoda per il download in background
+        EnqueueTileDownload(z, x, y);
+    }
+
+    return NULL;
+}
+
+// Disegna una porzione scalata di un tile antenato (zoom inferiore) mentre quello nuovo carica
+static bool DrawFallbackTile(int z, int tx, int ty, float screenX, float screenY, unsigned long currentFrame) {
+    for (int dz = 1; dz <= 4; dz++) {
+        int parentZ = z - dz;
+        if (parentZ < MIN_ZOOM) break;
+
+        int factor = 1 << dz; // 2, 4, 8, 16
+        int parentX = tx / factor;
+        int parentY = ty / factor;
+
+        Texture2D *parentTex = FindTileInRamOnly(parentZ, parentX, parentY, currentFrame);
+        if (parentTex) {
+            float subSize = (float)TILE_SIZE / (float)factor;
+            float srcX = (tx % factor) * subSize;
+            float srcY = (ty % factor) * subSize;
+
+            Rectangle sourceRec = { srcX, srcY, subSize, subSize };
+            Rectangle destRec = { screenX, screenY, (float)TILE_SIZE, (float)TILE_SIZE };
+
+            DrawTexturePro(*parentTex, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /* -----------------------------------------------------------------------------
                         Function declaration
 ----------------------------------------------------------------------------- */
-void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom);
-void calcMinimap (Texture2D mapTexture);
+
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
-Vector2 GpsToPixel(double lat, double lon, Texture2D tex);
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size);
 int decodeFit(char* fileName);
 void getTimeFromMinute (double mins);
@@ -229,22 +491,28 @@ int main (void)
     Font titleFont = LoadFontEx("fonts/HelveticaNeue-Medium.otf", 36,codepoints, glyphCount); // all other text
     Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
 
-    // Caricamento mappa ( creare TIFF con QGIS)
-    Texture2D mapTexture;
-    if (FileExists("assets/map.png")) mapTexture = LoadTexture("assets/map.png");
-    else {
-        Image img = GenImageChecked(mapRect.width, mapRect.height, 12, 12, WHITE, RAYWHITE);
-        mapTexture = LoadTextureFromImage(img);
-        UnloadImage(img);
-    }
-
 	RenderTexture targetChart = LoadRenderTexture(chartRect.width, chartRect.height);
-    Texture2D cityIcon= LoadTexture("assets/position.png");          // Image converted to texture, GPU memory (VRAM)
+    Texture2D gpsIcon= LoadTexture("assets/position.png");          // Image converted to texture, GPU memory (VRAM)
 
-    // setup initial camera settings
-    Camera2D cam = { 0 };
-    float minZoom = 1.0f;
-    ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
+    // shader per cambiare i colori di default delle mappe..
+    Shader mapShader = LoadShader(0, "map_theme.fs");
+
+    mkdir(CACHE_DIR, 0755);
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    pthread_t workerThread;
+    pthread_create(&workerThread, NULL, DownloadWorker, NULL);
+
+    int zoom = MIN_ZOOM;
+    double camWorldX = 0.0, camWorldY = 0.0;
+        // Bounding box geografico (WGS84 / EPSG:4326)
+    double minLon = 10.46546111; // Ovest (Left)
+    double maxLon = 11.36674722; // Est (Right)
+    double minLat = 45.15988611; // Sud (Bottom)
+    double maxLat = 45.91895000; // Nord (Top) 
+    FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
+    unsigned long frameCounter = 0;
+
+
     // apply color theme
     ApplyTheme(&currentTheme, isDarkMode);
 
@@ -252,8 +520,6 @@ int main (void)
     loadLibrary();
     qsort(allFiles, totalFilesCount, sizeof(fileEntry), compareFilesByModTime);  // ordinamento file
 
-    //generate mini-map
-    calcMinimap(mapTexture);
 
     // set key repeater speed (400ms initial delay, 80ms repeat rate)
     KeyRepeater repeater = {
@@ -263,8 +529,6 @@ int main (void)
         .firstDelay = 0.40f,
         .repeatRate = 0.064f
     };
-
-    Vector2 prevMousePos = GetMousePosition();
 
     // GuiStyle common settings
     GuiSetStyle(BUTTON, BORDER_WIDTH, 1);
@@ -303,13 +567,10 @@ while (!WindowShouldClose())
 // Update
 //----------------------------------------------------------------------------------
 
+        frameCounter++;
 		float deltaTime = GetFrameTime();
-        float speed = 150.0f /  cam.zoom;
-
         // gestione zoom su mappa
         Vector2 thisPos = GetMousePosition();
-        Vector2 delta = Vector2Subtract(prevMousePos, thisPos);
-        prevMousePos = thisPos;
 
         if (IsKeyPressed(KEY_T)) {
             isDarkMode = !isDarkMode;
@@ -319,61 +580,42 @@ while (!WindowShouldClose())
             drawChart(targetChart);
         }
         if (btnQuit || IsKeyPressed(KEY_Q)) break;
-        if (IsKeyPressed(KEY_M)) showMinimap = !showMinimap;
-
         // Applica zoom e pan solo se il mouse è dentro mapRect
         if (CheckCollisionPointRec(thisPos, mapRect)) {
             SetMouseCursor(4);
-            if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
-            if (IsKeyPressed(KEY_X) || IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) ResetCameraView(&cam, mapTexture, mapRect, 0.0f, &minZoom);
-            if (IsKeyPressed(KEY_ONE)) ResetCameraView(&cam, mapTexture, mapRect, 1.0f, &minZoom);    
 
+            // --- INPUT: RICENTRA TRACCIA CON TASTO X ---
+            if (IsKeyPressed(KEY_X)) FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
+            
+            if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
+
+            // --- INPUT: PAN CON MOUSE ---
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            Vector2 delta = GetMouseDelta();
+            camWorldX -= delta.x;
+            camWorldY -= delta.y;
+            }
+            // --- INPUT: ZOOM CON ROTELLINA (centrato sul cursore) ---
             float wheel = GetMouseWheelMove();
             if (wheel != 0.0f) {
-                Vector2 mouseWorldPos = GetScreenToWorld2D(thisPos, cam);
-                cam.offset = thisPos;
-                cam.target = mouseWorldPos;
-
-                if (wheel > 0.0f) cam.zoom += cam.zoom * stepZoom;
-                if (wheel < 0.0f) cam.zoom -= cam.zoom * stepZoom;
-
-                if (cam.zoom < minZoom) cam.zoom = minZoom;
-                if (cam.zoom > maxZoom) cam.zoom = maxZoom;
-            }
-
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) cam.target = Vector2Add(cam.target, Vector2Scale(delta, 1.0f / cam.zoom));
-        
-            //-------------------------------------------------------------------
-            // PAN SPRITE / ZOOM AREA with cursor KEY only if camera.zoom > 1.0f
-            //-------------------------------------------------------------------
-            if (cam.zoom >= minZoom)
-            {
-                if (UpdateKeyRepeater(&repeater, KEY_UP, deltaTime)) cam.target.y -= speed;
-                if (UpdateKeyRepeater(&repeater, KEY_DOWN, deltaTime))cam.target.y += speed;
-                if (UpdateKeyRepeater(&repeater, KEY_LEFT, deltaTime))cam.target.x -= speed;
-                if (UpdateKeyRepeater(&repeater, KEY_RIGHT, deltaTime)) cam.target.x += speed;
+            int newZoom = (zoom + (wheel > 0 ? 1 : -1));
+                if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM) {
+                    Vector2 mouse = GetMousePosition();
+                    double mouseWorldX = camWorldX - (GetScreenWidth() / 2.0) + mouse.x;
+                    double mouseWorldY = camWorldY - (GetScreenHeight() / 2.0) + mouse.y;
+                    double scale = pow(2.0, newZoom - zoom);
+                    mouseWorldX *= scale;
+                    mouseWorldY *= scale;
+                    zoom = newZoom;
+                    camWorldX = mouseWorldX + (GetScreenWidth() / 2.0) - mouse.x;
+                    camWorldY = mouseWorldY + (GetScreenHeight() / 2.0) - mouse.y;
+                }
             }
         } else SetMouseCursor(0); //restore os cursor visibility outside matrix
 
-                // Controllo dei limiti mappa usando i bordi reali di mapRect sullo schermo ( da cambiare anche sotto qui)
-                Vector2 topLeft = GetScreenToWorld2D((Vector2){ mapRect.x, mapRect.y }, cam);
-                Vector2 bottomRight = GetScreenToWorld2D((Vector2){ mapRect.x + mapRect.width, mapRect.y + mapRect.height }, cam);
+        float spessoreLinea = 0.36f * zoom; 
+        // float diametroPunto = 0.72f * zoom;
 
-                if (topLeft.x < 0.0f) {
-                    cam.target.x += (0.0f - topLeft.x);
-                } else if (bottomRight.x > (float)mapTexture.width) {
-                    cam.target.x -= (bottomRight.x - (float)mapTexture.width);
-                }
-
-                if (topLeft.y < 0.0f) {
-                    cam.target.y += (0.0f - topLeft.y);
-                } else if (bottomRight.y > (float)mapTexture.height) {
-                    cam.target.y -= (bottomRight.y - (float)mapTexture.height);
-                }
-
-                // Ricalcolo coordinate reali per sincronizzare il rettangolo di evidenziazione della mappa ( come sopra)
-                topLeft = GetScreenToWorld2D((Vector2){ mapRect.x, mapRect.y }, cam);
-                bottomRight = GetScreenToWorld2D((Vector2){ mapRect.x + mapRect.width, mapRect.y + mapRect.height }, cam);
 
     //----------------------------------------------------------------------
     //  file LIbrary management
@@ -487,7 +729,7 @@ while (!WindowShouldClose())
                         isTrackLoaded = true;
                         
                         // Array di supporto per salvare i pixel convertiti
-                        for (int i = 0; i < numPointRec; i++) puntiPixel[i] = GpsToPixel(puntiGps[i].lat, puntiGps[i].lon, mapTexture);
+                        for (int i = 0; i < numPointRec; i++) puntiPixel[i] = (Vector2){puntiGps[i].lat, puntiGps[i].lon};
                     }
 
     // -------------------------------------------------------------------------
@@ -516,6 +758,7 @@ while (!WindowShouldClose())
         int prevYear = selectedYear;
         int prevMonth = selectedMonth;
 
+
 //----------------------------------------------------------------------------------
 // Draw
 //----------------------------------------------------------------------------------
@@ -531,51 +774,83 @@ while (!WindowShouldClose())
             // disegna traccia sulla mappa
             //------------------------------------------------------------------
 
-            BeginScissorMode(mapRect.x, mapRect.y, mapRect.width, mapRect.height);
-    		    BeginMode2D(cam);
-                    DrawTexture(mapTexture,0,0, WHITE);
 
-                    if (isTrackLoaded) {
-                        float spessoreLinea = 4.0f / cam.zoom; 
-                        float diametroPunto = 6.0f / cam.zoom;
-                        if (spessoreLinea < 1.0f) spessoreLinea = 1.0f;
-                        if (diametroPunto < 3.0f) diametroPunto = 3.0f;
+        BeginScissorMode(mapRect.x, mapRect.y, mapRect.width, mapRect.height);
+                double topLeftWorldX = camWorldX - mapRect.width / 2.0;
+                double topLeftWorldY = camWorldY - mapRect.height / 2.0;
 
-                        // prima disegna traccia e dopo le label : due for separati per evitare glitch grafici
-                        for (int i = 1; i < numPointRec - 1; i++) DrawLineEx(puntiPixel[i], puntiPixel[i + 1], spessoreLinea, currentTheme.accentColor );
-                        
-                        // punto/posizione sulla traccia che scorre in base alla posizione del mous sul grafico altimetria/velocita
-                        DrawCircleV(puntiPixel[selectedPointIdx], diametroPunto, isDarkMode?lightTheme.accentColor:darkTheme.accentColor);
-                        DrawCircleLinesV(puntiPixel[selectedPointIdx], diametroPunto, currentTheme.borderColor);
-                        
-                        if (showKM) {
-                        for (int i = 0; i < numPointRec - 1; i+=40) {
-                            // disegna label KM : KEY_K
-                            snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
-                            Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                            DrawRectangleRounded((Rectangle){puntiPixel[i].x,puntiPixel[i].y ,labelPos.x,labelPos.y},0.24f,4,Fade(currentTheme.bgColor, 0.90f));
-                            DrawRectangleRoundedLinesEx((Rectangle){puntiPixel[i].x,puntiPixel[i].y, labelPos.x,labelPos.y},0.24f,4,1.0f,currentTheme.borderColor);
-                            DrawTextEx(textFont, tempBuffer, puntiPixel[i], (float)textFont.baseSize, 0,currentTheme.fgColor);
-                            }
+                int maxTileIndex = (1 << zoom) - 1;
+                int startTileX = (int)floor(topLeftWorldX / TILE_SIZE);
+                int startTileY = (int)floor(topLeftWorldY / TILE_SIZE);
+                int endTileX   = (int)floor((topLeftWorldX + mapRect.width) / TILE_SIZE);
+                int endTileY   = (int)floor((topLeftWorldY + mapRect.height) / TILE_SIZE);
+
+                // 1. Disegna i tile visibili (aggiungendo mapRect.x e mapRect.y)
+                for (int ty = startTileY; ty <= endTileY; ty++) {
+                    for (int tx = startTileX; tx <= endTileX; tx++) {
+                        if (tx < 0 || tx > maxTileIndex || ty < 0 || ty > maxTileIndex) continue;
+
+                        float screenX = mapRect.x + roundf((float)(tx * TILE_SIZE - topLeftWorldX));
+                        float screenY = mapRect.y + roundf((float)(ty * TILE_SIZE - topLeftWorldY));
+
+                        Texture2D *tex = GetTileTexture(zoom, tx, ty, frameCounter);
+                        if (tex) {
+                            BeginShaderMode(mapShader);
+                                DrawTexture(*tex, (int)screenX, (int)screenY, WHITE);
+                            EndShaderMode();
+                        } else if (!DrawFallbackTile(zoom, tx, ty, screenX, screenY, frameCounter)) {
+                            DrawRectangleLines((int)screenX, (int)screenY, TILE_SIZE, TILE_SIZE, currentTheme.gridBgColor);
+                        }
+                    }
+                }
+
+        if (isTrackLoaded) {
+                    // 2. Disegna la traccia GPS (anch'essa traslata di mapRect.x / mapRect.y e tagliata ai bordi)
+                        double prevX, prevY;
+                        //punto GPS iniziale
+                        LatLonToWorldPixel(puntiPixel[1].x, puntiPixel[1].y, zoom, &prevX, &prevY);
+                        Vector2 pPrev = { mapRect.x + (float)(prevX - topLeftWorldX), mapRect.y + (float)(prevY - topLeftWorldY)};
+                        // punti GPS successivi
+                        for (int i = 1; i < numPointRec-1 ; i++) {
+                            double nextX, nextY;
+                            LatLonToWorldPixel(puntiPixel[i + 1].x, puntiPixel[i + 1].y, zoom, &nextX, &nextY);
+                            Vector2 pNext = { mapRect.x + (float)(nextX - topLeftWorldX), mapRect.y + (float)(nextY - topLeftWorldY) };
+                            DrawLineEx(pPrev, pNext, spessoreLinea, MAROON);
+                            //DrawCircleV(pPrev, spessoreLinea, MAROON);
+                            pPrev = pNext;
                         }
 
+                         if (showKM && zoom > 11) {
+                            for (int i = 0; i < numPointRec - 1; i+=zoom*10) {
+                                // disegna label KM : KEY_K
+                                double labelX, labelY;
+                                LatLonToWorldPixel(puntiPixel[i + 1].x, puntiPixel[i + 1].y, zoom, &labelX, &labelY);
+                                Vector2 pLabel = { mapRect.x + (float)(labelX - topLeftWorldX), mapRect.y + (float)(labelY - topLeftWorldY) };
 
+                                snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
+                                Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
+                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.24f,4,YELLOW);
+                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.24f,4,1.0f,darkTheme.borderColor);
+                                DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,BLACK);
+                            }
+                        }   
 
-                    // bandierine
-                    Vector2 cityOrigin = { (cityIcon.width - 8) , (cityIcon.height -1 )  };
-                    Vector2 startPos = puntiPixel[1];
-                    Vector2 endPos = puntiPixel[numPointRec-1];
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ startPos.x, startPos.y, 16, 16 },  cityOrigin, 0.0f, GREEN);
-                    DrawTexturePro(cityIcon, (Rectangle){ 0, 0, cityIcon.width, cityIcon.height }, (Rectangle){ endPos.x, endPos.y, 16, 16 },  cityOrigin, 0.0f, RED);
-                 }
-
-                EndMode2D();
-		    EndScissorMode();	      
-
+                        // punto/posizione sulla traccia che scorre in base alla posizione del mous sul grafico altimetria/velocita
+                        double pointX, pointY;
+                        LatLonToWorldPixel(puntiPixel[selectedPointIdx].x, puntiPixel[selectedPointIdx].y, zoom, &pointX, &pointY);
+                        Vector2 pPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
+                        Vector2 statusOrigin = { gpsIcon.width, gpsIcon.height };
+                         DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  statusOrigin, 0.0f, DARKBLUE );
+    
+                }
+            // copyright mappa
+            const char *attr = "Map data: (c) OpenStreetMap contributors, SRTM | Style: (c) OpenTopoMap (CC-BY-SA)";
+            int attrWidth = MeasureText(attr, 10);
+            DrawRectangle((int)(mapRect.x + mapRect.width) - attrWidth - 14, (int)(mapRect.y + mapRect.height) - 20, attrWidth + 10, 16, Fade(BLACK, 0.50f));
+            DrawText(attr, (int)(mapRect.x + mapRect.width) - attrWidth - 9, (int)(mapRect.y + mapRect.height) - 17, 10, WHITE);
+        EndScissorMode();
             // bordo attorno alla mappa 
             DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
-
-
 
             // -----------------------------------------------------------------
             // informazioni traccia
@@ -639,8 +914,9 @@ while (!WindowShouldClose())
 
                 DrawTextEx(textFont,"Altitudine massima:",(Vector2){dataRect.x+8,dataRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
                 DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataRect.x + 208, dataRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
-
-            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){dataRect.x + 28, (dataRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
+            } 
+            else
+             DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){dataRect.x + 28, (dataRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.gridColor);
 
 
             // -----------------------------------------------------------------
@@ -657,7 +933,7 @@ while (!WindowShouldClose())
                     DrawTextureRec(targetChart.texture, sourceRec, (Vector2){ chartRect.x, chartRect.y }, WHITE);
                      // tooltip interattivo in tempo reale
                     drawChartTooltip();
-                } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 256, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
+                } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){chartRect.x + 256, (chartRect.y +88)},(float)subTitleFont.baseSize,0,currentTheme.gridColor);
             EndScissorMode();
 
             // -----------------------------------------------------------------
@@ -732,97 +1008,37 @@ while (!WindowShouldClose())
             DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
             DrawText(TextFormat("vers. %s", TOOL_VERSION), 290, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            snprintf(infoText, sizeof(infoText), "[ File in uso: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %02.f%% ]",fName,numRecord, numPointRec, cam.zoom*100.0f);
+            snprintf(infoText, sizeof(infoText), "[ File in uso: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %d / %d ]",fName,numRecord, numPointRec, zoom, MAX_ZOOM );
             GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
 
- 
-            // -----------------------------------------------------------------
-            //  MINIMAP
-            //------------------------------------------------------------------
-            if (showMinimap) {
-                // bordo minimap
-                DrawRectangleRec((Rectangle){miniMapX - 1, miniMapY - 1, miniMapWidth + 2, miniMapHeight + 2}, currentTheme.borderColor);
-                
-                // Disegno della mini-map
-                DrawTexturePro(
-                    mapTexture, 
-                    (Rectangle){ 0, 0, mapTexture.width, mapTexture.height }, 
-                    (Rectangle){ miniMapX, miniMapY, miniMapWidth, miniMapHeight },
-                    (Vector2){ 0, 0 }, 0.0f, WHITE
-                );
-
-                // Coordinate e sizing del rettangolo di evidenziazione sulla minimap
-                float rectX = miniMapX + (topLeft.x * scaleX);
-                float rectY = miniMapY + (topLeft.y * scaleY);
-                float rectW = (bottomRight.x - topLeft.x) * scaleX;
-                float rectH = (bottomRight.y - topLeft.y) * scaleY;
-
-                // Disegno del rettangolo di evidenziazione (con limiti visivi per non uscire dalla mini-mappa)
-                DrawRectangleRec((Rectangle){rectX, rectY, rectW, rectH}, Fade(currentTheme.accentColor, 0.25f));
-                DrawRectangleLinesEx((Rectangle){ rectX, rectY, rectW, rectH }, 1, currentTheme.accentColor);
-                }
-            
+        
          btnQuit = GuiButton((Rectangle){8,8,20,20}, "#128#");
         EndDrawing();
 	}
 
     UnloadRenderTexture(targetChart);
-	UnloadTexture(mapTexture);
-    UnloadTexture(cityIcon);
+    UnloadTexture(gpsIcon);
     UnloadRenderTexture(target);
     UnloadFont(boldFont);
     UnloadFont(textFont);
     UnloadFont(titleFont);
     UnloadFont(subTitleFont);
-	CloseWindow();
-    return 0;
-}
+      UnloadShader(mapShader);
 
-
-// Resetta lo zoom al valore targetZoom e centra la mappa dentro area
-void ResetCameraView(Camera2D *cam, Texture2D mapTexture, Rectangle area, float targetZoom, float *outMinZoom)
-{
-    if (cam == NULL || mapTexture.width <= 0 || mapTexture.height <= 0) return;
-
-    float minZoomX = area.width / (float)mapTexture.width;
-    float minZoomY = area.height / (float)mapTexture.height;
-    float minZoom = (minZoomX > minZoomY) ? minZoomX : minZoomY;
-
-    if (outMinZoom != NULL) *outMinZoom = minZoom;
-
-    // Se passi un valore <= 0.0f, usa automaticamente minZoom come fallback
-    cam->zoom = (targetZoom > 0.0f) ? targetZoom : minZoom;
-    cam->rotation = 0.0f;
-
-    // Allinea il centro dell'area sullo schermo con il centro della texture
-    cam->offset = (Vector2){ area.x + area.width * 0.5f, area.y + area.height * 0.5f };
-    cam->target = (Vector2){ mapTexture.width * 0.5f, mapTexture.height * 0.5f };
-}
-
-void calcMinimap (Texture2D mapTexture) {
-
-    // dimensione minimap 
-    miniMapWidth = maxMapSize;
-    miniMapHeight = maxMapSize;
-
-    //  aspect ratio (Es: 4000.0 / 3000.0 = 1.333)
-    aspectRatio = (float)mapTexture.width / (float)mapTexture.height;
-
-    if (aspectRatio >= 1.0f) {
-        // Immagine Orizzontale (Landscape): larghezza massima, altezza ridotta proporzionalmente
-        miniMapHeight = maxMapSize / aspectRatio;
-    } else {
-        // Immagine Verticale (Portrait) o Quadrata: altezza massima, larghezza aumentata proporzionalmente
-        miniMapWidth = maxMapSize * aspectRatio;
+    // --- PULIZIA RISORSE ---
+    pthread_mutex_lock(&queueMutex);
+    workerRunning = false;
+    pthread_cond_broadcast(&queueCond);
+    pthread_mutex_unlock(&queueMutex);
+    pthread_join(workerThread, NULL);
+    for (int i = 0; i < MAX_RAM_TILES; i++) {
+        if (ramCache[i].inUse) {
+        UnloadTexture(ramCache[i].tex);
+        }
     }
-
-    // posizione nell'angolo in basso a destra 
-    miniMapX = (mapRect.x + mapRect.width) - miniMapWidth - 4.0f;   
-    miniMapY = mapRect.y + 4.0f; 
-    
-    // Fattore di scala 
-    scaleX = miniMapWidth / mapTexture.width;
-    scaleY = miniMapHeight / mapTexture.height;
+CloseWindow();
+curl_global_cleanup();
+return 0;
 }
 
 
@@ -866,31 +1082,6 @@ bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime) {
         }
     }
     return false;
-}
-
-// Funzione di conversione (Usa i valori reali della tua mappa di riferimento!)
-Vector2 GpsToPixel(double lat, double lon, Texture2D tex) {
-
-    //1. QGIS / web services google / export map draw on canvas/ dpi 300 o regola / save tiff / spunta salva dati georeferenziati con il file
-    //2. gdalinfo file.tiff e si vedono i limiti lat&lon
-    // se si cambia mappa rimettere limiti corretti..file tif lavorato con QGIS
-    // I valori forniti contengono già le coordinate geografiche espresse in gradi, minuti e secondi (DMS) 
-    //vanno convertiti nel formato standard Gradi Decimali (LAT / LON)
-
-    // Bounding box geografico (WGS84 / EPSG:4326)
-    const double minLon = 10.46546111; // Ovest (Left)
-    const double maxLon = 11.36674722; // Est (Right)
-    const double minLat = 45.15988611; // Sud (Bottom)
-    const double maxLat = 45.91895000; // Nord (Top) 
-
-
-    double normX = (lon - minLon) / (maxLon - minLon);
-    double normY = (lat - minLat) /(maxLat - minLat);
-
-    Vector2 pixelPos = { 0 };
-    pixelPos.x = (float)( normX * tex.width);
-    pixelPos.y = (float)((1.0 - normY) * tex.height);
-    return pixelPos;
 }
 
 // Funzione di supporto per convertire il timestamp FIT in una stringa leggibile
@@ -976,10 +1167,14 @@ int decodeFit(char* fileName) {
                       case FIT_MESG_NUM_RECORD:
                       {
                         // il fit registra un record ogni secondo.. sono anche troppi per la risoluzione 
-                        //  qui posso cambiare ogni quanti secondi "registrare" un record 60 = 1 min , 120 = 2 minuti etc etc
-                        // registra 4 record al minuto invece di 60...(la cpu e gnome ringraziano!!!)
-                        
-                            if (numRecord % 12 == 0) { 
+                        // la traccia sarebbe perfetta ma per il mio pc la cpu va oltre il 20%
+                        // forse su un pc del 2027 se ne fa un baffo ma sul mio T480 devo limitare
+                        // metto che registra 1 record ogni 5 per un compromesso tra performance e qualita traccia   
+                        // per restare intorno al 10% di cpu..ovvio che se metto tipo 10 consumo ancora meno risorse
+                        // ma la traccia specialmente al livello di zoom massimo verraa disegnata a linee distanti...
+                        // specialmente quando si va veloce .. in montagna invece andando piano i punti saranna cmq
+                        // piu ravvicinati
+                            if (numRecord % 5 == 0) { 
                                  const FIT_RECORD_MESG *record = (FIT_RECORD_MESG *) mesg;
                                  // 1. Data e Ora Leggibile
                                   ConvertFitTimestamp(record->timestamp, tempBuffer, sizeof(tempBuffer));
