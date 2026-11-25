@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.0.5"
+#define TOOL_VERSION            "3.0.8"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -127,7 +127,6 @@ typedef struct {
 
 int numRecord;
 int numPointRec;
-Vector2 puntiPixel[32768]; // todo : convert to diynamic
 gpsPoints puntiGps[32768]; // see above
 trackData infoTraccia;
 
@@ -278,9 +277,7 @@ static size_t WriteFileCallback(void *ptr, size_t size, size_t nmemb, void *stre
 
 static bool IsTileQueued(int z, int x, int y) {
     for (int i = 0; i < queueCount; i++) {
-        if (downloadQueue[i].z == z && downloadQueue[i].x == x && downloadQueue[i].y == y) {
-            return true;
-        }
+        if (downloadQueue[i].z == z && downloadQueue[i].x == x && downloadQueue[i].y == y) return true;
     }
     return false;
 }
@@ -317,9 +314,7 @@ static void *DownloadWorker(void *arg) {
         }
 
         DownloadJob job = downloadQueue[0];
-        for (int i = 1; i < queueCount; i++) {
-            downloadQueue[i - 1] = downloadQueue[i];
-        }
+        for (int i = 1; i < queueCount; i++) downloadQueue[i - 1] = downloadQueue[i];
         queueCount--;
         pthread_mutex_unlock(&queueMutex);
 
@@ -507,7 +502,7 @@ int main (void)
         // Bounding box geografico (WGS84 / EPSG:4326)
     double minLon = 10.46546111; // Ovest (Left)
     double maxLon = 11.36674722; // Est (Right)
-    double minLat = 45.15988611; // Sud (Bottom)
+    double minLat = 45.35988611; // Sud (Bottom)
     double maxLat = 45.91895000; // Nord (Top) 
     FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
     unsigned long frameCounter = 0;
@@ -727,9 +722,6 @@ while (!WindowShouldClose())
                         selectedPointIdx = -1;
                         drawChart(targetChart);
                         isTrackLoaded = true;
-                        
-                        // Array di supporto per salvare i pixel convertiti
-                        for (int i = 0; i < numPointRec; i++) puntiPixel[i] = (Vector2){puntiGps[i].lat, puntiGps[i].lon};
                     }
 
     // -------------------------------------------------------------------------
@@ -794,13 +786,15 @@ while (!WindowShouldClose())
                         float screenY = mapRect.y + roundf((float)(ty * TILE_SIZE - topLeftWorldY));
 
                         Texture2D *tex = GetTileTexture(zoom, tx, ty, frameCounter);
-                        if (tex) {
-                            BeginShaderMode(mapShader);
+                       BeginShaderMode(mapShader);
+                       if (tex) {
+                            
                                 DrawTexture(*tex, (int)screenX, (int)screenY, WHITE);
-                            EndShaderMode();
+                           
                         } else if (!DrawFallbackTile(zoom, tx, ty, screenX, screenY, frameCounter)) {
                             DrawRectangleLines((int)screenX, (int)screenY, TILE_SIZE, TILE_SIZE, currentTheme.gridBgColor);
                         }
+                         EndShaderMode();
                     }
                 }
 
@@ -808,12 +802,12 @@ while (!WindowShouldClose())
                     // 2. Disegna la traccia GPS (anch'essa traslata di mapRect.x / mapRect.y e tagliata ai bordi)
                         double prevX, prevY;
                         //punto GPS iniziale
-                        LatLonToWorldPixel(puntiPixel[1].x, puntiPixel[1].y, zoom, &prevX, &prevY);
+                        LatLonToWorldPixel(puntiGps[1].lat, puntiGps[1].lon, zoom, &prevX, &prevY);
                         Vector2 pPrev = { mapRect.x + (float)(prevX - topLeftWorldX), mapRect.y + (float)(prevY - topLeftWorldY)};
                         // punti GPS successivi
                         for (int i = 1; i < numPointRec-1 ; i++) {
                             double nextX, nextY;
-                            LatLonToWorldPixel(puntiPixel[i + 1].x, puntiPixel[i + 1].y, zoom, &nextX, &nextY);
+                            LatLonToWorldPixel(puntiGps[i + 1].lat, puntiGps[i + 1].lon, zoom, &nextX, &nextY);
                             Vector2 pNext = { mapRect.x + (float)(nextX - topLeftWorldX), mapRect.y + (float)(nextY - topLeftWorldY) };
                             DrawLineEx(pPrev, pNext, spessoreLinea, MAROON);
                             //DrawCircleV(pPrev, spessoreLinea, MAROON);
@@ -821,23 +815,23 @@ while (!WindowShouldClose())
                         }
 
                          if (showKM && zoom > 11) {
-                            for (int i = 0; i < numPointRec - 1; i+=zoom*10) {
+                            for (int i = 0; i < numPointRec - 1; i+= 40 + ((MAX_ZOOM-zoom)*8)) {
                                 // disegna label KM : KEY_K
                                 double labelX, labelY;
-                                LatLonToWorldPixel(puntiPixel[i + 1].x, puntiPixel[i + 1].y, zoom, &labelX, &labelY);
+                                LatLonToWorldPixel(puntiGps[i + 1].lat, puntiGps[i + 1].lon, zoom, &labelX, &labelY);
                                 Vector2 pLabel = { mapRect.x + (float)(labelX - topLeftWorldX), mapRect.y + (float)(labelY - topLeftWorldY) };
 
-                                snprintf(tempBuffer, sizeof(tempBuffer), " %.f ", puntiGps[i].dist);
+                                snprintf(tempBuffer, sizeof(tempBuffer), " %0.1f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.24f,4,YELLOW);
-                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.24f,4,1.0f,darkTheme.borderColor);
-                                DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,BLACK);
+                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.40f,4,Fade(darkTheme.bgColor, 0.90f));
+                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.40f,4,1.0f,darkTheme.borderColor);
+                                DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,darkTheme.fgColor);
                             }
                         }   
 
                         // punto/posizione sulla traccia che scorre in base alla posizione del mous sul grafico altimetria/velocita
                         double pointX, pointY;
-                        LatLonToWorldPixel(puntiPixel[selectedPointIdx].x, puntiPixel[selectedPointIdx].y, zoom, &pointX, &pointY);
+                        LatLonToWorldPixel(puntiGps[selectedPointIdx].lat, puntiGps[selectedPointIdx].lon, zoom, &pointX, &pointY);
                         Vector2 pPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
                         Vector2 statusOrigin = { gpsIcon.width, gpsIcon.height };
                          DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  statusOrigin, 0.0f, DARKBLUE );
