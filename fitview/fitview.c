@@ -35,7 +35,7 @@
 const int screenWidth = 1184; 
 const int screenHeight = 736;
 
-Rectangle datatRect = { 8,32,340,295};     // top/left
+Rectangle dataRect = { 8,32,340,295};     // top/left
 Rectangle mapRect = { 354,8.0,822,492};  // top/right
 Rectangle filesRect = { 8,333,340,369}; // bottom/left
 Rectangle chartRect = {354,506,822,196};  // bottom/right
@@ -238,7 +238,7 @@ int main (void)
         UnloadImage(img);
     }
 
-	RenderTexture targetChart = LoadRenderTexture(mapRect.width, mapRect.height);
+	RenderTexture targetChart = LoadRenderTexture(chartRect.width, chartRect.height);
     Texture2D cityIcon= LoadTexture("assets/position.png");          // Image converted to texture, GPU memory (VRAM)
 
     // setup initial camera settings
@@ -580,9 +580,9 @@ while (!WindowShouldClose())
             // -----------------------------------------------------------------
             // informazioni traccia
             //------------------------------------------------------------------
-            DrawRectangleRec(datatRect, currentTheme.gridBgColor);
-            DrawRectangleLinesEx(datatRect, 1,currentTheme.gridColor);
-            DrawLine(datatRect.x, datatRect.y +44 ,datatRect.x + datatRect.width,datatRect.y +44,currentTheme.gridColor);
+            DrawRectangleRec(dataRect, currentTheme.gridBgColor);
+            DrawRectangleLinesEx(dataRect, 1,currentTheme.gridColor);
+            DrawLine(dataRect.x, dataRect.y +44 ,dataRect.x + dataRect.width,dataRect.y +44,currentTheme.gridColor);
 
             if (isTrackLoaded) {
 
@@ -590,57 +590,57 @@ while (!WindowShouldClose())
                 int count=0;
                 char **splitStr = TextSplit(infoTraccia.data_inizio, '/' , &count); 
                 Vector2 headerPos = MeasureTextEx(titleFont, splitStr[0], titleFont.baseSize, 0);
-                DrawTextEx(titleFont,TextFormat("%s", splitStr[0]) ,(Vector2){datatRect.x + (datatRect.width - headerPos.x)/2, datatRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(titleFont,TextFormat("%s", splitStr[0]) ,(Vector2){dataRect.x + (dataRect.width - headerPos.x)/2, dataRect.y+2},(float)titleFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Ora inizio attività:",(Vector2){datatRect.x+8,datatRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Ora inizio attività:",(Vector2){dataRect.x+8,dataRect.y +48},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){dataRect.x + 204, dataRect.y+48},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 splitStr = TextSplit(infoTraccia.data_fine, '/' , &count); 
-                DrawTextEx(textFont,"Ora fine attività:",(Vector2){datatRect.x+8,datatRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){datatRect.x + 204, datatRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Ora fine attività:",(Vector2){dataRect.x+8,dataRect.y + 64},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",splitStr[1]) ,(Vector2){dataRect.x + 204, dataRect.y + 64},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 getTimeFromMinute(infoTraccia.minMov);
-                DrawTextEx(textFont,"Tempo in movimento:",(Vector2){datatRect.x+8,datatRect.y + 80},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 80},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Tempo in movimento:",(Vector2){dataRect.x+8,dataRect.y + 80},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataRect.x + 208, dataRect.y + 80},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
                 getTimeFromMinute(infoTraccia.minTot);
-                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){datatRect.x+8,datatRect.y + 96},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){datatRect.x + 208, datatRect.y + 96},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Tempo totale sessione:",(Vector2){dataRect.x+8,dataRect.y + 96},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%s",tempBuffer) ,(Vector2){dataRect.x + 208, dataRect.y + 96},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Distanza totale:",(Vector2){datatRect.x+8,datatRect.y + 112},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){datatRect.x + 208, datatRect.y + 112},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Distanza totale:",(Vector2){dataRect.x+8,dataRect.y + 112},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.2f km",infoTraccia.disTot) ,(Vector2){dataRect.x + 208, dataRect.y + 112},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Velocità media:",(Vector2){datatRect.x+8,datatRect.y + 128},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 128},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Velocità media:",(Vector2){dataRect.x+8,dataRect.y + 128},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.avgSpd) ,(Vector2){dataRect.x + 208, dataRect.y + 128},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Velocità massima:",(Vector2){datatRect.x+8,datatRect.y + 144},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){datatRect.x + 208, datatRect.y + 144},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Velocità massima:",(Vector2){dataRect.x+8,dataRect.y + 144},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f km/h",infoTraccia.maxSpd) ,(Vector2){dataRect.x + 208, dataRect.y + 144},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){datatRect.x+8,datatRect.y + 160},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){datatRect.x + 208, datatRect.y + 160},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Dislivello positivo (salita):",(Vector2){dataRect.x+8,dataRect.y + 160},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altPos) ,(Vector2){dataRect.x + 208, dataRect.y + 160},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){datatRect.x+8,datatRect.y + 176},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){datatRect.x + 208, datatRect.y + 176},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Dislivello negativo (discesa):",(Vector2){dataRect.x+8,dataRect.y + 176},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f metri",infoTraccia.altNeg) ,(Vector2){dataRect.x + 208, dataRect.y + 176},(float)boldFont.baseSize,0,currentTheme.fgColor);
                 
-                DrawTextEx(textFont,"Calorie consumate:",(Vector2){datatRect.x+8,datatRect.y + 192},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){datatRect.x + 208, datatRect.y + 192},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Calorie consumate:",(Vector2){dataRect.x+8,dataRect.y + 192},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f kcal",infoTraccia.calorie) ,(Vector2){dataRect.x + 208, dataRect.y + 192},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Temperatura media:",(Vector2){datatRect.x+8,datatRect.y + 208},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.avgTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 208},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Temperatura media:",(Vector2){dataRect.x+8,dataRect.y + 208},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.avgTemp) ,(Vector2){dataRect.x + 208, dataRect.y + 208},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Temperatura massima:",(Vector2){datatRect.x+8,datatRect.y + 224},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.maxTemp) ,(Vector2){datatRect.x + 208, datatRect.y + 224},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Temperatura massima:",(Vector2){dataRect.x+8,dataRect.y + 224},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.f° C.",infoTraccia.maxTemp) ,(Vector2){dataRect.x + 208, dataRect.y + 224},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){datatRect.x+8,datatRect.y + 240},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){datatRect.x + 208, datatRect.y + 240},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Altitudine di partenza:",(Vector2){dataRect.x+8,dataRect.y + 240},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",puntiGps[0].alt) ,(Vector2){dataRect.x + 208, dataRect.y + 240},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine media:",(Vector2){datatRect.x+8,datatRect.y + 256},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){datatRect.x + 208, datatRect.y + 256},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Altitudine media:",(Vector2){dataRect.x+8,dataRect.y + 256},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altAvg) ,(Vector2){dataRect.x + 208, dataRect.y + 256},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-                DrawTextEx(textFont,"Altitudine massima:",(Vector2){datatRect.x+8,datatRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
-                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){datatRect.x + 208, datatRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(textFont,"Altitudine massima:",(Vector2){dataRect.x+8,dataRect.y + 272},(float)textFont.baseSize,0,currentTheme.fgColor);
+                DrawTextEx(boldFont,TextFormat("%.1f metri",infoTraccia.altMax) ,(Vector2){dataRect.x + 208, dataRect.y + 272},(float)boldFont.baseSize,0,currentTheme.fgColor);
 
-            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){datatRect.x + 28, (datatRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
+            } else DrawTextEx(subTitleFont,"Seleziona un file dalla lista...",(Vector2){dataRect.x + 28, (dataRect.y + 8)},(float)subTitleFont.baseSize,0,currentTheme.fgColor);
 
 
             // -----------------------------------------------------------------

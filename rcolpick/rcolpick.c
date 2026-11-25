@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "rColor Picker"
 #define TOOL_SHORT_NAME         "rcolpick"
-#define TOOL_VERSION            "2.1.0"
+#define TOOL_VERSION            "2.2.0"
 
 #include <raylib.h>
 #include <rlgl.h>
@@ -36,7 +36,7 @@ bool isPasted = false;
 bool isDragged = false;
 time_t rawtime;
 
-const Color bgColor = CLITERAL(Color){40,66,87,128};
+const Color bgColor = CLITERAL(Color){10,20,30,128};
 Color previewCol = bgColor;
 
 int histR[256] = {0};
@@ -273,7 +273,7 @@ int main (int argc, char *argv[])
     }
 
 	 // Set configuration flags for window creation
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED ); // | FLAG_WINDOW_TOPMOST); 
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIDDEN | FLAG_WINDOW_UNDECORATED |  FLAG_MSAA_4X_HINT); // | FLAG_WINDOW_TOPMOST); 
     InitWindow(screenWidth, screenHeight, "rcolpick");
     SetExitKey(KEY_Q);       // Disable KEY_ESCAPE to close window, X-button still works
     Font txtFont = LoadFontEx("fonts/PixelOperator.ttf", fntSize,NULL, 0); // all other text
@@ -313,7 +313,7 @@ int main (int argc, char *argv[])
         .repeatRate = 0.064f
     };
 
-   bool isLeft = true;
+   //bool isLeft = true;
 
     // fai riapparire finestra dopo caricamento iniziale
     ClearWindowState(FLAG_WINDOW_HIDDEN);
@@ -468,8 +468,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             int y = (int)world.y;
 
                 // se mouse sopra floating panel, sposta floating panel
-	            if (CheckCollisionPointRec(mousePos,rectPixel)) isLeft = !isLeft;
-	            rectPixel.x =(isLeft)?8:1042;
+	            //if (CheckCollisionPointRec(mousePos,rectPixel)) isLeft = !isLeft;
+	            //rectPixel.x =(isLeft)?8:1042;
                 // anteprima colore sotto il mouse cursor
                 if (x >= 0 && x < background.width && y >= 0 && y < background.height) previewCol = pixels[y * background.width + x];
 
@@ -479,9 +479,8 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                     cam.offset = GetMousePosition();
                     cam.target = mouseWorldPos;
 
-                    const float zoomIncrement = stepZoom;
-                    if (wheel > 0) cam.zoom += cam.zoom * zoomIncrement;
-                    if (wheel < 0) cam.zoom -= cam.zoom * zoomIncrement;
+                    if (wheel > 0.0f) cam.zoom += cam.zoom * stepZoom;
+                    if (wheel < 0.0f) cam.zoom -= cam.zoom * stepZoom;
 
                     // Limite minimo di zoom per non rimpicciolire l'immagine più della finestra stessa
                     minZoomX = (float)scissorArea.width / background.width;
@@ -591,22 +590,23 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
             
             // background of "floating" poanel
             // DrawRectangleRounded(rectPixel,0.080f,36, Fade(bgColor,0.72f));
-            DrawRectangleRec(rectPixel, Fade (BLACK,0.72f));
+            DrawRectangleRec(rectPixel, bgColor);
             //DrawRectangleRoundedLines(rectPixel,0.080f,36, BLACK);
             // MAIN cursor x,y
-            DrawCircle(rectPixel.x + 12,rectPixel.y+12 ,6, previewCol);
+            DrawCircle(rectPixel.x + 12,rectPixel.y+12 ,7, previewCol);
             snprintf(buffer, sizeof(buffer), "x: %i, y: %i, z: %02.f%%", x, y,cam.zoom*100);
             DrawTextEx(txtFont,buffer,(Vector2){rectPixel.x + 24, rectPixel.y + 4},fntSize,0,WHITE);
-
+            DrawLine(rectPixel.x,rectPixel.y+24,rectPixel.x + rectPixel.width,rectPixel.y +24,GRAY);
             
             // colore FG text in base al colore selezionato
-            Color LeftTextCol = leftCol.g > 180 || (leftCol.r + leftCol.g + leftCol.b) > 450 ? BLACK : WHITE;
-            Color RightTextCol = rightCol.g > 180 || (rightCol.r + rightCol.g + rightCol.b) > 450 ? BLACK : WHITE;
+            Color LeftTextCol = RAYWHITE; // leftCol.g > 180 || (leftCol.r + leftCol.g + leftCol.b) > 450 ? BLACK : WHITE;
+            Color RightTextCol = LIGHTGRAY; // rightCol.g > 180 || (rightCol.r + rightCol.g + rightCol.b) > 450 ? BLACK : WHITE;
 
             // info per left pixel (left mouse click)
             //------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,rectPixel.width-2, 178}, Fade(leftCol,0.88f));
-            DrawTextEx(txtFont,TextFormat("x1: %i , y1: %i", xl, yl),(Vector2){rectPixel.x + 10, rectPixel.y + 28},fntSize,0,LeftTextCol);
+            //DrawRectangleRec((Rectangle){rectPixel.x + 1, rectPixel.y + 23,rectPixel.width-2, 178}, Fade(leftCol,0.52f));
+            DrawCircle(rectPixel.x + 12,rectPixel.y+38 ,7, leftCol);
+            DrawTextEx(txtFont,TextFormat("x1: %i , y1: %i", xl, yl),(Vector2){rectPixel.x + 24, rectPixel.y + 28},fntSize,0,LeftTextCol);
             // RGBA            
             DrawTextEx(txtFont,TextFormat("rgba(%i, %i, %i, %i)", leftCol.r,leftCol.g,leftCol.b,leftCol.a),(Vector2){ rectPixel.x + 10, rectPixel.y + 50},fntSize,0,LeftTextCol);
             // HEXA 
@@ -619,9 +619,10 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
             // info per right pixel (right mouse click)
             //---------------------------------------------------------------------------------------
-            DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 202, rectPixel.width-2, 112}, Fade(rightCol,0.88f));
+            //DrawRectangleRec((Rectangle){rectPixel.x +1,rectPixel.y + 202, rectPixel.width-2, 112}, Fade(rightCol,0.52f));
             // cursor x,y right
-            DrawTextEx(txtFont,TextFormat("x2: %i , y2: %i", xr, yr), (Vector2){rectPixel.x + 10, rectPixel.y + 206},fntSize,0,RightTextCol);
+            DrawCircle(rectPixel.x + 12,rectPixel.y+214 ,7, rightCol);
+            DrawTextEx(txtFont,TextFormat("x2: %i , y2: %i", xr, yr), (Vector2){rectPixel.x + 24, rectPixel.y + 206},fntSize,0,RightTextCol);
             // RGBA 
             DrawTextEx(txtFont,TextFormat("rgba(%i, %i, %i, %i)",rightCol.r, rightCol.g,rightCol.b,rightCol.a),(Vector2){rectPixel.x+10,rectPixel.y + 228},fntSize,0,RightTextCol);
             // HEXA
@@ -662,7 +663,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
         	  // disegna istogramma RGBA 
               // sfondo 
             if (showHist) {
-            DrawRectangleRec(rectHist, Fade(BLACK,0.7f));
+            DrawRectangleRec(rectHist, bgColor);
                       // disegno istrogramma
                       for (int i = 0; i < 256; i++) {
                        	  float hR = (float)histR[i] / maxR;
@@ -679,7 +680,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
                 // --- Minimap show/hide with M key
             if (showMinimap) {
                 // Sfondo/Bordo
-                DrawRectangleRec((Rectangle){mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4}, Fade(BLACK,0.7f));
+                DrawRectangleRec((Rectangle){mapPosX - 2, mapPosY - 2, mapWidth + 4, mapHeight + 4}, bgColor);
                 
                 // Disegno della mini-map
                 DrawTexturePro(
