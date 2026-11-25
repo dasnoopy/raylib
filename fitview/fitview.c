@@ -49,10 +49,10 @@
 const int screenWidth = 1184; 
 const int screenHeight = 736;
 
-Rectangle dataRect = { 8,32,340,295};     // top/left
-Rectangle mapRect = { 354,8.0,822,492};  // top/right
+Rectangle dataRect  = { 8,32,340,295};     // top/left
+Rectangle mapRect   = { 354,8.0,822,492};  // top/right
 Rectangle filesRect = { 8,333,340,369}; // bottom/left
-Rectangle chartRect = {354,506,822,196};  // bottom/right
+Rectangle chartRect = { 354,506,822,196};  // bottom/right
 
 const int fntSize = 16;
 char tempBuffer[64];
@@ -183,7 +183,7 @@ const char *mesi[] = {
 
 // --- CONFIGURAZIONE ---
 #define TILE_SIZE 256
-#define MIN_ZOOM 5
+#define MIN_ZOOM 4
 #define MAX_ZOOM 17          // OpenTopoMap supporta fino a zoom 17
 #define MAX_RAM_TILES 256    // Cache GPU estesa (~64 MB VRAM) per mantenere i tile padre
 #define MAX_QUEUE_SIZE 64    // Coda massima richieste download
@@ -609,8 +609,6 @@ while (!WindowShouldClose())
         } else SetMouseCursor(0); //restore os cursor visibility outside matrix
 
         float spessoreLinea = 0.36f * zoom; 
-        // float diametroPunto = 0.72f * zoom;
-
 
     //----------------------------------------------------------------------
     //  file LIbrary management
@@ -798,7 +796,7 @@ while (!WindowShouldClose())
                     }
                 }
 
-        if (isTrackLoaded) {
+            if (isTrackLoaded) {
                     // 2. Disegna la traccia GPS (anch'essa traslata di mapRect.x / mapRect.y e tagliata ai bordi)
                         double prevX, prevY;
                         //punto GPS iniziale
@@ -810,7 +808,6 @@ while (!WindowShouldClose())
                             LatLonToWorldPixel(puntiGps[i + 1].lat, puntiGps[i + 1].lon, zoom, &nextX, &nextY);
                             Vector2 pNext = { mapRect.x + (float)(nextX - topLeftWorldX), mapRect.y + (float)(nextY - topLeftWorldY) };
                             DrawLineEx(pPrev, pNext, spessoreLinea, MAROON);
-                            //DrawCircleV(pPrev, spessoreLinea, MAROON);
                             pPrev = pNext;
                         }
 
@@ -823,28 +820,30 @@ while (!WindowShouldClose())
 
                                 snprintf(tempBuffer, sizeof(tempBuffer), " %0.1f ", puntiGps[i].dist);
                                 Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.40f,4,Fade(darkTheme.bgColor, 0.90f));
-                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.40f,4,1.0f,darkTheme.borderColor);
+                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.36f,4,Fade(darkTheme.bgColor, 0.90f));
+                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.36f,4,1.0f,darkTheme.borderColor);
                                 DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,darkTheme.fgColor);
                             }
                         }   
 
-                        // punto/posizione sulla traccia che scorre in base alla posizione del mous sul grafico altimetria/velocita
+                        // punto/posizione sulla traccia che scorre in base alla posizione del mouse sul grafico altimetria/velocita
                         double pointX, pointY;
                         LatLonToWorldPixel(puntiGps[selectedPointIdx].lat, puntiGps[selectedPointIdx].lon, zoom, &pointX, &pointY);
                         Vector2 pPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
                         Vector2 statusOrigin = { gpsIcon.width, gpsIcon.height };
                          DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  statusOrigin, 0.0f, DARKBLUE );
     
-                }
+            }
+
             // copyright mappa
             const char *attr = "Map data: (c) OpenStreetMap contributors, SRTM | Style: (c) OpenTopoMap (CC-BY-SA)";
             int attrWidth = MeasureText(attr, 10);
             DrawRectangle((int)(mapRect.x + mapRect.width) - attrWidth - 14, (int)(mapRect.y + mapRect.height) - 20, attrWidth + 10, 16, Fade(BLACK, 0.50f));
             DrawText(attr, (int)(mapRect.x + mapRect.width) - attrWidth - 9, (int)(mapRect.y + mapRect.height) - 17, 10, WHITE);
         EndScissorMode();
-            // bordo attorno alla mappa 
-            DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
+
+        // bordo attorno alla mappa 
+        DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
 
             // -----------------------------------------------------------------
             // informazioni traccia
