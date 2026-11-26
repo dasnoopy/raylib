@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.1.2"
+#define TOOL_VERSION            "3.1.6"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -187,7 +187,10 @@ const char *mesi[] = {
 #define MAX_ZOOM 17          // OpenTopoMap supporta fino a zoom 17
 #define MAX_RAM_TILES 256    // Cache GPU estesa (~64 MB VRAM) per mantenere i tile padre
 #define MAX_QUEUE_SIZE 64    // Coda massima richieste download
-#define CACHE_DIR ".tile_cache"
+#define MAX_PATH_LEN 1024
+#define APP_CACHE_NAME  TOOL_SHORT_NAME
+
+const char *CACHE_DIR;
 
 // --- STRUTTURE DATI ---
 typedef struct {
@@ -211,240 +214,6 @@ static pthread_mutex_t queueMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t queueCond = PTHREAD_COND_INITIALIZER;
 static bool workerRunning = true;
 
-// --- FUNZIONI MATEMATICHE WEB MERCATOR ---
-void LatLonToWorldPixel(double lat, double lon, int zoom, double *px, double *py) {
-    double n = pow(2.0, zoom);
-    double tileX = (lon + 180.0) / 360.0 * n;
-    double latRad = lat * M_PI / 180.0;
-    double tileY = (1.0 - asinh(tan(latRad)) / M_PI) / 2.0 * n;
-
-    *px = tileX * TILE_SIZE;
-    *py = tileY * TILE_SIZE;
-}
-
-// Calcola i limiti (bounding box) di un array di punti GPS
-void ComputeTrackBounds(const Vector2 *points, int count, double *minLat, double *maxLat, double *minLon, double *maxLon) {
-    if (count <= 0) return;
-    *minLat = *maxLat = points[0].x;
-    *minLon = *maxLon = points[0].y;
-
-    for (int i = 1; i < count; i++) {
-        if (points[i].x < *minLat) *minLat = points[i].x;
-        if (points[i].x > *maxLat) *maxLat = points[i].x;
-        if (points[i].y < *minLon) *minLon = points[i].y;
-        if (points[i].y > *maxLon) *maxLon = points[i].y;
-    }
-}
-
-// Calcola lo zoom massimo in cui rientra l'intera traccia e centra la telecamera
-void FitTrackToScreen(double minLat, double maxLat, double minLon, double maxLon,
-                      int screenW, int screenH, int paddingPx,
-                      int *outZoom, double *outCamX, double *outCamY) {
-    int availW = screenW - paddingPx * 2;
-    int availH = screenH - paddingPx * 2;
-    if (availW < 64) availW = 64;
-    if (availH < 64) availH = 64;
-
-    int bestZoom = MIN_ZOOM;
-
-    for (int z = MAX_ZOOM; z >= MIN_ZOOM; z--) {
-        double x1, y1, x2, y2;
-        LatLonToWorldPixel(maxLat, minLon, z, &x1, &y1);
-        LatLonToWorldPixel(minLat, maxLon, z, &x2, &y2);
-
-        double widthPx = fabs(x2 - x1);
-        double heightPx = fabs(y2 - y1);
-
-        if (widthPx <= availW && heightPx <= availH) {
-            bestZoom = z;
-            break;
-        }
-    }
-
-    double xMin, yMin, xMax, yMax;
-    LatLonToWorldPixel(maxLat, minLon, bestZoom, &xMin, &yMin);
-    LatLonToWorldPixel(minLat, maxLon, bestZoom, &xMax, &yMax);
-
-    *outZoom = bestZoom;
-    *outCamX = (xMin + xMax) / 2.0;
-    *outCamY = (yMin + yMax) / 2.0;
-}
-
-// --- GESTIONE DOWNLOAD ASINCRONO (LIBCURL) ---
-static size_t WriteFileCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
-    return fwrite(ptr, size, nmemb, (FILE *)stream);
-}
-
-static bool IsTileQueued(int z, int x, int y) {
-    for (int i = 0; i < queueCount; i++) {
-        if (downloadQueue[i].z == z && downloadQueue[i].x == x && downloadQueue[i].y == y) return true;
-    }
-    return false;
-}
-
-static void EnqueueTileDownload(int z, int x, int y) {
-    pthread_mutex_lock(&queueMutex);
-    if (!IsTileQueued(z, x, y) && queueCount < MAX_QUEUE_SIZE) {
-        downloadQueue[queueCount++] = (DownloadJob){z, x, y, true};
-        pthread_cond_signal(&queueCond);
-    }
-    pthread_mutex_unlock(&queueMutex);
-}
-
-static void *DownloadWorker(void *arg) {
-    (void)arg;
-    CURL *curl = curl_easy_init();
-    if (!curl) return NULL;
-
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "RaylibGPSViewer/1.0 (Linux; C99)");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFileCallback);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-
-    const char subdomains[3] = {'a', 'b', 'c'};
-
-    while (workerRunning) {
-        pthread_mutex_lock(&queueMutex);
-        while (queueCount == 0 && workerRunning) {
-            pthread_cond_wait(&queueCond, &queueMutex);
-        }
-        if (!workerRunning) {
-            pthread_mutex_unlock(&queueMutex);
-            break;
-        }
-
-        DownloadJob job = downloadQueue[0];
-        for (int i = 1; i < queueCount; i++) downloadQueue[i - 1] = downloadQueue[i];
-        queueCount--;
-        pthread_mutex_unlock(&queueMutex);
-
-        char finalPath[256];
-        char tempPath[256];
-        snprintf(finalPath, sizeof(finalPath), "%s/otm_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
-        snprintf(tempPath, sizeof(tempPath), "%s/tmp_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
-
-        if (access(finalPath, F_OK) == 0) continue;
-
-        char url[256];
-        char sub = subdomains[(job.x + job.y) % 3];
-        snprintf(url, sizeof(url), "https://%c.tile.opentopomap.org/%d/%d/%d.png", sub, job.z, job.x, job.y);
-        //snprintf(url, sizeof(url), "https://%c.tile-cyclosm.openstreetmap.fr/cyclosm/%d/%d/%d.png", sub, job.z, job.x, job.y);
-
-
-        FILE *fp = fopen(tempPath, "wb");
-        if (fp) {
-            curl_easy_setopt(curl, CURLOPT_URL, url);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-            CURLcode res = curl_easy_perform(curl);
-
-            long httpCode = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-            fclose(fp);
-
-            if (res == CURLE_OK && httpCode == 200) {
-                rename(tempPath, finalPath);
-            } else {
-                remove(tempPath);
-            }
-        }
-    }
-
-    curl_easy_cleanup(curl);
-    return NULL;
-}
-
-// --- GESTIONE CACHE TEXTURE IN GPU & FALLBACK SCALING ---
-static Texture2D *FindTileInRamOnly(int z, int x, int y, unsigned long currentFrame) {
-    for (int i = 0; i < MAX_RAM_TILES; i++) {
-        if (ramCache[i].inUse && ramCache[i].z == z && ramCache[i].x == x && ramCache[i].y == y) {
-            ramCache[i].lastUsedFrame = currentFrame;
-            return &ramCache[i].tex;
-        }
-    }
-    return NULL;
-}
-
-static Texture2D *GetTileTexture(int z, int x, int y, unsigned long currentFrame) {
-    // 1. Cerca nella cache RAM/GPU
-    Texture2D *cached = FindTileInRamOnly(z, x, y, currentFrame);
-    if (cached) return cached;
-
-    // 2. Controlla se il file esiste su disco
-    char path[256];
-    snprintf(path, sizeof(path), "%s/otm_%d_%d_%d.png", CACHE_DIR, z, x, y);
-
-    if (FileExists(path)) {
-        int targetIdx = -1;
-        unsigned long oldestFrame = currentFrame + 1;
-
-        for (int i = 0; i < MAX_RAM_TILES; i++) {
-            if (!ramCache[i].inUse) {
-                targetIdx = i;
-                break;
-            }
-            // Protegge i tile usati nel frame corrente o appena precedente (inclusi i tile padre)
-            if (ramCache[i].lastUsedFrame < oldestFrame && (currentFrame - ramCache[i].lastUsedFrame) > 2) {
-                oldestFrame = ramCache[i].lastUsedFrame;
-                targetIdx = i;
-            }
-        }
-
-        // Fallback se tutti gli slot sono stati usati negli ultimi 2 frame
-        if (targetIdx == -1) {
-            for (int i = 0; i < MAX_RAM_TILES; i++) {
-                if (ramCache[i].lastUsedFrame < oldestFrame) {
-                    oldestFrame = ramCache[i].lastUsedFrame;
-                    targetIdx = i;
-                }
-            }
-        }
-
-        if (targetIdx != -1) {
-            if (ramCache[targetIdx].inUse) {
-                UnloadTexture(ramCache[targetIdx].tex);
-            }
-            Texture2D tex = LoadTexture(path);
-            if (tex.id > 0) {
-                SetTextureFilter(tex, TEXTURE_FILTER_BILINEAR);
-                ramCache[targetIdx] = (CachedTile){z, x, y, tex, true, currentFrame};
-                return &ramCache[targetIdx].tex;
-            }
-        }
-    } else {
-        // 3. Accoda per il download in background
-        EnqueueTileDownload(z, x, y);
-    }
-
-    return NULL;
-}
-
-// Disegna una porzione scalata di un tile antenato (zoom inferiore) mentre quello nuovo carica
-static bool DrawFallbackTile(int z, int tx, int ty, float screenX, float screenY, unsigned long currentFrame) {
-    for (int dz = 1; dz <= 4; dz++) {
-        int parentZ = z - dz;
-        if (parentZ < MIN_ZOOM) break;
-
-        int factor = 1 << dz; // 2, 4, 8, 16
-        int parentX = tx / factor;
-        int parentY = ty / factor;
-
-        Texture2D *parentTex = FindTileInRamOnly(parentZ, parentX, parentY, currentFrame);
-        if (parentTex) {
-            float subSize = (float)TILE_SIZE / (float)factor;
-            float srcX = (tx % factor) * subSize;
-            float srcY = (ty % factor) * subSize;
-
-            Rectangle sourceRec = { srcX, srcY, subSize, subSize };
-            Rectangle destRec = { screenX, screenY, (float)TILE_SIZE, (float)TILE_SIZE };
-
-            DrawTexturePro(*parentTex, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
-            return true;
-        }
-    }
-    return false;
-}
-
-
 /* -----------------------------------------------------------------------------
                         Function declaration
 ----------------------------------------------------------------------------- */
@@ -462,6 +231,19 @@ void drawChart(RenderTexture2D target);
 void ApplyTheme(colorTheme *currentTheme, bool darkMode); 
 Color GetReadableTextColor(Color bgColor);
 void drawChartTooltip(void);
+const char *get_base_cache_dir(void);
+void LatLonToWorldPixel(double lat, double lon, int zoom, double *px, double *py);
+void ComputeTrackBounds(const Vector2 *points, int count, double *minLat, double *maxLat, double *minLon, double *maxLon);
+void FitTrackToScreen(double minLat, double maxLat, double minLon, double maxLon,
+                      int screenW, int screenH, int paddingPx,
+                      int *outZoom, double *outCamX, double *outCamY);
+static size_t WriteFileCallback(void *ptr, size_t size, size_t nmemb, void *stream);
+static bool IsTileQueued(int z, int x, int y);
+static void EnqueueTileDownload(int z, int x, int y);
+static void *DownloadWorker(void *arg);
+static Texture2D *FindTileInRamOnly(int z, int x, int y, unsigned long currentFrame);
+static Texture2D *GetTileTexture(int z, int x, int y, unsigned long currentFrame);
+static bool DrawFallbackTile(int z, int tx, int ty, float screenX, float screenY, unsigned long currentFrame);
 
 int main (void)
 {
@@ -493,18 +275,23 @@ int main (void)
     // shader per cambiare i colori di default delle mappe..
     Shader mapShader = LoadShader(0, "map_theme.fs");
 
-    mkdir(CACHE_DIR, 0755);
+    //mkdir(CACHE_DIR, 0755);
+
+    CACHE_DIR = get_base_cache_dir();
+    if (!CACHE_DIR) return false;
+
     curl_global_init(CURL_GLOBAL_DEFAULT);
     pthread_t workerThread;
     pthread_create(&workerThread, NULL, DownloadWorker, NULL);
 
     int zoom = MIN_ZOOM;
     double camWorldX = 0.0, camWorldY = 0.0;
-        // Bounding box geografico (WGS84 / EPSG:4326)
-double minLon = 10.61959589; // Ovest (Left)
-double maxLon = 11.23261244; // Est (Right)
-double minLat = 45.45178383; // Sud (Bottom)
-double maxLat = 45.74197228; // Nord (Top)
+    
+    // Bounding box geografico (WGS84 / EPSG:4326)
+    double minLon = 10.61959589; // Ovest (Left)
+    double maxLon = 11.23261244; // Est (Right)
+    double minLat = 45.45178383; // Sud (Bottom)
+    double maxLat = 45.74197228; // Nord (Top)
 
     FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
     unsigned long frameCounter = 0;
@@ -1720,5 +1507,295 @@ void drawChartTooltip(void) {
     DrawText(txtAlt,   (int)(boxX + 7), (int)(boxY + 29), fontSize, currentTheme.accentColor);
     DrawText(txtVel,   (int)(boxX + 7), (int)(boxY + 41), fontSize, velColor);
     DrawText(txtSlope, (int)(boxX + 7), (int)(boxY + 53), fontSize, slopeColor);
+}
 
+// Disegna una porzione scalata di un tile antenato (zoom inferiore) mentre quello nuovo carica
+static bool DrawFallbackTile(int z, int tx, int ty, float screenX, float screenY, unsigned long currentFrame) {
+    for (int dz = 1; dz <= 4; dz++) {
+        int parentZ = z - dz;
+        if (parentZ < MIN_ZOOM) break;
+
+        int factor = 1 << dz; // 2, 4, 8, 16
+        int parentX = tx / factor;
+        int parentY = ty / factor;
+
+        Texture2D *parentTex = FindTileInRamOnly(parentZ, parentX, parentY, currentFrame);
+        if (parentTex) {
+            float subSize = (float)TILE_SIZE / (float)factor;
+            float srcX = (tx % factor) * subSize;
+            float srcY = (ty % factor) * subSize;
+
+            Rectangle sourceRec = { srcX, srcY, subSize, subSize };
+            Rectangle destRec = { screenX, screenY, (float)TILE_SIZE, (float)TILE_SIZE };
+
+            DrawTexturePro(*parentTex, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+            return true;
+        }
+    }
+    return false;
+}
+
+static Texture2D *GetTileTexture(int z, int x, int y, unsigned long currentFrame) {
+    // 1. Cerca nella cache RAM/GPU
+    Texture2D *cached = FindTileInRamOnly(z, x, y, currentFrame);
+    if (cached) return cached;
+
+    // 2. Controlla se il file esiste su disco
+    char path[256];
+    snprintf(path, sizeof(path), "%s/otm_%d_%d_%d.png", CACHE_DIR, z, x, y);
+
+    if (FileExists(path)) {
+        int targetIdx = -1;
+        unsigned long oldestFrame = currentFrame + 1;
+
+        for (int i = 0; i < MAX_RAM_TILES; i++) {
+            if (!ramCache[i].inUse) {
+                targetIdx = i;
+                break;
+            }
+            // Protegge i tile usati nel frame corrente o appena precedente (inclusi i tile padre)
+            if (ramCache[i].lastUsedFrame < oldestFrame && (currentFrame - ramCache[i].lastUsedFrame) > 2) {
+                oldestFrame = ramCache[i].lastUsedFrame;
+                targetIdx = i;
+            }
+        }
+
+        // Fallback se tutti gli slot sono stati usati negli ultimi 2 frame
+        if (targetIdx == -1) {
+            for (int i = 0; i < MAX_RAM_TILES; i++) {
+                if (ramCache[i].lastUsedFrame < oldestFrame) {
+                    oldestFrame = ramCache[i].lastUsedFrame;
+                    targetIdx = i;
+                }
+            }
+        }
+
+        if (targetIdx != -1) {
+            if (ramCache[targetIdx].inUse) {
+                UnloadTexture(ramCache[targetIdx].tex);
+            }
+            Texture2D tex = LoadTexture(path);
+            if (tex.id > 0) {
+                SetTextureFilter(tex, TEXTURE_FILTER_BILINEAR);
+                ramCache[targetIdx] = (CachedTile){z, x, y, tex, true, currentFrame};
+                return &ramCache[targetIdx].tex;
+            }
+        }
+    } else {
+        // 3. Accoda per il download in background
+        EnqueueTileDownload(z, x, y);
+    }
+
+    return NULL;
+}
+
+// --- GESTIONE CACHE TEXTURE IN GPU & FALLBACK SCALING ---
+static Texture2D *FindTileInRamOnly(int z, int x, int y, unsigned long currentFrame) {
+    for (int i = 0; i < MAX_RAM_TILES; i++) {
+        if (ramCache[i].inUse && ramCache[i].z == z && ramCache[i].x == x && ramCache[i].y == y) {
+            ramCache[i].lastUsedFrame = currentFrame;
+            return &ramCache[i].tex;
+        }
+    }
+    return NULL;
+}
+
+static void *DownloadWorker(void *arg) {
+    (void)arg;
+    CURL *curl = curl_easy_init();
+    if (!curl) return NULL;
+
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "RaylibGPSViewer/1.0 (Linux; C99)");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFileCallback);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+    const char subdomains[3] = {'a', 'b', 'c'};
+
+    while (workerRunning) {
+        pthread_mutex_lock(&queueMutex);
+        while (queueCount == 0 && workerRunning) {
+            pthread_cond_wait(&queueCond, &queueMutex);
+        }
+        if (!workerRunning) {
+            pthread_mutex_unlock(&queueMutex);
+            break;
+        }
+
+        DownloadJob job = downloadQueue[0];
+        for (int i = 1; i < queueCount; i++) downloadQueue[i - 1] = downloadQueue[i];
+        queueCount--;
+        pthread_mutex_unlock(&queueMutex);
+
+        char finalPath[256];
+        char tempPath[256];
+        snprintf(finalPath, sizeof(finalPath), "%s/otm_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
+        snprintf(tempPath, sizeof(tempPath), "%s/tmp_%d_%d_%d.png", CACHE_DIR, job.z, job.x, job.y);
+
+        if (access(finalPath, F_OK) == 0) continue;
+
+        char url[256];
+        char sub = subdomains[(job.x + job.y) % 3];
+        snprintf(url, sizeof(url), "https://%c.tile.opentopomap.org/%d/%d/%d.png", sub, job.z, job.x, job.y);
+        //snprintf(url, sizeof(url), "https://%c.tile-cyclosm.openstreetmap.fr/cyclosm/%d/%d/%d.png", sub, job.z, job.x, job.y);
+
+
+        FILE *fp = fopen(tempPath, "wb");
+        if (fp) {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+            CURLcode res = curl_easy_perform(curl);
+
+            long httpCode = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+            fclose(fp);
+
+            if (res == CURLE_OK && httpCode == 200) {
+                rename(tempPath, finalPath);
+            } else {
+                remove(tempPath);
+            }
+        }
+    }
+
+    curl_easy_cleanup(curl);
+    return NULL;
+}
+
+// --- GESTIONE DOWNLOAD ASINCRONO (LIBCURL) ---
+static size_t WriteFileCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
+    return fwrite(ptr, size, nmemb, (FILE *)stream);
+}
+
+static bool IsTileQueued(int z, int x, int y) {
+    for (int i = 0; i < queueCount; i++) {
+        if (downloadQueue[i].z == z && downloadQueue[i].x == x && downloadQueue[i].y == y) return true;
+    }
+    return false;
+}
+
+static void EnqueueTileDownload(int z, int x, int y) {
+    pthread_mutex_lock(&queueMutex);
+    if (!IsTileQueued(z, x, y) && queueCount < MAX_QUEUE_SIZE) {
+        downloadQueue[queueCount++] = (DownloadJob){z, x, y, true};
+        pthread_cond_signal(&queueCond);
+    }
+    pthread_mutex_unlock(&queueMutex);
+}
+
+// Calcola lo zoom massimo in cui rientra l'intera traccia e centra la telecamera
+void FitTrackToScreen(double minLat, double maxLat, double minLon, double maxLon,
+                      int screenW, int screenH, int paddingPx,
+                      int *outZoom, double *outCamX, double *outCamY) {
+    int availW = screenW - paddingPx * 2;
+    int availH = screenH - paddingPx * 2;
+    if (availW < 64) availW = 64;
+    if (availH < 64) availH = 64;
+
+    int bestZoom = MIN_ZOOM;
+
+    for (int z = MAX_ZOOM; z >= MIN_ZOOM; z--) {
+        double x1, y1, x2, y2;
+        LatLonToWorldPixel(maxLat, minLon, z, &x1, &y1);
+        LatLonToWorldPixel(minLat, maxLon, z, &x2, &y2);
+
+        double widthPx = fabs(x2 - x1);
+        double heightPx = fabs(y2 - y1);
+
+        if (widthPx <= availW && heightPx <= availH) {
+            bestZoom = z;
+            break;
+        }
+    }
+
+    double xMin, yMin, xMax, yMax;
+    LatLonToWorldPixel(maxLat, minLon, bestZoom, &xMin, &yMin);
+    LatLonToWorldPixel(minLat, maxLon, bestZoom, &xMax, &yMax);
+
+    *outZoom = bestZoom;
+    *outCamX = (xMin + xMax) / 2.0;
+    *outCamY = (yMin + yMax) / 2.0;
+}
+
+// --- FUNZIONI MATEMATICHE WEB MERCATOR ---
+void LatLonToWorldPixel(double lat, double lon, int zoom, double *px, double *py) {
+    double n = pow(2.0, zoom);
+    double tileX = (lon + 180.0) / 360.0 * n;
+    double latRad = lat * M_PI / 180.0;
+    double tileY = (1.0 - asinh(tan(latRad)) / M_PI) / 2.0 * n;
+
+    *px = tileX * TILE_SIZE;
+    *py = tileY * TILE_SIZE;
+}
+
+// Calcola i limiti (bounding box) di un array di punti GPS
+void ComputeTrackBounds(const Vector2 *points, int count, double *minLat, double *maxLat, double *minLon, double *maxLon) {
+    if (count <= 0) return;
+    *minLat = *maxLat = points[0].x;
+    *minLon = *maxLon = points[0].y;
+
+    for (int i = 1; i < count; i++) {
+        if (points[i].x < *minLat) *minLat = points[i].x;
+        if (points[i].x > *maxLat) *maxLat = points[i].x;
+        if (points[i].y < *minLon) *minLon = points[i].y;
+        if (points[i].y > *maxLon) *maxLon = points[i].y;
+    }
+}
+
+// Restituisce il percorso base (es. /home/utente/.cache/miaapp) creandolo se manca.
+// Restituisce NULL in caso di errore.
+const char *get_base_cache_dir(void) {
+    static char base_dir[MAX_PATH_LEN] = {0};
+
+    // Se già calcolato in precedenza, lo restituisce subito
+    if (base_dir[0] != '\0') {
+        return base_dir;
+    }
+
+    const char *xdg_cache = getenv("XDG_CACHE_HOME");
+    int written = 0;
+
+    if (xdg_cache != NULL && xdg_cache[0] != '\0') {
+        if (!DirectoryExists(xdg_cache)) {
+            MakeDirectory(xdg_cache);
+        }
+        written = snprintf(base_dir, sizeof(base_dir), "%s/%s", xdg_cache, APP_CACHE_NAME);
+    } else {
+        const char *home = getenv("HOME");
+        if (home == NULL || home[0] == '\0') {
+            TraceLog(LOG_ERROR, "CACHE: Variabile HOME non trovata");
+            return NULL;
+        }
+
+        // Assicura che ~/.cache esista prima di creare ~/.cache/miaapp
+        char parent_cache[MAX_PATH_LEN] = {0};
+        int p_written = snprintf(parent_cache, sizeof(parent_cache), "%s/.cache", home);
+        if (p_written < 0 || (size_t)p_written >= sizeof(parent_cache)) {
+            TraceLog(LOG_ERROR, "CACHE: Percorso ~/.cache troppo lungo");
+            return NULL;
+        }
+        if (!DirectoryExists(parent_cache)) {
+            MakeDirectory(parent_cache);
+        }
+
+        written = snprintf(base_dir, sizeof(base_dir), "%s/%s", parent_cache, APP_CACHE_NAME);
+    }
+
+    if (written < 0 || (size_t)written >= sizeof(base_dir)) {
+        TraceLog(LOG_ERROR, "CACHE: Percorso base troppo lungo");
+        base_dir[0] = '\0';
+        return NULL;
+    }
+
+    // Crea ~/.cache/miaapp se non esiste (funzione di raylib)
+    if (!DirectoryExists(base_dir)) {
+        if (MakeDirectory(base_dir) != 0) {
+            TraceLog(LOG_ERROR, "CACHE: Impossibile creare la cartella [%s]", base_dir);
+            base_dir[0] = '\0';
+            return NULL;
+        }
+        TraceLog(LOG_INFO, "CACHE: Creata directory [%s]", base_dir);
+    }
+
+    return base_dir;
 }
