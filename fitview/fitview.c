@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.0.8"
+#define TOOL_VERSION            "3.1.2"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -487,7 +487,8 @@ int main (void)
     Font subTitleFont = LoadFontEx("fonts/HelveticaNeue.otf", 28,codepoints, glyphCount); // all other text
 
 	RenderTexture targetChart = LoadRenderTexture(chartRect.width, chartRect.height);
-    Texture2D gpsIcon= LoadTexture("assets/position.png");          // Image converted to texture, GPU memory (VRAM)
+    Texture2D gpsIcon= LoadTexture("assets/position.png");
+    Texture2D startIcon= LoadTexture("assets/start.png");
 
     // shader per cambiare i colori di default delle mappe..
     Shader mapShader = LoadShader(0, "map_theme.fs");
@@ -500,10 +501,11 @@ int main (void)
     int zoom = MIN_ZOOM;
     double camWorldX = 0.0, camWorldY = 0.0;
         // Bounding box geografico (WGS84 / EPSG:4326)
-    double minLon = 10.46546111; // Ovest (Left)
-    double maxLon = 11.36674722; // Est (Right)
-    double minLat = 45.35988611; // Sud (Bottom)
-    double maxLat = 45.91895000; // Nord (Top) 
+double minLon = 10.61959589; // Ovest (Left)
+double maxLon = 11.23261244; // Est (Right)
+double minLat = 45.45178383; // Sud (Bottom)
+double maxLat = 45.74197228; // Nord (Top)
+
     FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
     unsigned long frameCounter = 0;
 
@@ -716,6 +718,7 @@ while (!WindowShouldClose())
 
                         // decodifica il file .FIT
                         decodeFit (fName);
+                            FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
                         // disegna grafico altimetria
                         selectedPointIdx = -1;
                         drawChart(targetChart);
@@ -798,6 +801,7 @@ while (!WindowShouldClose())
 
             if (isTrackLoaded) {
                     // 2. Disegna la traccia GPS (anch'essa traslata di mapRect.x / mapRect.y e tagliata ai bordi)
+                        int step=40 + (MAX_ZOOM-zoom) * 8;
                         double prevX, prevY;
                         //punto GPS iniziale
                         LatLonToWorldPixel(puntiGps[1].lat, puntiGps[1].lon, zoom, &prevX, &prevY);
@@ -807,22 +811,22 @@ while (!WindowShouldClose())
                             double nextX, nextY;
                             LatLonToWorldPixel(puntiGps[i + 1].lat, puntiGps[i + 1].lon, zoom, &nextX, &nextY);
                             Vector2 pNext = { mapRect.x + (float)(nextX - topLeftWorldX), mapRect.y + (float)(nextY - topLeftWorldY) };
-                            DrawLineEx(pPrev, pNext, spessoreLinea, MAROON);
+                            DrawLineEx(pPrev, pNext, spessoreLinea, DARKBLUE);
                             pPrev = pNext;
                         }
 
                          if (showKM && zoom > 11) {
-                            for (int i = 0; i < numPointRec - 1; i+= 40 + ((MAX_ZOOM-zoom)*8)) {
+                            for (int i = 0; i < numPointRec - 1; i+= step) {
                                 // disegna label KM : KEY_K
                                 double labelX, labelY;
                                 LatLonToWorldPixel(puntiGps[i + 1].lat, puntiGps[i + 1].lon, zoom, &labelX, &labelY);
                                 Vector2 pLabel = { mapRect.x + (float)(labelX - topLeftWorldX), mapRect.y + (float)(labelY - topLeftWorldY) };
 
-                                snprintf(tempBuffer, sizeof(tempBuffer), " %0.1f ", puntiGps[i].dist);
-                                Vector2 labelPos = MeasureTextEx(textFont, tempBuffer, textFont.baseSize, 0);
-                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y},0.36f,4,Fade(darkTheme.bgColor, 0.90f));
-                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y},0.36f,4,1.0f,darkTheme.borderColor);
-                                DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,darkTheme.fgColor);
+                                snprintf(tempBuffer, sizeof(tempBuffer), " %0.1f", puntiGps[i].dist);
+                                Vector2 labelPos = MeasureTextEx(boldFont, tempBuffer, boldFont.baseSize, 0);
+                                DrawRectangleRounded((Rectangle){pLabel.x,pLabel.y ,labelPos.x,labelPos.y+1},0.36f,4,Fade(BLUE, 0.90f));
+                                DrawRectangleRoundedLinesEx((Rectangle){pLabel.x,pLabel.y, labelPos.x,labelPos.y+1},0.36f,4,1.5f,WHITE);
+                                DrawTextEx(textFont, tempBuffer, pLabel, (float)textFont.baseSize, 0,WHITE);
                             }
                         }   
 
@@ -830,17 +834,29 @@ while (!WindowShouldClose())
                         double pointX, pointY;
                         LatLonToWorldPixel(puntiGps[selectedPointIdx].lat, puntiGps[selectedPointIdx].lon, zoom, &pointX, &pointY);
                         Vector2 pPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
-                        Vector2 statusOrigin = { gpsIcon.width, gpsIcon.height };
-                         DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  statusOrigin, 0.0f, DARKBLUE );
+                        Vector2 posOrigin = { gpsIcon.width, gpsIcon.height };
+                        DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  posOrigin, 0.0f, MAROON );
+
+
+                    //start
+                    LatLonToWorldPixel(puntiGps[1].lat, puntiGps[1].lon, zoom, &pointX, &pointY);
+                    Vector2 sPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
+                    Vector2 startOrigin = {startIcon.width -(startIcon.width/2), startIcon.height-(startIcon.height/2)};
+                    DrawTexturePro(startIcon, (Rectangle){ 0, 0, startIcon.width, startIcon.height }, (Rectangle){ sPoint.x, sPoint.y, 16, 16 },  startOrigin, 0.0f, RAYWHITE);
+
     
             }
 
             // copyright mappa
             const char *attr = "Map data: (c) OpenStreetMap contributors, SRTM | Style: (c) OpenTopoMap (CC-BY-SA)";
             int attrWidth = MeasureText(attr, 10);
-            DrawRectangle((int)(mapRect.x + mapRect.width) - attrWidth - 14, (int)(mapRect.y + mapRect.height) - 20, attrWidth + 10, 16, Fade(BLACK, 0.50f));
+            DrawRectangle((int)mapRect.x +4, (int)(mapRect.y + mapRect.height) - 20, (int)mapRect.width-8, 16, Fade(BLACK, 0.50f));
             DrawText(attr, (int)(mapRect.x + mapRect.width) - attrWidth - 9, (int)(mapRect.y + mapRect.height) - 17, 10, WHITE);
-        EndScissorMode();
+            
+            char *onOffKm = (showKM)?"ON ":"OFF";
+            DrawText(TextFormat("KM label: %s | Map zoom: %.2d / %.2d",onOffKm, zoom, MAX_ZOOM),(int)mapRect.x+8, (int)(mapRect.y + mapRect.height) - 17, 10, WHITE);
+
+         EndScissorMode();
 
         // bordo attorno alla mappa 
         DrawRectangleLinesEx(mapRect, 1,currentTheme.gridColor);
@@ -1001,7 +1017,7 @@ while (!WindowShouldClose())
             DrawText(TextFormat("%s", TOOL_NAME), 40, 14,10,currentTheme.fgColor); 
             DrawText(TextFormat("vers. %s", TOOL_VERSION), 290, 14,10,currentTheme.fgColor); 
             // //DrawText("[Q] exit program.",screenWidth-94, screenHeight-16,10,GRAY);
-            snprintf(infoText, sizeof(infoText), "[ File in uso: %s | Record letti: %d | Record campionati: %d ] [ Map zoom: %d / %d ]",fName,numRecord, numPointRec, zoom, MAX_ZOOM );
+            snprintf(infoText, sizeof(infoText), "[ File in uso: %s | Record letti: %d | Record campionati: %d ]",fName,numRecord, numPointRec );
             GuiStatusBar((Rectangle){ chartRect.x, screenHeight-28, chartRect.width, 22 }, infoText);
 
         
@@ -1011,6 +1027,7 @@ while (!WindowShouldClose())
 
     UnloadRenderTexture(targetChart);
     UnloadTexture(gpsIcon);
+    UnloadTexture(startIcon);
     UnloadRenderTexture(target);
     UnloadFont(boldFont);
     UnloadFont(textFont);
