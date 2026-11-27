@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.2.0"
+#define TOOL_VERSION            "3.2.1"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -373,9 +373,9 @@ while (!WindowShouldClose())
         if (CheckCollisionPointRec(thisPos, mapRect)) {
             SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
 
-            // --- INPUT: RICENTRA TRACCIA CON TASTO X ---
+            // centra traccia 
             if (IsKeyPressed(KEY_X)) FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
-            
+            // show/hide km labels
             if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
 
             // --- INPUT: PAN CON MOUSE ---
@@ -408,24 +408,16 @@ while (!WindowShouldClose())
                 if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM) {
                     double pivotScreenX, pivotScreenY;
                     // Controlla se c'è una traccia caricata 
-                    if (isTrackLoaded) {
-                        double targetWorldX, targetWorldY;
-                        // a che punto della traccia deve essere centrato lo zoom
-                        LatLonToWorldPixel(puntiGps[numPointRec/3].lat, puntiGps[numPointRec/3].lon, zoom, &targetWorldX, &targetWorldY);
-                        pivotScreenX = targetWorldX - (camWorldX - GetScreenWidth() / 2.0);
-                        pivotScreenY = targetWorldY - (camWorldY - GetScreenHeight() / 2.0);
-                    } 
-                    else {
+ 
                         // primo avvio, no traccia -> usa il cursore del mouse come centro della mappa
                         if (CheckCollisionPointRec(thisPos, zoomUp) || CheckCollisionPointRec(thisPos, zoomDown) || wheel == 0.0f) {
                             pivotScreenX = GetScreenWidth() / 2.0;
                             pivotScreenY = GetScreenHeight() / 2.0;
                         } else {
-                            Vector2 mouse = GetMousePosition();
-                            pivotScreenX = mouse.x;
-                            pivotScreenY = mouse.y;
+                            pivotScreenX = thisPos.x;
+                            pivotScreenY = thisPos.y;
                         }
-                    }
+                    
 
                     double pivotWorldX = camWorldX - (GetScreenWidth() / 2.0) + pivotScreenX;
                     double pivotWorldY = camWorldY - (GetScreenHeight() / 2.0) + pivotScreenY;
