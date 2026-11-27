@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.2.1"
+#define TOOL_VERSION            "3.2.4"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -32,6 +32,10 @@
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#endif
+
+#ifndef DEG2RAD
+#define DEG2RAD (3.14159265358979323846f / 180.0f)
 #endif
 
 #define RAYGUI_IMPLEMENTATION
@@ -58,6 +62,7 @@ const int fntSize = 16;
 char tempBuffer[64];
 bool showKM=false;
 bool isDarkMode = false;
+double centerLat;
 
 typedef struct {
     Color accentColor;
@@ -218,6 +223,9 @@ static bool workerRunning = true;
                         Function declaration
 ----------------------------------------------------------------------------- */
 
+static void DrawOutlinedText(const char *text, int posX, int posY, int fontSize, Color textColor, Color outlineColor);
+static void FormatDistanceLabel(double meters, char *buf, size_t bufSize);
+void DrawGPXSeeScaleBar(double latitude, int zoom, int posX, int posY, int fixedWidthPx);
 bool UpdateKeyRepeater(KeyRepeater *repeater, int key, float deltaTime);
 void ConvertFitTimestamp(FIT_UINT32 fit_timestamp, char* output_str, size_t max_size);
 int decodeFit(char* fileName);
@@ -275,8 +283,6 @@ int main (void)
     // shader per cambiare i colori di default delle mappe..
     Shader mapShader = LoadShader(0, "map_theme.fs");
 
-    //mkdir(CACHE_DIR, 0755);
-
     CACHE_DIR = get_base_cache_dir();
     if (!CACHE_DIR) return false;
 
@@ -292,6 +298,8 @@ int main (void)
     double maxLon = 11.23261244; // Est (Right)
     double minLat = 45.45178383; // Sud (Bottom)
     double maxLat = 45.74197228; // Nord (Top)
+    // per scala graduata
+    centerLat = minLat + (maxLat - minLat);
 
     FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
     unsigned long frameCounter = 0;
@@ -541,7 +549,7 @@ while (!WindowShouldClose())
 
                         // decodifica il file .FIT
                         decodeFit (fName);
-                            FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
+                        //    FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
                         // disegna grafico altimetria
                         selectedPointIdx = -1;
                         drawChart(targetChart);
@@ -669,14 +677,17 @@ while (!WindowShouldClose())
                         DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  posOrigin, 0.0f, WHITE );
 
 
-                    //start
+                    //start traccia con bandierina
                     LatLonToWorldPixel(puntiGps[1].lat, puntiGps[1].lon, zoom, &pointX, &pointY);
                     Vector2 sPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
                     Vector2 startOrigin = {startIcon.width -(startIcon.width/2), startIcon.height-(startIcon.height/2)};
-                    DrawTexturePro(startIcon, (Rectangle){ 0, 0, startIcon.width, startIcon.height }, (Rectangle){ sPoint.x, sPoint.y, 16, 16 },  startOrigin, 0.0f, RAYWHITE);
-
-    
+                    DrawTexturePro(startIcon, (Rectangle){ 0, 0, startIcon.width, startIcon.height }, (Rectangle){ sPoint.x, sPoint.y, 16, 16 },  startOrigin, 0.0f,YELLOW);
             }
+
+            // scala KM graduata di rappresentazione
+            if (isTrackLoaded) centerLat = puntiGps[1].lat;
+            DrawGPXSeeScaleBar(centerLat, zoom, mapRect.x + 8,mapRect.y + 16, 200);
+
 
             // copyright mappa
             const char *attr = "Map data: (c) OpenStreetMap contributors, SRTM | Style: (c) OpenTopoMap (CC-BY-SA)";
@@ -1842,4 +1853,95 @@ const char *get_base_cache_dir(void) {
     }
 
     return base_dir;
+}
+
+// outline text
+static void DrawOutlinedText(const char *text, int posX, int posY, int fontSize, Color textColor, Color outlineColor) {
+    DrawText(text, posX - 1, posY, fontSize, outlineColor);
+    DrawText(text, posX + 1, posY, fontSize, outlineColor);
+    DrawText(text, posX, posY - 1, fontSize, outlineColor);
+    DrawText(text, posX, posY + 1, fontSize, outlineColor);
+    DrawText(text, posX, posY, fontSize, textColor);
+}
+
+// integer km/meters
+static void FormatDistanceLabel(double meters, char *buf, size_t bufSize) {
+    if (meters >= 10000.0) {
+        snprintf(buf, bufSize, "%.0f km", meters / 1000.0);
+    } else if (meters >= 1000.0) {
+        double km = meters / 1000.0;
+        // Se è quasi un intero, evita ".0"
+        if (fabs(km - round(km)) < 0.05) {
+            snprintf(buf, bufSize, "%.0f km", km);
+        } else {
+            snprintf(buf, bufSize, "%.1f km", km);
+        }
+    } else if (meters >= 10.0) {
+        snprintf(buf, bufSize, "%.0f m", meters);
+    } else {
+        snprintf(buf, bufSize, "%.1f m", meters);
+    }
+}
+
+/**
+ * Disegna una barra di scala a larghezza fissa (bianca e nera a 4 tacche).
+ *
+ * @param latitude      Latitudine del centro della mappa in gradi
+ * @param zoom          Livello di zoom corrente (1..17)
+ * @param posX          Posizione X in basso a sinistra sullo schermo
+ * @param posY          Posizione Y del bordo superiore della barra sullo schermo
+ * @param fixedWidthPx  Larghezza fissa totale della barra in pixel (es. 200)
+ */
+void DrawGPXSeeScaleBar(double latitude, int zoom, int posX, int posY, int fixedWidthPx) {
+    const double earthCircumferenceMeters = 40075016.686;
+    double latRad = latitude * (double)DEG2RAD;
+    double metersPerPixel = (earthCircumferenceMeters * cos(latRad)) / (256.0 * pow(2.0, (double)zoom));
+
+    if (metersPerPixel <= 0.0001) return;
+
+    // Distanza totale rappresentata dalla barra fissa
+    double totalMeters = metersPerPixel * (double)fixedWidthPx;
+    double halfMeters  = totalMeters * 0.5;
+
+    // Dimensioni del rettangolo 
+    const int barHeight = 6;
+    const int segments  = 4; 
+
+    // Disegna i 4 blocchi alternati
+    for (int i = 0; i < segments; i++) {
+        int x0 = posX + (i * fixedWidthPx) / segments;
+        int x1 = posX + ((i + 1) * fixedWidthPx) / segments;
+        int segW = x1 - x0;
+
+        Color fill = (i % 2 == 0) ? BLACK : WHITE;
+        DrawRectangle(x0, posY, segW, barHeight, fill);
+    }
+
+    // Bordo nero esterno attorno all'intero rettangolo
+    DrawRectangleLines(posX, posY, fixedWidthPx, barHeight, BLACK);
+
+
+    int midX = posX + fixedWidthPx / 2;
+    // Linea verticale di separazione centrale più evidente (opzionale, stile cartografico)
+    // DrawLine(midX, posY - 2, midX, posY + barHeight, BLACK);
+
+    // Etichette testuali sopra la barra: "0", metà distanza, distanza totale
+    char midLabel[12];
+    char endLabel[12];
+    FormatDistanceLabel(halfMeters, midLabel, sizeof(midLabel));
+    FormatDistanceLabel(totalMeters, endLabel, sizeof(endLabel));
+
+    int fontSize = 10;
+    int textY = posY - fontSize - 3;
+
+    // "0" allineato a sinistra
+    DrawOutlinedText("0", posX, textY, fontSize, BLACK, WHITE);
+
+    // Valore intermedio centrato a metà barra
+    int midTextW = MeasureText(midLabel, fontSize);
+    DrawOutlinedText(midLabel, midX - midTextW / 2, textY, fontSize, BLACK, WHITE);
+
+    // Valore finale allineato a destra
+    int endTextW = MeasureText(endLabel, fontSize);
+    DrawOutlinedText(endLabel, posX + fixedWidthPx - endTextW, textY, fontSize, BLACK, WHITE);
 }
