@@ -674,7 +674,7 @@ while (!WindowShouldClose())
                         LatLonToWorldPixel(puntiGps[selectedPointIdx].lat, puntiGps[selectedPointIdx].lon, zoom, &pointX, &pointY);
                         Vector2 pPoint = { mapRect.x + (float)(pointX - topLeftWorldX), mapRect.y + (float)(pointY - topLeftWorldY)};
                         Vector2 posOrigin = {gpsIcon.width -(gpsIcon.width/2), gpsIcon.height-(gpsIcon.height/2)};
-                        DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  posOrigin, 0.0f, WHITE );
+                        DrawTexturePro(gpsIcon, (Rectangle){ 0, 0, gpsIcon.width, gpsIcon.height }, (Rectangle){ pPoint.x, pPoint.y, 16, 16 },  posOrigin, 0.0f, YELLOW );
 
 
                     //start traccia con bandierina
