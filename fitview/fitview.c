@@ -9,7 +9,7 @@
 
 #define TOOL_NAME               "FIT FILE VIEWER & ANALYZER"
 #define TOOL_SHORT_NAME         "fitview"
-#define TOOL_VERSION            "3.1.6"
+#define TOOL_VERSION            "3.2.0"
 
 #define _DEFAULT_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -336,6 +336,10 @@ int main (void)
     // Array di puntatori ai nomi files filtrati
     const char *displayNames[MAX_FILES];
 
+    const Rectangle zoomUp = {1148,12, 24,28};
+    const Rectangle zoomDown = {1148,42, 24,28};
+
+
     // fai riapparire finestra dopo caricamento iniziale
     // set FPS
     SetTargetFPS(60);
@@ -364,9 +368,10 @@ while (!WindowShouldClose())
             drawChart(targetChart);
         }
         if (btnQuit || IsKeyPressed(KEY_Q)) break;
-        // Applica zoom e pan solo se il mouse è dentro mapRect
+
+        // MAP ZOOM & PAN
         if (CheckCollisionPointRec(thisPos, mapRect)) {
-            SetMouseCursor(4);
+            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
 
             // --- INPUT: RICENTRA TRACCIA CON TASTO X ---
             if (IsKeyPressed(KEY_X)) FitTrackToScreen(minLat, maxLat, minLon, maxLon, GetScreenWidth(), GetScreenHeight(), 80, &zoom, &camWorldX, &camWorldY);
@@ -374,28 +379,67 @@ while (!WindowShouldClose())
             if (IsKeyPressed(KEY_K) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) showKM = !showKM;
 
             // --- INPUT: PAN CON MOUSE ---
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            Vector2 delta = GetMouseDelta();
-            camWorldX -= delta.x;
-            camWorldY -= delta.y;
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !CheckCollisionPointRec(thisPos, zoomUp) && !CheckCollisionPointRec(thisPos, zoomDown)) {
+                Vector2 delta = GetMouseDelta();
+                camWorldX -= delta.x;
+                camWorldY -= delta.y;
             }
-            // --- INPUT: ZOOM CON ROTELLINA (centrato sul cursore) ---
+
+            int zoomDelta = 0;
+            // scroll with mouse
             float wheel = GetMouseWheelMove();
-            if (wheel != 0.0f) {
-            int newZoom = (zoom + (wheel > 0 ? 1 : -1));
-                if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM) {
-                    Vector2 mouse = GetMousePosition();
-                    double mouseWorldX = camWorldX - (GetScreenWidth() / 2.0) + mouse.x;
-                    double mouseWorldY = camWorldY - (GetScreenHeight() / 2.0) + mouse.y;
-                    double scale = pow(2.0, newZoom - zoom);
-                    mouseWorldX *= scale;
-                    mouseWorldY *= scale;
-                    zoom = newZoom;
-                    camWorldX = mouseWorldX + (GetScreenWidth() / 2.0) - mouse.x;
-                    camWorldY = mouseWorldY + (GetScreenHeight() / 2.0) - mouse.y;
-                }
+            if (wheel != 0.0f) zoomDelta = (wheel > 0) ? 1 : -1;
+
+            // zoom con tastiera (+ e - su tastierino, layout US e layout ITA)
+            if (IsKeyPressed(KEY_KP_ADD) || IsKeyPressed(KEY_EQUAL) || IsKeyPressed(KEY_RIGHT_BRACKET) ) zoomDelta = 1;
+            if (IsKeyPressed(KEY_KP_SUBTRACT) || IsKeyPressed(KEY_MINUS) || IsKeyPressed(KEY_SLASH)) zoomDelta = -1;
+
+            if (CheckCollisionPointRec(thisPos, zoomUp)) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) zoomDelta = 1;
             }
-        } else SetMouseCursor(0); //restore os cursor visibility outside matrix
+
+             if (CheckCollisionPointRec(thisPos, zoomDown)) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) zoomDelta = -1;
+            }
+
+            // zoom centrato/dinamico
+            if (zoomDelta != 0) {
+                int newZoom = zoom + zoomDelta;
+                if (newZoom >= MIN_ZOOM && newZoom <= MAX_ZOOM) {
+                    double pivotScreenX, pivotScreenY;
+                    // Controlla se c'è una traccia caricata 
+                    if (isTrackLoaded) {
+                        double targetWorldX, targetWorldY;
+                        // a che punto della traccia deve essere centrato lo zoom
+                        LatLonToWorldPixel(puntiGps[numPointRec/3].lat, puntiGps[numPointRec/3].lon, zoom, &targetWorldX, &targetWorldY);
+                        pivotScreenX = targetWorldX - (camWorldX - GetScreenWidth() / 2.0);
+                        pivotScreenY = targetWorldY - (camWorldY - GetScreenHeight() / 2.0);
+                    } 
+                    else {
+                        // primo avvio, no traccia -> usa il cursore del mouse come centro della mappa
+                        if (CheckCollisionPointRec(thisPos, zoomUp) || CheckCollisionPointRec(thisPos, zoomDown) || wheel == 0.0f) {
+                            pivotScreenX = GetScreenWidth() / 2.0;
+                            pivotScreenY = GetScreenHeight() / 2.0;
+                        } else {
+                            Vector2 mouse = GetMousePosition();
+                            pivotScreenX = mouse.x;
+                            pivotScreenY = mouse.y;
+                        }
+                    }
+
+                    double pivotWorldX = camWorldX - (GetScreenWidth() / 2.0) + pivotScreenX;
+                    double pivotWorldY = camWorldY - (GetScreenHeight() / 2.0) + pivotScreenY;
+                    
+                    double scale = pow(2.0, newZoom - zoom);
+                    pivotWorldX *= scale;
+                    pivotWorldY *= scale;
+                    
+                    zoom = newZoom;
+                    camWorldX = pivotWorldX + (GetScreenWidth() / 2.0) - pivotScreenX;
+                    camWorldY = pivotWorldY + (GetScreenHeight() / 2.0) - pivotScreenY;
+                }   
+            }
+        } else SetMouseCursor(MOUSE_CURSOR_DEFAULT); // restore os cursor visibility outside matrix
 
         float spessoreLinea = 0.36f * zoom; 
 
@@ -556,6 +600,8 @@ while (!WindowShouldClose())
 
 
         BeginScissorMode(mapRect.x, mapRect.y, mapRect.width, mapRect.height);
+
+                // draw openTopo Map
                 double topLeftWorldX = camWorldX - mapRect.width / 2.0;
                 double topLeftWorldY = camWorldY - mapRect.height / 2.0;
 
@@ -585,6 +631,12 @@ while (!WindowShouldClose())
                          EndShaderMode();
                     }
                 }
+
+            // draw zoom control
+            DrawRectangleRec(zoomUp,Fade (BLACK, 0.50f));
+                DrawText("+",zoomUp.x+7,zoomUp.y+5,20,WHITE);
+            DrawRectangleRec(zoomDown,Fade (BLACK, 0.50f));
+                DrawText("-",zoomDown.x+8,zoomDown.y+5,20,WHITE);
 
             if (isTrackLoaded) {
                     // 2. Disegna la traccia GPS (anch'essa traslata di mapRect.x / mapRect.y e tagliata ai bordi)

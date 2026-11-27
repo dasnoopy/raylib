@@ -18,6 +18,11 @@ $ `gcc -Wall -Werror file.c -o executable_name -lraylib -lm [-lid3tag]`
 4) Support notes & info in the readMe.txt located in each project folder..(if needed)
 4) run executable and enjoy!
 
+#### gitMonitor : check GIT repos' latest commits   
+
+![gitmonitor](https://raw.github.com/dasnoopy/raylib/main/screenshot/gitmonitor.png)
+
+
 #### fitView : a .FIT file viewer & analyzer (tested with Bryton Rider 420)  
 
 ![fitview](https://raw.github.com/dasnoopy/raylib/main/screenshot/fitview.png)
